@@ -15,10 +15,11 @@ const Navbar: React.FC = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  // Mobile app-like bottom navigation
+  // Mobile app-like bottom navigation and top bar
   if (isMobile) {
     return (
       <>
+        {/* Mobile top nav bar - simplified */}
         <nav className="mobile-nav-bar">
           <Link to="/" className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-medical-primary flex items-center justify-center text-white font-bold text-lg">F</div>
@@ -54,7 +55,9 @@ const Navbar: React.FC = () => {
                     <Phone className="h-5 w-5" />
                     Contact
                   </Link>
-                  <Button className="w-full bg-medical-primary hover:bg-medical-primary/90 text-white mt-4">Book Consultation</Button>
+                  <Link to="/booking">
+                    <Button className="w-full bg-medical-primary hover:bg-medical-primary/90 text-white mt-4">Book Consultation</Button>
+                  </Link>
                 </div>
               </SheetContent>
             </Sheet>
@@ -65,32 +68,32 @@ const Navbar: React.FC = () => {
         <div className="mobile-bottom-nav">
           <Link to="/" className="flex flex-col items-center px-2 py-1">
             <Home className="h-6 w-6 text-medical-primary dark:text-medical-accent" />
-            <span className="text-xs mt-1 text-medical-neutral-600 dark:text-medical-dark-text-secondary">Home</span>
+            <span className="text-xs mt-1 text-medical-neutral-600 dark:text-medical-dark-text-primary">Home</span>
           </Link>
           <Link to="/services" className="flex flex-col items-center px-2 py-1">
-            <User className="h-6 w-6 text-medical-neutral-600 dark:text-medical-dark-text-secondary" />
-            <span className="text-xs mt-1 text-medical-neutral-600 dark:text-medical-dark-text-secondary">Services</span>
+            <User className="h-6 w-6 text-medical-neutral-600 dark:text-medical-dark-text-primary" />
+            <span className="text-xs mt-1 text-medical-neutral-600 dark:text-medical-dark-text-primary">Services</span>
           </Link>
           <Link to="/booking" className="flex flex-col items-center px-2 py-1">
             <div className="-mt-5 h-14 w-14 rounded-full bg-medical-primary dark:bg-medical-accent flex items-center justify-center shadow-lg">
               <Calendar className="h-7 w-7 text-white" />
             </div>
-            <span className="text-xs mt-1 text-medical-neutral-600 dark:text-medical-dark-text-secondary">Book</span>
+            <span className="text-xs mt-1 text-medical-neutral-600 dark:text-medical-dark-text-primary">Book</span>
           </Link>
           <Link to="/about" className="flex flex-col items-center px-2 py-1">
-            <Info className="h-6 w-6 text-medical-neutral-600 dark:text-medical-dark-text-secondary" />
-            <span className="text-xs mt-1 text-medical-neutral-600 dark:text-medical-dark-text-secondary">About</span>
+            <Info className="h-6 w-6 text-medical-neutral-600 dark:text-medical-dark-text-primary" />
+            <span className="text-xs mt-1 text-medical-neutral-600 dark:text-medical-dark-text-primary">About</span>
           </Link>
           <Link to="/contact" className="flex flex-col items-center px-2 py-1">
-            <Phone className="h-6 w-6 text-medical-neutral-600 dark:text-medical-dark-text-secondary" />
-            <span className="text-xs mt-1 text-medical-neutral-600 dark:text-medical-dark-text-secondary">Contact</span>
+            <Phone className="h-6 w-6 text-medical-neutral-600 dark:text-medical-dark-text-primary" />
+            <span className="text-xs mt-1 text-medical-neutral-600 dark:text-medical-dark-text-primary">Contact</span>
           </Link>
         </div>
       </>
     );
   }
 
-  // Desktop navigation
+  // Desktop navigation - only shown on desktop
   return (
     <nav className="bg-white dark:bg-medical-dark-surface py-4 shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 flex justify-between items-center">
@@ -106,7 +109,9 @@ const Navbar: React.FC = () => {
           <Link to="/faq" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium">FAQs</Link>
           <Link to="/contact" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium">Contact</Link>
           <ThemeToggle />
-          <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white">Book Consultation</Button>
+          <Link to="/booking">
+            <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white">Book Consultation</Button>
+          </Link>
         </div>
         
         <div className="md:hidden flex items-center gap-2">
@@ -126,7 +131,9 @@ const Navbar: React.FC = () => {
             <Link to="/services" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-2" onClick={toggleMenu}>Services</Link>
             <Link to="/faq" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-2" onClick={toggleMenu}>FAQs</Link>
             <Link to="/contact" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-2" onClick={toggleMenu}>Contact</Link>
-            <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white w-full">Book Consultation</Button>
+            <Link to="/booking">
+              <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white w-full" onClick={toggleMenu}>Book Consultation</Button>
+            </Link>
           </div>
         </div>
       )}

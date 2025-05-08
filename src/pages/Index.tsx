@@ -16,14 +16,41 @@ const Index = () => {
   return (
     <div className={`min-h-screen flex flex-col ${isMobile ? 'mobile-app-container' : ''}`}>
       <Navbar />
+      
       <main className={`flex-grow ${isMobile ? 'mobile-content' : ''}`}>
         <Hero />
-        <ServiceOverview />
-        <AboutSection />
-        <HowItWorks />
-        <Testimonials />
-        <CTASection />
+        
+        {/* Mobile-specific content adjustments */}
+        {isMobile ? (
+          <>
+            <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
+              <ServiceOverview />
+            </div>
+            <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
+              <AboutSection />
+            </div>
+            <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
+              <HowItWorks />
+            </div>
+            <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
+              <Testimonials />
+            </div>
+            <div className="pb-16">
+              <CTASection />
+            </div>
+          </>
+        ) : (
+          <>
+            <ServiceOverview />
+            <AboutSection />
+            <HowItWorks />
+            <Testimonials />
+            <CTASection />
+          </>
+        )}
       </main>
+      
+      {/* Footer only on desktop */}
       {!isMobile && <Footer />}
     </div>
   );

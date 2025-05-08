@@ -8,12 +8,15 @@ import AboutSection from "@/components/home/AboutSection";
 import HowItWorks from "@/components/home/HowItWorks";
 import Testimonials from "@/components/home/Testimonials";
 import CTASection from "@/components/home/CTASection";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Index = () => {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col ${isMobile ? 'mobile-app-container' : ''}`}>
       <Navbar />
-      <main className="flex-grow">
+      <main className={`flex-grow ${isMobile ? 'mobile-content' : ''}`}>
         <Hero />
         <ServiceOverview />
         <AboutSection />
@@ -21,7 +24,7 @@ const Index = () => {
         <Testimonials />
         <CTASection />
       </main>
-      <Footer />
+      {!isMobile && <Footer />}
     </div>
   );
 };

@@ -39,13 +39,13 @@
   }
 
   .dark {
-    --background: 224 71% 4%;
+    --background: 220 20% 10%;
     --foreground: 213 31% 91%;
 
-    --card: 224 71% 4%;
+    --card: 224 71% 12%;
     --card-foreground: 213 31% 91%;
 
-    --popover: 224 71% 4%;
+    --popover: 224 71% 12%;
     --popover-foreground: 213 31% 91%;
 
     --primary: 197 65% 29%;
@@ -74,13 +74,18 @@
     @apply border-border;
   }
 
+  html {
+    @apply h-full overflow-x-hidden scroll-smooth;
+  }
+
   body {
-    @apply bg-background text-foreground font-inter;
+    @apply bg-background text-foreground font-inter min-h-screen;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-inter font-semibold text-medical-neutral-600;
+    @apply font-inter font-semibold;
+    @apply text-medical-neutral-600 dark:text-medical-dark-text-primary;
   }
 
   h1 {
@@ -100,11 +105,11 @@
   }
   
   p {
-    @apply leading-relaxed;
+    @apply leading-relaxed dark:text-medical-dark-text-secondary;
   }
   
   .lead {
-    @apply text-lg text-medical-neutral-500;
+    @apply text-lg text-medical-neutral-500 dark:text-medical-dark-text-secondary;
   }
 }
 
@@ -118,10 +123,58 @@
   }
   
   .btn-outline {
-    @apply bg-transparent border border-medical-primary text-medical-primary hover:bg-medical-primary/10 px-6 py-3 rounded-md font-medium transition-colors;
+    @apply bg-transparent border border-medical-primary text-medical-primary hover:bg-medical-primary/10 px-6 py-3 rounded-md font-medium transition-colors dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent/10;
   }
   
   .card-hover {
     @apply transition-all hover:shadow-lg hover:-translate-y-1;
   }
+
+  /* Mobile app-specific styles */
+  .mobile-app-container {
+    @apply max-w-md mx-auto min-h-screen flex flex-col;
+  }
+
+  .mobile-nav-bar {
+    @apply sticky top-0 z-50 px-4 py-3 flex justify-between items-center bg-white dark:bg-medical-dark-surface shadow-sm;
+  }
+
+  .mobile-bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-medical-dark-surface flex justify-around items-center py-2 px-4 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_-2px_10px_rgba(0,0,0,0.3)];
+  }
+
+  .mobile-content {
+    @apply flex-grow pb-16 pt-2 px-4;
+  }
+
+  .mobile-section {
+    @apply py-4;
+  }
+
+  .mobile-card {
+    @apply bg-white dark:bg-medical-dark-surface rounded-xl shadow-sm p-4 border border-medical-border-light dark:border-medical-dark-border;
+  }
+}
+
+/* PWA Installation prompt */
+.pwa-install-prompt {
+  @apply fixed bottom-20 left-4 right-4 bg-white dark:bg-medical-dark-surface p-4 rounded-lg shadow-lg border border-medical-border-light dark:border-medical-dark-border z-50 flex flex-col;
+}
+
+/* Touch-friendly button and link sizes */
+.touch-target {
+  @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+}
+
+/* Bottom sheet animation */
+.bottom-sheet {
+  @apply fixed bottom-0 left-0 right-0 bg-white dark:bg-medical-dark-surface rounded-t-2xl shadow-lg z-50 transform transition-transform duration-300 ease-in-out;
+}
+
+.bottom-sheet-enter {
+  @apply translate-y-full;
+}
+
+.bottom-sheet-enter-active {
+  @apply translate-y-0;
 }

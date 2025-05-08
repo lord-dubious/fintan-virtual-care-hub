@@ -69,7 +69,13 @@ export default {
 					"error": "#DC3545",
 					"success": "#28A745",
 					"warning": "#FFC107",
-					"info": "#0DCAF0"
+					"info": "#0DCAF0",
+					// Dark mode colors
+					"dark-bg": "#121212",
+					"dark-surface": "#1E1E1E",
+					"dark-border": "#2D2D2D",
+					"dark-text-primary": "#E0E0E0",
+					"dark-text-secondary": "#A0A0A0"
 				}
 			},
 			borderRadius: {
@@ -93,13 +99,18 @@ export default {
 				'slide-in-right': {
 					'0%': { transform: 'translateX(100%)' },
 					'100%': { transform: 'translateX(0)' }
+				},
+				'slide-in-up': {
+					'0%': { transform: 'translateY(100%)' },
+					'100%': { transform: 'translateY(0)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.3s ease-out',
-				'slide-in-right': 'slide-in-right 0.3s ease-out'
+				'slide-in-right': 'slide-in-right 0.3s ease-out',
+				'slide-in-up': 'slide-in-up 0.3s ease-out'
 			},
 			fontFamily: {
 				'inter': ['Inter', 'sans-serif'],

@@ -41,23 +41,23 @@ const CTASection: React.FC = () => {
             </div>
             
             <div className="lg:w-5/12 bg-white/10 backdrop-blur-sm flex items-center justify-center p-8 lg:p-12">
-              <div className="bg-white rounded-xl p-6 shadow-lg w-full max-w-sm">
+              <div className="border border-medical-border-light dark:border-medical-dark-border hover:shadow-lg transition-all duration-300 overflow-hidden dark:bg-medical-dark-surface px-[16px] py-[16px]">
                 <h4 className="text-xl font-bold mb-4 text-medical-primary text-center">Virtual Consultation</h4>
                 <div className="flex justify-between mb-2 py-2 border-b border-medical-border-light">
-                  <span className="text-medical-neutral-600">Initial Consultation</span>
+                  <span className="text-medical-neutral-600 text-slate-50">Initial Consultation</span>
                   <span className="font-semibold">$80</span>
                 </div>
                 <div className="flex justify-between mb-2 py-2 border-b border-medical-border-light">
-                  <span className="text-medical-neutral-600">Follow-up Visit</span>
+                  <span className="text-medical-neutral-600 font-normal text-slate-50">Follow-up Visit</span>
                   <span className="font-semibold">$60</span>
                 </div>
                 <div className="flex justify-between mb-4 py-2 border-b border-medical-border-light">
-                  <span className="text-medical-neutral-600">Prescription Renewal</span>
+                  <span className="text-medical-neutral-600 text-slate-50">Prescription Renewal</span>
                   <span className="font-semibold">$40</span>
                 </div>
                 
-                <div className="bg-medical-bg-light rounded-lg p-4 mb-4">
-                  <p className="text-sm text-medical-neutral-500">Most insurance plans accepted. Verification required at booking.</p>
+                <div className="border border-medical-border-light dark:border-medical-dark-border hover:shadow-lg transition-all duration-300 overflow-hidden dark:bg-medical-dark-surface px-[16px] py-[16px]">
+                  <p className="text-sm text-medical-neutral-500 text-slate-50">Most insurance plans accepted. Verification required at booking.</p>
                 </div>
                 
                 <Button className="w-full bg-medical-primary hover:bg-medical-primary/90">

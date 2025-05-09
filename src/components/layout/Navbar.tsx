@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, User, Calendar, Info, Phone } from "lucide-react";
+import { Menu, X, Home, User, Calendar, Info, Phone, Settings } from "lucide-react";
 import { Link } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from '../theme/ThemeProvider';
@@ -26,7 +26,6 @@ const Navbar: React.FC = () => {
             <span className="font-semibold text-xl text-medical-primary dark:text-medical-accent">Dr. Fintan</span>
           </Link>
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             <Sheet>
               <SheetTrigger asChild>
                 <button className="touch-target" aria-label="Menu">
@@ -34,7 +33,11 @@ const Navbar: React.FC = () => {
                 </button>
               </SheetTrigger>
               <SheetContent side="right" className="bg-white dark:bg-medical-dark-surface border-medical-border-light dark:border-medical-dark-border">
-                <div className="flex flex-col gap-6 mt-8">
+                <div className="flex items-center justify-between mb-6 mt-2">
+                  <h3 className="font-semibold text-lg">Menu</h3>
+                  <ThemeToggle /> {/* Moved theme toggle here */}
+                </div>
+                <div className="flex flex-col gap-6">
                   <Link to="/" className="flex items-center gap-3 text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-2">
                     <Home className="h-5 w-5" />
                     Home

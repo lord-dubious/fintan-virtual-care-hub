@@ -9,6 +9,7 @@ import HowItWorks from "@/components/home/HowItWorks";
 import Testimonials from "@/components/home/Testimonials";
 import CTASection from "@/components/home/CTASection";
 import { useIsMobile } from '@/hooks/use-mobile';
+import BreadcrumbNav from '@/components/layout/BreadcrumbNav';
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -16,6 +17,17 @@ const Index = () => {
   return (
     <div className={`min-h-screen flex flex-col ${isMobile ? 'mobile-app-container' : ''}`}>
       <Navbar />
+      
+      {/* Breadcrumb navigation - desktop only */}
+      {!isMobile && (
+        <div className="container mx-auto px-4 py-2">
+          <BreadcrumbNav 
+            items={[
+              { label: 'Home', href: '/', active: true }
+            ]} 
+          />
+        </div>
+      )}
       
       <main className={`flex-grow ${isMobile ? 'mobile-content' : ''}`}>
         <Hero />

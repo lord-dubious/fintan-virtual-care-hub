@@ -1,30 +1,22 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Clock, GraduationCap } from 'lucide-react';
-
 const CTASection: React.FC = () => {
-  const features = [
-    {
-      icon: Shield,
-      title: "Secure & Private",
-      description: "HIPAA-compliant platform with end-to-end encryption for your privacy."
-    },
-    {
-      icon: Clock,
-      title: "Flexible Scheduling",
-      description: "Book appointments that fit your schedule, including evenings and weekends."
-    },
-    {
-      icon: GraduationCap,
-      title: "Expert Care",
-      description: "Receive care from a board-certified physician with telehealth expertise."
-    }
-  ];
-
-  return (
-    <section className="py-16 bg-white">
-      <div className="container mx-auto px-4">
+  const features = [{
+    icon: Shield,
+    title: "Secure & Private",
+    description: "HIPAA-compliant platform with end-to-end encryption for your privacy."
+  }, {
+    icon: Clock,
+    title: "Flexible Scheduling",
+    description: "Book appointments that fit your schedule, including evenings and weekends."
+  }, {
+    icon: GraduationCap,
+    title: "Expert Care",
+    description: "Receive care from a board-certified physician with telehealth expertise."
+  }];
+  return <section className="py-16 bg-medical-bg-light dark:bg-medical-dark-bg">
+      <div className="py-16 bg-medical-bg-light dark:bg-medical-dark-bg">
         <div className="bg-gradient-to-r from-medical-primary to-medical-secondary rounded-2xl overflow-hidden shadow-xl">
           <div className="flex flex-col lg:flex-row">
             <div className="lg:w-7/12 p-8 lg:p-12">
@@ -34,15 +26,13 @@ const CTASection: React.FC = () => {
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {features.map((feature, index) => (
-                  <div key={index} className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                {features.map((feature, index) => <div key={index} className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                     <div className="bg-white/20 w-10 h-10 rounded-full flex items-center justify-center mb-3">
                       <feature.icon className="h-5 w-5 text-white" />
                     </div>
                     <h4 className="text-white font-semibold mb-2">{feature.title}</h4>
                     <p className="text-white/80 text-sm">{feature.description}</p>
-                  </div>
-                ))}
+                  </div>)}
               </div>
               
               <Button className="bg-white text-medical-primary hover:bg-white/90">
@@ -78,8 +68,6 @@ const CTASection: React.FC = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default CTASection;

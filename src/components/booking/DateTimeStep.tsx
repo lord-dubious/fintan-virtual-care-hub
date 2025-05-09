@@ -57,18 +57,20 @@ const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingD
       <h2 className="text-xl font-semibold mb-6 dark:text-medical-dark-text-primary">Select Date & Time</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-lg font-medium mb-4 dark:text-medical-dark-text-primary">Select a Date</h3>
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={handleDateSelect}
-            disabled={disabledDays}
-            fromDate={new Date()}
-            toDate={addDays(new Date(), 30)}
-            className="rounded-md border dark:border-gray-700 pointer-events-auto"
-          />
-          <p className="mt-2 text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary">
+        <div className="flex flex-col items-center">
+          <h3 className="text-lg font-medium mb-4 dark:text-medical-dark-text-primary self-start">Select a Date</h3>
+          <div className="flex justify-center w-full">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={handleDateSelect}
+              disabled={disabledDays}
+              fromDate={new Date()}
+              toDate={addDays(new Date(), 30)}
+              className="rounded-md border dark:border-gray-700"
+            />
+          </div>
+          <p className="mt-2 text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary self-start">
             Consultations available Monday-Saturday
           </p>
         </div>

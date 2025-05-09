@@ -44,7 +44,7 @@ const HowItWorks: React.FC = () => {
             width: 'calc(100% - 20px)'
           }}></div>}
               
-              <div className="bg-white border border-medical-border-light rounded-lg p-6 pt-10 h-full hover:shadow-md transition-shadow">
+              <div className="border border-medical-border-light dark:border-medical-dark-border hover:shadow-lg transition-all duration-300 overflow-hidden dark:bg-medical-dark-surface">
                 <div className={`w-14 h-14 ${step.color} rounded-lg flex items-center justify-center mb-4`}>
                   <step.icon size={28} />
                 </div>

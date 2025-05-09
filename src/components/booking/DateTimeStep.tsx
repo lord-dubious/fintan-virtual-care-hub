@@ -56,7 +56,7 @@ const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingD
     <div>
       <h2 className="text-xl font-semibold mb-6 dark:text-medical-dark-text-primary">Select Date & Time</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="flex flex-col items-center">
           <h3 className="text-lg font-medium mb-4 dark:text-medical-dark-text-primary self-start">Select a Date</h3>
           <div className="flex justify-center w-full">
@@ -70,7 +70,7 @@ const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingD
               className="rounded-md border dark:border-gray-700"
             />
           </div>
-          <p className="mt-2 text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary self-start">
+          <p className="mt-4 text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary self-start">
             Consultations available Monday-Saturday
           </p>
         </div>
@@ -79,12 +79,13 @@ const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingD
           <h3 className="text-lg font-medium mb-4 dark:text-medical-dark-text-primary">Select a Time</h3>
           {selectedDate ? (
             timeSlots.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {timeSlots.map((time) => (
                   <Button
                     key={time}
                     variant={bookingData.time === time ? "default" : "outline"}
                     className={cn(
+                      "py-6",
                       bookingData.time === time 
                         ? "bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90" 
                         : "dark:bg-transparent dark:text-medical-dark-text-primary dark:hover:bg-medical-primary/20"

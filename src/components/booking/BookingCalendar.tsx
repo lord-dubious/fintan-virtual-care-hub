@@ -186,11 +186,11 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
                       return dateData?.availableTimes.length ? true : false;
                     }
                   }}
-                  styles={{
-                    day: (date) => {
-                      return {
-                        className: dayClassName(date)
-                      };
+                  modifiersStyles={{
+                    available: {
+                      color: 'var(--medical-primary)',
+                      backgroundColor: 'rgba(var(--medical-primary-rgb), 0.1)',
+                      fontWeight: 500
                     }
                   }}
                 />

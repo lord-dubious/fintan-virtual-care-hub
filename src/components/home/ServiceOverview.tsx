@@ -17,7 +17,6 @@ const ServiceOverview: React.FC = () => {
         "30-minute dedicated session",
         "Follow-up summary notes",
       ],
-      startingPrice: "$80",
       color: "bg-medical-primary/10 text-medical-primary dark:bg-medical-primary/20 dark:text-medical-accent"
     },
     {
@@ -30,20 +29,18 @@ const ServiceOverview: React.FC = () => {
         "25-minute focused discussion",
         "Same expert medical advice",
       ],
-      startingPrice: "$60",
       color: "bg-medical-secondary/10 text-medical-secondary dark:bg-medical-secondary/20 dark:text-medical-accent"
     },
     {
       icon: FileText,
       title: "Medical Reports",
-      description: "Detailed medical reports and documentation for insurance, referrals or personal records.",
+      description: "Detailed medical documentation for insurance, referrals or personal records.",
       features: [
         "Comprehensive documentation",
         "Insurance-ready formatting",
         "Digital delivery within 48 hours",
         "Secure, HIPAA-compliant process",
       ],
-      startingPrice: "$40",
       color: "bg-medical-accent/10 text-medical-accent dark:bg-medical-accent/20 dark:text-medical-accent"
     }
   ];
@@ -82,12 +79,6 @@ const ServiceOverview: React.FC = () => {
                 </ul>
               </CardContent>
               <CardFooter className="flex flex-col items-start pt-2 mt-auto">
-                <div className="flex items-center mb-3">
-                  <span className="text-sm text-medical-neutral-500 dark:text-medical-dark-text-secondary mr-2">Starting at</span>
-                  <span className="text-lg font-medium text-medical-primary dark:text-medical-accent">
-                    {service.startingPrice}
-                  </span>
-                </div>
                 <Link to="/booking" className="w-full">
                   <Button className="w-full bg-medical-primary hover:bg-medical-primary/90 dark:bg-medical-accent dark:hover:bg-medical-accent/90">
                     Learn More <ArrowRight size={16} className="ml-1" />
@@ -103,12 +94,12 @@ const ServiceOverview: React.FC = () => {
             <div className="md:w-2/3 mb-6 md:mb-0">
               <h3 className="text-xl font-semibold mb-2 dark:text-medical-dark-text-primary">Insurance & Payment Options</h3>
               <p className="text-medical-neutral-500 dark:text-medical-dark-text-secondary">
-                We accept most major insurance plans. For patients without insurance, we offer transparent pricing and multiple payment options to ensure healthcare remains accessible.
+                We accept most major insurance plans and offer transparent pricing to ensure healthcare remains accessible for everyone.
               </p>
             </div>
             <Link to="/services">
               <Button variant="outline" className="border-medical-primary text-medical-primary hover:bg-medical-primary/10 dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent/10">
-                View Insurance Details
+                View Details
               </Button>
             </Link>
           </div>

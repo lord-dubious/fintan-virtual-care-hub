@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ShieldCheck, Clock, GraduationCap, Users } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Clock, GraduationCap, Users, MessageSquare, Video } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const CTASection: React.FC = () => {
@@ -19,14 +19,26 @@ const CTASection: React.FC = () => {
     description: "Receive care from a board-certified physician with telehealth expertise."
   }];
   
-  const testimonials = [
+  const platformOptions = [
     {
-      quote: "Dr. Fintan's telehealth service helped me manage my chronic condition without the stress of frequent clinic visits.",
-      author: "Michael R."
+      icon: Video,
+      name: "Zoom",
+      description: "Connect via Zoom's reliable video platform"
     },
     {
-      quote: "The virtual consultation was just as effective as an in-person visit, but without the travel and waiting time.",
-      author: "Jessica T."
+      icon: Video,
+      name: "FaceTime",
+      description: "Quick connection for Apple device users"
+    },
+    {
+      icon: MessageSquare,
+      name: "WhatsApp",
+      description: "Familiar messaging with video capabilities"
+    },
+    {
+      icon: Video,
+      name: "Dr. Fintan Platform",
+      description: "Our secure, HIPAA-compliant solution"
     }
   ];
   
@@ -36,9 +48,9 @@ const CTASection: React.FC = () => {
         <div className="bg-gradient-to-r from-medical-primary to-medical-secondary rounded-2xl overflow-hidden shadow-xl">
           <div className="flex flex-col lg:flex-row">
             <div className="lg:w-7/12 p-8 lg:p-12">
-              <h2 className="text-2xl md:text-3xl font-bold mb-4 text-white">Experience Healthcare on Your Terms</h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-4 text-white">Healthcare That Works For You</h2>
               <p className="text-white/90 mb-8 leading-relaxed">
-                Schedule your first consultation with Dr. Fintan today and discover how accessible and effective virtual healthcare can be. Same-day appointments often available.
+                Schedule your consultation with Dr. Fintan today and experience personalized care from the comfort of your home. Connect using your preferred platform.
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -55,17 +67,21 @@ const CTASection: React.FC = () => {
               
               <Link to="/booking">
                 <Button className="bg-white text-medical-primary hover:bg-white/90">
-                  Schedule Your Consultation <ArrowRight className="ml-2 h-4 w-4" />
+                  Get Started Today <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {testimonials.map((item, index) => (
-                  <div key={index} className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10">
-                    <p className="text-white/90 text-sm italic mb-2">"{item.quote}"</p>
-                    <p className="text-white/80 text-xs font-medium">— {item.author}</p>
-                  </div>
-                ))}
+              <div className="mt-8">
+                <h3 className="text-white font-medium mb-4">Connect Your Way</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {platformOptions.map((platform, index) => (
+                    <div key={index} className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 flex flex-col items-center text-center">
+                      <platform.icon className="h-5 w-5 text-white mb-2" />
+                      <h5 className="text-white text-sm font-medium">{platform.name}</h5>
+                      <p className="text-white/70 text-xs mt-1">{platform.description}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             
@@ -85,8 +101,8 @@ const CTASection: React.FC = () => {
                   <div className="flex">
                     <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white mr-3">2</div>
                     <div>
-                      <h4 className="text-white font-medium">Receive Access Link</h4>
-                      <p className="text-white/70 text-sm">Check your email for consultation details</p>
+                      <h4 className="text-white font-medium">Choose Your Platform</h4>
+                      <p className="text-white/70 text-sm">Select Zoom, WhatsApp, FaceTime or our secure platform</p>
                     </div>
                   </div>
                   
@@ -94,7 +110,7 @@ const CTASection: React.FC = () => {
                     <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white mr-3">3</div>
                     <div>
                       <h4 className="text-white font-medium">Join Virtual Session</h4>
-                      <p className="text-white/70 text-sm">Connect via video or audio for your consultation</p>
+                      <p className="text-white/70 text-sm">Connect via your preferred method for consultation</p>
                     </div>
                   </div>
                   

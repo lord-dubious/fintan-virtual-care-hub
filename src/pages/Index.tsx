@@ -41,10 +41,10 @@ const Index = () => {
         {isMobile ? (
           <>
             <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
-              <AboutSection />
+              <HowItWorks />
             </div>
             <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
-              <HowItWorks />
+              <AboutSection />
             </div>
             <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
               <ServiceOverview />
@@ -52,14 +52,14 @@ const Index = () => {
             <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
               <Testimonials />
             </div>
-            <div className="pb-16">
+            <div className="pb-20">
               <CTASection />
             </div>
           </>
         ) : (
           <>
-            <AboutSection />
             <HowItWorks />
+            <AboutSection />
             <ServiceOverview />
             <Testimonials />
             <CTASection />

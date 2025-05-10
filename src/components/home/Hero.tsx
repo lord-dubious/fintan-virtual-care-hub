@@ -14,24 +14,24 @@ const Hero: React.FC = () => {
       <section className="py-4">
         <div className="px-4 mb-6">
           <span className="bg-medical-accent/10 dark:bg-medical-accent/20 text-medical-accent dark:text-medical-accent px-3 py-1 rounded-full text-sm font-medium inline-block mb-3">
-            Telehealth Solution
+            Virtual Healthcare
           </span>
           <h1 className="text-2xl font-bold mb-3 text-medical-neutral-600 dark:text-medical-dark-text-primary leading-tight">
-            Healthcare Access <span className="text-medical-primary dark:text-medical-accent">Reimagined</span> with Dr. Fintan
+            Connect with <span className="text-medical-primary dark:text-medical-accent">Dr. Fintan</span> Anytime, Anywhere
           </h1>
           <p className="text-base text-medical-neutral-500 dark:text-medical-dark-text-secondary mb-4">
-            Breaking barriers to quality healthcare through secure, personalized virtual consultations. No travel, no waiting rooms.
+            Quality healthcare that fits your schedule, delivered through secure video and audio consultations.
           </p>
           
           <div className="flex flex-col gap-3 mb-5">
             <Link to="/booking" className="w-full">
               <Button className="w-full bg-medical-primary hover:bg-medical-primary/90 dark:bg-medical-accent dark:hover:bg-medical-accent/90 text-white py-6">
-                Schedule a Consultation <ArrowRight className="ml-2 h-4 w-4" />
+                Get Started <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link to="/services" className="w-full">
               <Button variant="outline" className="w-full border-medical-primary text-medical-primary hover:bg-medical-primary/10 dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent/10 py-2">
-                Explore Options
+                Learn More
               </Button>
             </Link>
           </div>
@@ -95,23 +95,23 @@ const Hero: React.FC = () => {
         <div className="flex flex-col lg:flex-row items-center">
           <div className="lg:w-1/2 mb-10 lg:mb-0">
             <span className="bg-medical-accent/10 text-medical-accent px-4 py-1 rounded-full text-sm font-medium inline-block mb-4">
-              Telehealth Solution
+              Virtual Healthcare
             </span>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-medical-neutral-600 leading-tight dark:text-medical-dark-text-primary">
-              Healthcare Access <span className="text-medical-primary dark:text-medical-accent">Reimagined</span> with Dr. Fintan
+              Healthcare That <span className="text-medical-primary dark:text-medical-accent">Works</span> Around Your Life
             </h1>
             <p className="text-lg text-medical-neutral-500 dark:text-medical-dark-text-secondary mb-8 max-w-lg">
-              Breaking barriers to quality healthcare through secure, personalized virtual consultations — no travel required, no crowded waiting rooms, just professional care when you need it.
+              Connect with Dr. Fintan for personalized care through secure video consultations — accessible from anywhere, whenever you need it.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link to="/booking">
                 <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90">
-                  Schedule a Consultation <ArrowRight className="ml-2 h-4 w-4" />
+                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/about">
                 <Button variant="outline" className="border-medical-primary text-medical-primary hover:bg-medical-primary/10 dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent/10">
-                  How It Works
+                  Learn More
                 </Button>
               </Link>
             </div>

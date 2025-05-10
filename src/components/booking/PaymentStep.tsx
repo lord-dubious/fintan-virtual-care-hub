@@ -1,11 +1,25 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
+import { 
+  CreditCard, 
+  Wallet, 
+  Apple, 
+  Chrome,
+  Shield,
+  CheckCircle
+} from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 interface PaymentStepProps {
   bookingData: {
@@ -23,118 +37,171 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
   updateBookingData,
   onSubmit
 }) => {
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const consultationPrice = bookingData.consultationType === 'video' ? 85 : 65;
   
+  const paymentMethods = [
+    {
+      id: 'card',
+      name: 'Credit/Debit Card',
+      icon: CreditCard,
+      description: 'Pay securely with your card',
+      brands: ['visa', 'mastercard', 'amex']
+    },
+    {
+      id: 'google-pay',
+      name: 'Google Pay',
+      icon: Chrome,
+      description: 'Fast checkout with Google Pay',
+    },
+    {
+      id: 'apple-pay',
+      name: 'Apple Pay',
+      icon: Apple,
+      description: 'Quick and secure Apple Pay',
+    },
+    {
+      id: 'paystack',
+      name: 'Paystack',
+      icon: Wallet,
+      description: 'Pay with local payment methods',
+    }
+  ];
+
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-6 dark:text-medical-dark-text-primary">Payment Details</h2>
-      
-      {/* Order Summary */}
-      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md mb-6">
-        <h3 className="font-medium mb-3 dark:text-medical-dark-text-primary">Appointment Summary</h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">Consultation Type:</span>
+    <div className="space-y-6">
+      <Card className="border-medical-primary/20 dark:border-medical-accent/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-medical-primary dark:text-medical-accent" />
+            Appointment Summary
+          </CardTitle>
+          <CardDescription>Review your booking details before payment</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex justify-between items-center py-2 border-b dark:border-gray-700">
+            <span className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">Consultation Type</span>
             <span className="font-medium dark:text-medical-dark-text-primary">
               {bookingData.consultationType === 'video' ? 'Video Consultation' : 'Audio Consultation'}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">Date:</span>
+          <div className="flex justify-between items-center py-2 border-b dark:border-gray-700">
+            <span className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">Date</span>
             <span className="font-medium dark:text-medical-dark-text-primary">
               {bookingData.date ? format(new Date(bookingData.date), 'PPP') : 'Not selected'}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">Time:</span>
+          <div className="flex justify-between items-center py-2 border-b dark:border-gray-700">
+            <span className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">Time</span>
             <span className="font-medium dark:text-medical-dark-text-primary">{bookingData.time}</span>
           </div>
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2"></div>
-          <div className="flex justify-between text-base">
-            <span className="font-medium dark:text-medical-dark-text-primary">Total:</span>
-            <span className="font-semibold dark:text-medical-dark-text-primary">${consultationPrice.toFixed(2)}</span>
+          <div className="flex justify-between items-center py-2 text-lg">
+            <span className="font-medium dark:text-medical-dark-text-primary">Total Amount</span>
+            <span className="font-bold text-medical-primary dark:text-medical-accent">${consultationPrice.toFixed(2)}</span>
           </div>
-        </div>
-      </div>
-      
-      {/* Payment Method Selection */}
-      <div className="mb-6">
-        <h3 className="font-medium mb-3 dark:text-medical-dark-text-primary">Payment Method</h3>
-        <RadioGroup
-          value={bookingData.paymentMethod}
-          onValueChange={(value) => updateBookingData({ paymentMethod: value })}
-          className="space-y-3"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="card" id="card" />
-            <Label htmlFor="card" className="dark:text-medical-dark-text-primary">Credit or Debit Card</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="paypal" id="paypal" />
-            <Label htmlFor="paypal" className="dark:text-medical-dark-text-primary">PayPal</Label>
-          </div>
-        </RadioGroup>
-      </div>
-      
-      {/* Card Details (simplified) */}
-      {bookingData.paymentMethod === 'card' && (
-        <div className="space-y-4 mb-6">
-          <div>
-            <Label htmlFor="cardName" className="dark:text-medical-dark-text-primary">Name on Card</Label>
-            <Input id="cardName" placeholder="Full name as displayed on card" className="mt-1" />
-          </div>
-          <div>
-            <Label htmlFor="cardNumber" className="dark:text-medical-dark-text-primary">Card Number</Label>
-            <Input id="cardNumber" placeholder="1234 5678 9012 3456" className="mt-1" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="expiryDate" className="dark:text-medical-dark-text-primary">Expiry Date</Label>
-              <Input id="expiryDate" placeholder="MM/YY" className="mt-1" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Method</CardTitle>
+          <CardDescription>Choose your preferred payment option</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={bookingData.paymentMethod}
+            onValueChange={(value) => updateBookingData({ paymentMethod: value })}
+            className="space-y-4"
+          >
+            {paymentMethods.map((method) => (
+              <div key={method.id} className={cn(
+                "flex items-center space-x-4 rounded-lg border p-4 cursor-pointer transition-colors",
+                bookingData.paymentMethod === method.id 
+                  ? "border-medical-primary dark:border-medical-accent bg-medical-primary/5 dark:bg-medical-accent/5"
+                  : "hover:bg-gray-50 dark:hover:bg-gray-800"
+              )}>
+                <RadioGroupItem value={method.id} id={method.id} />
+                <Label htmlFor={method.id} className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <method.icon className="h-5 w-5" />
+                    <div>
+                      <div className="font-medium dark:text-medical-dark-text-primary">{method.name}</div>
+                      <div className="text-sm text-medical-neutral-500 dark:text-medical-dark-text-secondary">
+                        {method.description}
+                      </div>
+                    </div>
+                  </div>
+                </Label>
+                {method.brands && (
+                  <div className="flex gap-2">
+                    {method.brands.map(brand => (
+                      <div key={brand} className="w-8 h-5 bg-gray-100 dark:bg-gray-700 rounded">
+                        {/* Payment brand logos would go here */}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </RadioGroup>
+
+          {bookingData.paymentMethod === 'card' && (
+            <div className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="cardName">Name on Card</Label>
+                <Input id="cardName" placeholder="Full name as displayed on card" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cardNumber">Card Number</Label>
+                <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="expiryDate">Expiry Date</Label>
+                  <Input id="expiryDate" placeholder="MM/YY" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cvv">CVV</Label>
+                  <Input id="cvv" placeholder="123" />
+                </div>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="cvv" className="dark:text-medical-dark-text-primary">CVV</Label>
-              <Input id="cvv" placeholder="123" className="mt-1" />
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* PayPal details would go here */}
-      {bookingData.paymentMethod === 'paypal' && (
-        <div className="text-center p-6 border rounded-md mb-6">
-          <p className="dark:text-medical-dark-text-secondary">
-            You will be redirected to PayPal to complete your payment after clicking "Confirm Booking".
-          </p>
-        </div>
-      )}
-      
-      {/* Terms acceptance */}
-      <div className="flex items-start space-x-2 mb-6">
-        <Checkbox id="terms" />
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="flex items-start space-x-2">
+        <Checkbox 
+          id="terms" 
+          checked={acceptedTerms}
+          onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+        />
         <div className="grid gap-1.5 leading-none">
           <Label
             htmlFor="terms"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 dark:text-medical-dark-text-primary"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
-            I agree to the terms and conditions
+            Accept terms and conditions
           </Label>
           <p className="text-xs text-medical-neutral-600 dark:text-medical-dark-text-secondary">
             By confirming this booking, I agree to Dr. Fintan's terms of service and privacy policy.
           </p>
         </div>
       </div>
-      
+
       <Button 
         onClick={onSubmit}
+        disabled={!acceptedTerms}
         className="w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90"
       >
-        Confirm Booking
+        <CheckCircle className="mr-2 h-4 w-4" />
+        Confirm & Pay ${consultationPrice.toFixed(2)}
       </Button>
-      
-      <p className="text-xs text-center mt-4 text-medical-neutral-600 dark:text-medical-dark-text-secondary">
-        Your payment information is secure and encrypted.
-      </p>
+
+      <div className="flex items-center justify-center gap-2 text-xs text-medical-neutral-500 dark:text-medical-dark-text-secondary">
+        <Shield className="h-4 w-4" />
+        <span>Your payment information is secure and encrypted</span>
+      </div>
     </div>
   );
 };

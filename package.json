@@ -59,7 +59,10 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "@stripe/stripe-js": "^2.4.0",
+    "@paystack/inline-js": "^2.13.0",
+    "@react-google-calendar/api": "^2.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

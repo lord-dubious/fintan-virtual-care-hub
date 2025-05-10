@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Hero from "@/components/home/Hero";
@@ -13,6 +13,11 @@ import BreadcrumbNav from '@/components/layout/BreadcrumbNav';
 
 const Index = () => {
   const isMobile = useIsMobile();
+
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className={`min-h-screen flex flex-col ${isMobile ? 'mobile-app-container' : ''}`}>
@@ -36,13 +41,13 @@ const Index = () => {
         {isMobile ? (
           <>
             <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
-              <ServiceOverview />
-            </div>
-            <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
               <AboutSection />
             </div>
             <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
               <HowItWorks />
+            </div>
+            <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
+              <ServiceOverview />
             </div>
             <div className="border-t border-medical-border-light dark:border-medical-dark-border pt-4">
               <Testimonials />
@@ -53,9 +58,9 @@ const Index = () => {
           </>
         ) : (
           <>
-            <ServiceOverview />
             <AboutSection />
             <HowItWorks />
+            <ServiceOverview />
             <Testimonials />
             <CTASection />
           </>

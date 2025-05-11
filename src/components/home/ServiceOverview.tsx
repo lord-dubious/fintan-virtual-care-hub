@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Video, Headphones, ArrowRight, CheckCircle, FileText } from 'lucide-react';
@@ -46,7 +47,7 @@ const ServiceOverview: React.FC = () => {
 
   return (
     <section className="py-16 bg-white dark:bg-medical-dark-bg">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-12">
           <span className="text-medical-primary font-medium dark:text-medical-accent">Our Services</span>
           <h2 className="text-3xl font-bold mt-2 mb-4 dark:text-medical-dark-text-primary">Virtual Care Solutions</h2>
@@ -88,7 +89,7 @@ const ServiceOverview: React.FC = () => {
           ))}
         </div>
         
-        <div className="mt-16 bg-medical-bg-light dark:bg-medical-dark-surface/50 p-8 rounded-xl max-w-[90%] mx-auto">
+        <div className="mt-16 bg-medical-bg-light dark:bg-medical-dark-surface/50 p-8 rounded-xl max-w-[95%] mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="md:w-2/3 mb-6 md:mb-0">
               <h3 className="text-xl font-semibold mb-2 dark:text-medical-dark-text-primary">Payment Options</h3>

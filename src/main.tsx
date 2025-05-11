@@ -5,7 +5,10 @@ import './index.css'
 
 // This adds a polyfill for smooth scrolling on Safari
 if (!('scrollBehavior' in document.documentElement.style)) {
-  import('scroll-behavior-polyfill')
+  // Using dynamic import with then() to avoid build issues
+  import('scroll-behavior-polyfill').then(() => {
+    console.log('Scroll behavior polyfill loaded');
+  });
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

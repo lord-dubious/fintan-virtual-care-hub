@@ -12,6 +12,7 @@ import PatientInfoStep from '@/components/booking/PatientInfoStep';
 import PaymentStep from '@/components/booking/PaymentStep';
 import { Card } from "@/components/ui/card";
 import { CheckCircle } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
 const BookingPage = () => {
   const isMobile = useIsMobile();

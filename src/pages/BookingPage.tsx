@@ -10,6 +10,8 @@ import ConsultationTypeStep from '@/components/booking/ConsultationTypeStep';
 import DateTimeStep from '@/components/booking/DateTimeStep';
 import PatientInfoStep from '@/components/booking/PatientInfoStep';
 import PaymentStep from '@/components/booking/PaymentStep';
+import { Card } from "@/components/ui/card";
+import { CheckCircle } from 'lucide-react';
 
 const BookingPage = () => {
   const isMobile = useIsMobile();
@@ -87,33 +89,65 @@ const BookingPage = () => {
     }
   };
 
+  // Helper function to determine the step status
+  const getStepStatus = (step: number) => {
+    if (step === currentStep) return "current";
+    if (step < currentStep) return "completed";
+    return "upcoming";
+  };
+
   return (
     <div className={`min-h-screen flex flex-col ${isMobile ? 'mobile-app-container' : ''}`}>
       <Navbar />
       <main className={`flex-grow ${isMobile ? 'mobile-content' : ''}`}>
         <div className="container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-3xl mx-auto">
-            <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 dark:text-medical-dark-text-primary">Book a Consultation</h1>
+            <div className="mb-6 text-center">
+              <h1 className="text-2xl md:text-3xl font-bold dark:text-medical-dark-text-primary">Book Your Consultation</h1>
+              <p className="mt-2 text-medical-neutral-600 dark:text-medical-dark-text-secondary">
+                Complete the steps below to schedule your appointment
+              </p>
+            </div>
             
-            {/* Progress indicator */}
+            {/* Step indicators */}
             <div className="mb-8">
-              <div className="flex justify-between items-center mb-2">
-                {[1, 2, 3, 4].map((step) => (
+              <div className="relative flex items-center justify-between">
+                {[1, 2, 3, 4].map((step) => {
+                  const status = getStepStatus(step);
+                  return (
+                    <div key={step} className="flex flex-col items-center relative z-10">
+                      <div 
+                        className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all",
+                          status === "completed" ? "bg-green-500 text-white" : 
+                          status === "current" ? "bg-medical-primary dark:bg-medical-accent text-white dark:text-medical-dark-surface" : 
+                          "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                        )}
+                      >
+                        {status === "completed" ? <CheckCircle className="h-5 w-5" /> : step}
+                      </div>
+                      <span 
+                        className={cn(
+                          "mt-2 text-xs hidden md:block",
+                          status === "completed" ? "text-green-600 dark:text-green-400" : 
+                          status === "current" ? "text-medical-primary dark:text-medical-accent font-medium" : 
+                          "text-gray-500 dark:text-gray-400"
+                        )}
+                      >
+                        {step === 1 ? "Type" : step === 2 ? "Schedule" : step === 3 ? "Info" : "Payment"}
+                      </span>
+                    </div>
+                  );
+                })}
+                {/* Progress line */}
+                <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 -z-10">
                   <div 
-                    key={step} 
-                    className={`flex-1 text-center ${step === currentStep ? 'font-semibold text-medical-primary dark:text-medical-accent' : 'text-medical-neutral-600 dark:text-medical-dark-text-secondary'}`}
-                  >
-                    Step {step}
-                  </div>
-                ))}
+                    className="absolute top-0 left-0 h-full bg-green-500 dark:bg-green-400 transition-all duration-300 ease-in-out"
+                    style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
+                  ></div>
+                </div>
               </div>
-              <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                <div 
-                  className="absolute top-0 left-0 h-full bg-medical-primary dark:bg-medical-accent rounded-full transition-all duration-300 ease-in-out"
-                  style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between mt-1 text-xs text-medical-neutral-600 dark:text-medical-dark-text-secondary">
+              <div className="flex justify-between mt-1 text-xs text-medical-neutral-600 dark:text-medical-dark-text-secondary md:hidden">
                 <div>Type</div>
                 <div>Schedule</div>
                 <div>Info</div>
@@ -122,30 +156,30 @@ const BookingPage = () => {
             </div>
 
             {/* Step content */}
-            <div className="bg-white dark:bg-medical-dark-surface shadow-md rounded-lg p-6 mb-6">
+            <Card className="bg-white dark:bg-medical-dark-surface shadow-md rounded-xl p-6 mb-6 border-medical-border-light dark:border-medical-dark-border animate-fade-in">
               {renderStepContent()}
-            </div>
+            </Card>
 
             {/* Navigation buttons */}
-            <div className="flex justify-between mt-6">
-              <Button 
-                variant="outline" 
-                onClick={handlePrevious}
-                disabled={currentStep === 1}
-                className="dark:bg-transparent dark:text-medical-dark-text-primary dark:hover:bg-medical-primary/20"
-              >
-                Previous
-              </Button>
-              
-              {currentStep < totalSteps ? (
+            {currentStep < totalSteps && (
+              <div className="flex justify-between mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={handlePrevious}
+                  disabled={currentStep === 1}
+                  className="dark:bg-transparent dark:text-medical-dark-text-primary dark:hover:bg-medical-primary/20 px-6"
+                >
+                  Back
+                </Button>
+                
                 <Button 
                   onClick={handleNext}
-                  className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90"
+                  className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 px-8"
                 >
-                  Next Step
+                  Continue
                 </Button>
-              ) : null}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

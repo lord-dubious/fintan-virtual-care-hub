@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -8,8 +9,6 @@ import { format } from "date-fns";
 import { 
   CreditCard, 
   Wallet, 
-  Apple, 
-  Chrome,
   Shield,
   CheckCircle
 } from 'lucide-react';
@@ -20,6 +19,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import PaymentMethodCard from './PaymentMethodCard';
 
 interface PaymentStepProps {
   bookingData: {
@@ -49,120 +50,103 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
       brands: ['visa', 'mastercard', 'amex']
     },
     {
-      id: 'google-pay',
-      name: 'Google Pay',
-      icon: Chrome,
-      description: 'Fast checkout with Google Pay',
+      id: 'paypal',
+      name: 'PayPal',
+      icon: () => <img src="/icons/paypal.svg" alt="PayPal" className="h-5 w-5" />,
+      description: 'Fast checkout with PayPal',
     },
     {
-      id: 'apple-pay',
-      name: 'Apple Pay',
-      icon: Apple,
-      description: 'Quick and secure Apple Pay',
+      id: 'stripe',
+      name: 'Stripe',
+      icon: () => <img src="/icons/stripe.svg" alt="Stripe" className="h-5 w-5" />,
+      description: 'Secure payments via Stripe',
     },
     {
       id: 'paystack',
       name: 'Paystack',
-      icon: Wallet,
-      description: 'Pay with local payment methods',
+      icon: () => <img src="/icons/paystack.svg" alt="Paystack" className="h-5 w-5" />,
+      description: 'Pay with Paystack',
+    },
+    {
+      id: 'flutterwave',
+      name: 'Flutterwave',
+      icon: () => <img src="/icons/flutterwave.svg" alt="Flutterwave" className="h-5 w-5" />,
+      description: 'Pay with Flutterwave',
     }
   ];
 
   return (
     <div className="space-y-6">
-      <Card className="border-medical-primary/20 dark:border-medical-accent/20">
-        <CardHeader>
+      <Card className="border-medical-primary/20 dark:border-medical-accent/20 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-medical-primary/5 to-medical-accent/5 dark:from-medical-primary/10 dark:to-medical-accent/10">
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-medical-primary dark:text-medical-accent" />
             Appointment Summary
           </CardTitle>
           <CardDescription>Review your booking details before payment</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center py-2 border-b dark:border-gray-700">
+        <CardContent className="space-y-4 pt-6">
+          <div className="flex justify-between items-center py-3 border-b dark:border-gray-700">
             <span className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">Consultation Type</span>
             <span className="font-medium dark:text-medical-dark-text-primary">
               {bookingData.consultationType === 'video' ? 'Video Consultation' : 'Audio Consultation'}
             </span>
           </div>
-          <div className="flex justify-between items-center py-2 border-b dark:border-gray-700">
+          <div className="flex justify-between items-center py-3 border-b dark:border-gray-700">
             <span className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">Date</span>
             <span className="font-medium dark:text-medical-dark-text-primary">
               {bookingData.date ? format(new Date(bookingData.date), 'PPP') : 'Not selected'}
             </span>
           </div>
-          <div className="flex justify-between items-center py-2 border-b dark:border-gray-700">
+          <div className="flex justify-between items-center py-3 border-b dark:border-gray-700">
             <span className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">Time</span>
             <span className="font-medium dark:text-medical-dark-text-primary">{bookingData.time}</span>
           </div>
-          <div className="flex justify-between items-center py-2 text-lg">
+          <div className="flex justify-between items-center py-3 text-lg bg-medical-primary/5 dark:bg-medical-accent/5 rounded-lg px-3 mt-2">
             <span className="font-medium dark:text-medical-dark-text-primary">Total Amount</span>
             <span className="font-bold text-medical-primary dark:text-medical-accent">${consultationPrice.toFixed(2)}</span>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className="shadow-sm border-medical-primary/20 dark:border-medical-accent/20">
+        <CardHeader className="bg-gradient-to-r from-medical-primary/5 to-medical-accent/5 dark:from-medical-primary/10 dark:to-medical-accent/10">
           <CardTitle>Payment Method</CardTitle>
           <CardDescription>Choose your preferred payment option</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <RadioGroup
             value={bookingData.paymentMethod}
             onValueChange={(value) => updateBookingData({ paymentMethod: value })}
             className="space-y-4"
           >
             {paymentMethods.map((method) => (
-              <div key={method.id} className={cn(
-                "flex items-center space-x-4 rounded-lg border p-4 cursor-pointer transition-colors",
-                bookingData.paymentMethod === method.id 
-                  ? "border-medical-primary dark:border-medical-accent bg-medical-primary/5 dark:bg-medical-accent/5"
-                  : "hover:bg-gray-50 dark:hover:bg-gray-800"
-              )}>
-                <RadioGroupItem value={method.id} id={method.id} />
-                <Label htmlFor={method.id} className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <method.icon className="h-5 w-5" />
-                    <div>
-                      <div className="font-medium dark:text-medical-dark-text-primary">{method.name}</div>
-                      <div className="text-sm text-medical-neutral-500 dark:text-medical-dark-text-secondary">
-                        {method.description}
-                      </div>
-                    </div>
-                  </div>
-                </Label>
-                {method.brands && (
-                  <div className="flex gap-2">
-                    {method.brands.map(brand => (
-                      <div key={brand} className="w-8 h-5 bg-gray-100 dark:bg-gray-700 rounded">
-                        {/* Payment brand logos would go here */}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <PaymentMethodCard 
+                key={method.id}
+                method={method}
+                isSelected={bookingData.paymentMethod === method.id}
+              />
             ))}
           </RadioGroup>
 
           {bookingData.paymentMethod === 'card' && (
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div className="space-y-2">
                 <Label htmlFor="cardName">Name on Card</Label>
-                <Input id="cardName" placeholder="Full name as displayed on card" />
+                <Input id="cardName" placeholder="Full name as displayed on card" className="bg-white dark:bg-gray-700" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cardNumber">Card Number</Label>
-                <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
+                <Input id="cardNumber" placeholder="1234 5678 9012 3456" className="bg-white dark:bg-gray-700" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="expiryDate">Expiry Date</Label>
-                  <Input id="expiryDate" placeholder="MM/YY" />
+                  <Input id="expiryDate" placeholder="MM/YY" className="bg-white dark:bg-gray-700" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cvv">CVV</Label>
-                  <Input id="cvv" placeholder="123" />
+                  <Input id="cvv" placeholder="123" className="bg-white dark:bg-gray-700" />
                 </div>
               </div>
             </div>
@@ -170,7 +154,7 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
         </CardContent>
       </Card>
 
-      <div className="flex items-start space-x-2">
+      <div className="flex items-start space-x-2 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
         <Checkbox 
           id="terms" 
           checked={acceptedTerms}
@@ -192,7 +176,7 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
       <Button 
         onClick={onSubmit}
         disabled={!acceptedTerms}
-        className="w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90"
+        className="w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-6 text-base"
       >
         <CheckCircle className="mr-2 h-4 w-4" />
         Confirm & Pay ${consultationPrice.toFixed(2)}

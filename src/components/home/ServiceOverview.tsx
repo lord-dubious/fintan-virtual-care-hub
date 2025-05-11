@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Video, Headphones, ArrowRight, CheckCircle, FileText } from 'lucide-react';
@@ -89,12 +88,12 @@ const ServiceOverview: React.FC = () => {
           ))}
         </div>
         
-        <div className="mt-16 bg-medical-bg-light dark:bg-medical-dark-surface/50 p-8 rounded-xl">
+        <div className="mt-16 bg-medical-bg-light dark:bg-medical-dark-surface/50 p-8 rounded-xl max-w-[90%] mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="md:w-2/3 mb-6 md:mb-0">
-              <h3 className="text-xl font-semibold mb-2 dark:text-medical-dark-text-primary">Insurance & Payment Options</h3>
+              <h3 className="text-xl font-semibold mb-2 dark:text-medical-dark-text-primary">Payment Options</h3>
               <p className="text-medical-neutral-500 dark:text-medical-dark-text-secondary">
-                We accept most major insurance plans and offer transparent pricing to ensure healthcare remains accessible for everyone.
+                We offer transparent pricing and multiple payment methods to ensure healthcare remains accessible for everyone.
               </p>
             </div>
             <Link to="/services">

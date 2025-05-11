@@ -34,7 +34,7 @@ Located in `src/pages/`:
 Located in `src/pages/admin/`:
 
 - `AdminLogin.tsx` - Admin login page
-- `AdminDashboard.tsx` - Admin dashboard
+- `AdminDashboard.tsx` - Admin dashboard with overview statistics and upcoming appointments
 - `AdminAppointments.tsx` - Appointment management
 - `AdminPatients.tsx` - Patient records management
 - `AdminSettings.tsx` - Admin settings
@@ -75,6 +75,10 @@ Located in `src/components/booking/`:
 Located in `src/components/admin/`:
 
 - `AdminLayout.tsx` - Layout wrapper for admin section
+  - Handles authentication state
+  - Provides navigation sidebar/mobile menu
+  - Manages logout functionality
+  - Responsive design for both desktop and mobile views
 
 #### UI Components
 
@@ -110,10 +114,77 @@ Located in `src/lib/`:
 3. **Admin Dashboard**
    - Appointment management (AdminAppointments.tsx)
    - Patient management (AdminPatients.tsx)
+   - Statistical overview (AdminDashboard.tsx)
+   - Settings management (AdminSettings.tsx)
 
-4. **Responsive Design**
-   - Mobile-specific styling (index.css)
-   - Adaptive layouts for all device sizes
+## Admin Dashboard Architecture
+
+### Current Implementation
+
+The admin dashboard currently uses mock data with a simple local storage-based authentication system. Key components include:
+
+- `AdminDashboard.tsx`: Contains the main dashboard with statistics cards and appointment listings
+  - StatCard component for displaying metrics
+  - AppointmentItem component for listing upcoming appointments
+- `AdminLayout.tsx`: Provides the layout structure with authentication handling
+  - Responsive sidebar/navigation menu
+  - Authentication state management
+  - Route protection logic
+
+### Database Integration Plan (Prisma)
+
+To integrate Prisma ORM for database connectivity:
+
+1. **Schema Definition**
+   - Create a `prisma/schema.prisma` file to define data models:
+     ```prisma
+     model Appointment {
+       id          String   @id @default(cuid())
+       patientId   String
+       patient     Patient  @relation(fields: [patientId], references: [id])
+       dateTime    DateTime
+       type        String   // "Video" or "Audio"
+       status      String   // "Scheduled", "Completed", "Cancelled"
+       notes       String?
+       createdAt   DateTime @default(now())
+       updatedAt   DateTime @updatedAt
+     }
+
+     model Patient {
+       id          String        @id @default(cuid())
+       name        String
+       email       String        @unique
+       phone       String?
+       appointments Appointment[]
+       medicalHistory String?
+       createdAt   DateTime      @default(now())
+       updatedAt   DateTime      @updatedAt
+     }
+
+     model User {
+       id          String   @id @default(cuid())
+       email       String   @unique
+       password    String   // Hashed password
+       role        String   // "admin", "doctor", etc.
+       createdAt   DateTime @default(now())
+       updatedAt   DateTime @updatedAt
+     }
+     ```
+
+2. **Service Layer**
+   - Create services in `src/lib/services/`:
+     - `appointmentService.ts` - CRUD operations for appointments
+     - `patientService.ts` - CRUD operations for patients
+     - `authService.ts` - Authentication and user management
+
+3. **Data Fetching Implementation**
+   - Replace mock data in admin components with React Query hooks:
+     - `useAppointments.ts` - For fetching and managing appointment data
+     - `usePatients.ts` - For fetching and managing patient data
+     - `useAuth.ts` - For authentication operations
+
+4. **API Routes**
+   - Create API endpoints to interact with the Prisma client
 
 ## Color Scheme
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -9,25 +8,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
-
 const ContactPage = () => {
   const isMobile = useIsMobile();
-  const { toast } = useToast();
-  
+  const {
+    toast
+  } = useToast();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, this would submit the form data to a server
     toast({
       title: "Message sent",
-      description: "Thank you for your message. We'll get back to you shortly.",
+      description: "Thank you for your message. We'll get back to you shortly."
     });
   };
-  
-  return (
-    <div className={`min-h-screen flex flex-col ${isMobile ? 'mobile-app-container' : ''}`}>
+  return <div className={`min-h-screen flex flex-col ${isMobile ? 'mobile-app-container' : ''}`}>
       <Navbar />
       <main className={`flex-grow ${isMobile ? 'mobile-content' : ''}`}>
-        <div className="container mx-auto px-4 py-8 md:py-16">
+        <div className="container mx-auto py-8 md:py-16 px-[24px]">
           <h1 className="text-3xl md:text-4xl font-bold mb-6 text-center dark:text-medical-dark-text-primary">
             Contact Us
           </h1>
@@ -122,18 +119,10 @@ const ContactPage = () => {
                 
                 <div>
                   <Label htmlFor="message" className="dark:text-medical-dark-text-primary">Message</Label>
-                  <Textarea 
-                    id="message" 
-                    placeholder="Your message or question"
-                    className="mt-1"
-                    rows={5}
-                  />
+                  <Textarea id="message" placeholder="Your message or question" className="mt-1" rows={5} />
                 </div>
                 
-                <Button 
-                  type="submit" 
-                  className="w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90"
-                >
+                <Button type="submit" className="w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90">
                   Send Message
                 </Button>
               </form>
@@ -150,8 +139,6 @@ const ContactPage = () => {
         </div>
       </main>
       {!isMobile && <Footer />}
-    </div>
-  );
+    </div>;
 };
-
 export default ContactPage;

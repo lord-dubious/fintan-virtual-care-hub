@@ -1,9 +1,10 @@
+
 import { prisma } from '../prisma';
 import { Prisma } from '@prisma/client';
 
 // Type definitions for appointment inputs
-export type AppointmentCreateInput = Prisma.AppointmentUncheckedCreateInput;
-export type AppointmentUpdateInput = Prisma.AppointmentUncheckedUpdateInput;
+export type AppointmentCreateInput = Omit<Prisma.AppointmentCreateInput, 'id'> & { patientId?: string };
+export type AppointmentUpdateInput = Partial<Omit<Prisma.AppointmentUpdateInput, 'id'>>;
 
 // Create a service object to export
 export const appointmentService = {
@@ -46,7 +47,7 @@ export const appointmentService = {
 
   create: async (data: AppointmentCreateInput) => {
     return prisma.appointment.create({
-      data,
+      data: data as any,
       include: {
         patient: true,
       },
@@ -56,7 +57,7 @@ export const appointmentService = {
   update: async (id: string, data: AppointmentUpdateInput) => {
     return prisma.appointment.update({
       where: { id },
-      data,
+      data: data as any,
       include: {
         patient: true,
       },

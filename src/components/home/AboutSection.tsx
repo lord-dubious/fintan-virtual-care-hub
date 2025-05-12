@@ -41,7 +41,7 @@ const AboutSection: React.FC = () => {
             <span className="text-medical-primary dark:text-medical-accent font-medium">About Dr. Ekochin</span>
             <h2 className="text-3xl font-bold mt-2 mb-4 dark:text-medical-dark-text-primary">Dedicated to Integrative Healthcare Approaches</h2>
             <p className="text-medical-neutral-500 dark:text-medical-dark-text-secondary mb-6 leading-relaxed">
-              Dr. Ekochin Fintan comes from two generations of the EKOCHIN Family of Doctors. 
+              Dr. Fintan Ekochin comes from two generations of the EKOCHIN Family of Doctors. 
               With proficiency in Igbo, English, and German, he brings a global perspective to his 
               practice after completing his medical education in Nigeria and Austria, with further 
               specialist training in India and the United States.

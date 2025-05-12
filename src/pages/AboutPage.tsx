@@ -21,7 +21,7 @@ const AboutPage = () => {
         <div className="container mx-auto px-4 py-8 md:py-16">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold mb-6 text-center dark:text-medical-dark-text-primary">
-              About Dr. Ekochin Fintan
+              About Dr. Fintan Ekochin
             </h1>
             
             <div className="bg-white dark:bg-medical-dark-surface shadow-md rounded-lg p-6 mb-10">

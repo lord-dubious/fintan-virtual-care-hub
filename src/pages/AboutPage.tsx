@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -23,7 +22,7 @@ const AboutPage = () => {
       title: "Alternative Medicine",
       points: [
         "Used in place of conventional medicine",
-        "Treats symptoms using methods that are "closer to nature"",
+        "Treats symptoms using methods that are \"closer to nature\"",
         "Not all treatments are scientifically validated"
       ]
     },

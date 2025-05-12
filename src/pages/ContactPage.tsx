@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -8,11 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
+
 const ContactPage = () => {
   const isMobile = useIsMobile();
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, this would submit the form data to a server
@@ -21,7 +22,9 @@ const ContactPage = () => {
       description: "Thank you for your message. We'll get back to you shortly."
     });
   };
-  return <div className={`min-h-screen flex flex-col ${isMobile ? 'mobile-app-container' : ''}`}>
+
+  return (
+    <div className={`min-h-screen flex flex-col ${isMobile ? 'mobile-app-container' : ''}`}>
       <Navbar />
       <main className={`flex-grow ${isMobile ? 'mobile-content' : ''}`}>
         <div className="container mx-auto py-8 md:py-16 px-[24px]">
@@ -29,7 +32,7 @@ const ContactPage = () => {
             Contact Us
           </h1>
           <p className="text-center text-medical-neutral-600 dark:text-medical-dark-text-secondary mb-10 max-w-xl mx-auto">
-            Have questions about Dr. Fintan's services? Reach out to us and we'll get back to you as soon as possible.
+            Have questions about Dr. Ekochin's services? Reach out to us and we'll get back to you as soon as possible.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -44,9 +47,9 @@ const ContactPage = () => {
                   </div>
                   <div>
                     <h3 className="font-medium dark:text-medical-dark-text-primary">Email</h3>
-                    <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary mt-1">support@drfintan.com</p>
+                    <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary mt-1">drekochin@example.com</p>
                     <p className="text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary mt-1">
-                      For general inquiries and support
+                      For consultations and general inquiries
                     </p>
                   </div>
                 </div>
@@ -57,9 +60,9 @@ const ContactPage = () => {
                   </div>
                   <div>
                     <h3 className="font-medium dark:text-medical-dark-text-primary">Phone</h3>
-                    <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary mt-1">(555) 123-4567</p>
+                    <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary mt-1">(+234) 123-4567</p>
                     <p className="text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary mt-1">
-                      Monday to Friday, 9am - 5pm
+                      Monday to Friday, 9am - 5pm (WAT)
                     </p>
                   </div>
                 </div>
@@ -71,12 +74,11 @@ const ContactPage = () => {
                   <div>
                     <h3 className="font-medium dark:text-medical-dark-text-primary">Address</h3>
                     <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary mt-1">
-                      1234 Medical Center Drive<br />
-                      Suite 500<br />
-                      San Francisco, CA 94158
+                      ESUT Teaching Hospital<br />
+                      Enugu, Nigeria
                     </p>
                     <p className="text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary mt-1">
-                      Administrative office only (no in-person visits)
+                      Physical consultations by appointment only
                     </p>
                   </div>
                 </div>
@@ -88,8 +90,8 @@ const ContactPage = () => {
                   <div>
                     <h3 className="font-medium dark:text-medical-dark-text-primary">Hours</h3>
                     <div className="text-medical-neutral-600 dark:text-medical-dark-text-secondary mt-1">
-                      <p>Monday - Friday: 8am - 8pm</p>
-                      <p>Saturday: 9am - 1pm</p>
+                      <p>Monday - Friday: 9am - 5pm</p>
+                      <p>Saturday: 10am - 2pm</p>
                       <p>Sunday: Closed</p>
                     </div>
                   </div>
@@ -133,12 +135,14 @@ const ContactPage = () => {
           <div className="mt-12 max-w-3xl mx-auto p-4 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 dark:border-red-400 text-red-800 dark:text-red-300">
             <h3 className="font-bold mb-2">Medical Emergency?</h3>
             <p>
-              Our virtual consultation service is not intended for medical emergencies. If you are experiencing a medical emergency, please call emergency services (911) or go to your nearest emergency room immediately.
+              Our virtual consultation service is not intended for medical emergencies. If you are experiencing a medical emergency, please call emergency services or go to your nearest emergency room immediately.
             </p>
           </div>
         </div>
       </main>
       {!isMobile && <Footer />}
-    </div>;
+    </div>
+  );
 };
+
 export default ContactPage;

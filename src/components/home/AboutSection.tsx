@@ -2,14 +2,15 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Award, CheckCircle, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const AboutSection: React.FC = () => {
   const qualifications = [
-    "Board Certified in Internal Medicine",
-    "Specialized in Telemedicine since 2018",
-    "Over 10,000 virtual consultations completed",
-    "Master's in Global Health and Telehealth",
-    "Award-winning patient satisfaction ratings"
+    "Fellow of the West African College of Physicians",
+    "Head of Neurology at ESUT Teaching Hospital Enugu",
+    "Senior Lecturer for Neurophysiology at Godfrey Okoye University",
+    "Former Commissioner for Health, Enugu State (2017-2019)",
+    "Experienced in Neurology practice in Nigeria, India and USA"
   ];
 
   return (
@@ -21,7 +22,7 @@ const AboutSection: React.FC = () => {
               <div className="absolute -top-4 -left-4 w-24 h-24 bg-medical-accent/20 rounded-lg z-0"></div>
               <img
                 src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
-                alt="Dr. Fintan in professional attire"
+                alt="Dr. Ekochin in professional attire"
                 className="rounded-lg shadow-lg z-10 relative"
               />
               <div className="absolute -bottom-6 -right-6 bg-white dark:bg-medical-dark-surface p-5 rounded-lg shadow-lg z-20 border-l-4 border-medical-primary dark:border-medical-accent">
@@ -37,18 +38,18 @@ const AboutSection: React.FC = () => {
           </div>
           
           <div className="lg:w-7/12">
-            <span className="text-medical-primary dark:text-medical-accent font-medium">About Dr. Fintan</span>
-            <h2 className="text-3xl font-bold mt-2 mb-4 dark:text-medical-dark-text-primary">Dedicated to Accessible Healthcare Through Technology</h2>
+            <span className="text-medical-primary dark:text-medical-accent font-medium">About Dr. Ekochin</span>
+            <h2 className="text-3xl font-bold mt-2 mb-4 dark:text-medical-dark-text-primary">Dedicated to Integrative Healthcare Approaches</h2>
             <p className="text-medical-neutral-500 dark:text-medical-dark-text-secondary mb-6 leading-relaxed">
-              Dr. Fintan brings over 15 years of medical expertise to his virtual practice, 
-              combining traditional medical knowledge with telehealth innovation. 
-              His approach focuses on personalized care, clear communication, and 
-              leveraging technology to make quality healthcare accessible to all.
+              Dr. Ekochin Fintan comes from two generations of the EKOCHIN Family of Doctors. 
+              With proficiency in Igbo, English, and German, he brings a global perspective to his 
+              practice after completing his medical education in Nigeria and Austria, with further 
+              specialist training in India and the United States.
             </p>
             <p className="text-medical-neutral-500 dark:text-medical-dark-text-secondary mb-8 leading-relaxed">
-              After witnessing barriers to healthcare access, Dr. Fintan dedicated his 
-              practice to virtual care, ensuring patients can receive expert medical 
-              consultation regardless of location or mobility limitations.
+              His approach combines Orthodox and Alternative medicine, creating a unique blend of 
+              Complementary, Functional, Orthomolecular, and Lifestyle Medicine that delivers a 
+              pharmacologically minimalist approach to healthcare, making it ideal for cross-border virtual care.
             </p>
             
             <div className="mb-8">
@@ -63,9 +64,11 @@ const AboutSection: React.FC = () => {
               </ul>
             </div>
             
-            <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90">
-              Learn More About Dr. Fintan <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            <Link to="/about">
+              <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90">
+                Learn More About Dr. Ekochin <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

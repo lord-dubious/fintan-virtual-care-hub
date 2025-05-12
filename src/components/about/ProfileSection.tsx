@@ -21,7 +21,6 @@ const ProfileSection = () => {
         <div className="flex flex-wrap justify-center md:justify-start gap-3">
           <span className="px-3 py-1 bg-medical-primary/10 dark:bg-medical-accent/20 text-medical-primary dark:text-medical-accent text-sm rounded-full">Neurology</span>
           <span className="px-3 py-1 bg-medical-primary/10 dark:bg-medical-accent/20 text-medical-primary dark:text-medical-accent text-sm rounded-full">Integrative Medicine</span>
-          <span className="px-3 py-1 bg-medical-primary/10 dark:bg-medical-accent/20 text-medical-primary dark:text-medical-accent text-sm rounded-full">Telemedicine</span>
         </div>
       </div>
     </div>

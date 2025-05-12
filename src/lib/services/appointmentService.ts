@@ -3,8 +3,8 @@ import { prisma } from '../prisma';
 import { Prisma } from '@prisma/client';
 
 // Type definitions for appointment inputs
-export type AppointmentCreateInput = Omit<Prisma.AppointmentCreateInput, 'id'> & { patientId?: string };
-export type AppointmentUpdateInput = Partial<Omit<Prisma.AppointmentUpdateInput, 'id'>>;
+export type AppointmentCreateInput = Omit<Prisma.AppointmentUncheckedCreateInput, 'id'> & { patientId?: string };
+export type AppointmentUpdateInput = Partial<Omit<Prisma.AppointmentUncheckedUpdateInput, 'id'>>;
 
 // Create a service object to export
 export const appointmentService = {

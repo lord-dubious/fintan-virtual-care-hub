@@ -1,54 +1,68 @@
-
 import { prisma } from '../prisma';
 import { Prisma } from '@prisma/client';
 
-// Get all patients
-export const getAllPatients = async () => {
-  return prisma.patient.findMany({
-    include: {
-      appointments: true,
-    },
-  });
+// Type definitions for patient inputs
+export type PatientCreateInput = Prisma.PatientUncheckedCreateInput;
+export type PatientUpdateInput = Prisma.PatientUncheckedUpdateInput;
+
+// Create a service object to export
+export const patientService = {
+  getAll: async () => {
+    return prisma.patient.findMany({
+      include: {
+        appointments: true,
+      },
+    });
+  },
+
+  getById: async (id: string) => {
+    return prisma.patient.findUnique({
+      where: { id },
+      include: {
+        appointments: true,
+      },
+    });
+  },
+
+  getByEmail: async (email: string) => {
+    return prisma.patient.findUnique({
+      where: { email },
+      include: {
+        appointments: true,
+      },
+    });
+  },
+
+  create: async (data: PatientCreateInput) => {
+    return prisma.patient.create({
+      data,
+      include: {
+        appointments: true,
+      },
+    });
+  },
+
+  update: async (id: string, data: PatientUpdateInput) => {
+    return prisma.patient.update({
+      where: { id },
+      data,
+      include: {
+        appointments: true,
+      },
+    });
+  },
+
+  delete: async (id: string) => {
+    return prisma.patient.delete({
+      where: { id },
+    });
+  }
 };
 
-// Get patient by ID
-export const getPatientById = async (id: string) => {
-  return prisma.patient.findUnique({
-    where: { id },
-    include: {
-      appointments: true,
-    },
-  });
-};
-
-// Get patient by email
-export const getPatientByEmail = async (email: string) => {
-  return prisma.patient.findUnique({
-    where: { email },
-    include: {
-      appointments: true,
-    },
-  });
-};
-
-// Create patient
-export const createPatient = async (data: Prisma.PatientCreateInput) => {
-  return prisma.patient.create({
-    data,
-  });
-};
-
-// Update patient
-export const updatePatient = async (id: string, data: Prisma.PatientUpdateInput) => {
-  return prisma.patient.update({
-    where: { id },
-    data,
-  });
-};
-
-// Delete patient
-export const deletePatient = async (id: string) => {
-  return prisma.patient.delete({
-    where: { id },
-  });
-};
+// Keep the individual function exports for backward compatibility
+export const getAllPatients = patientService.getAll;
+export const getPatientById = patientService.getById;
+export const getPatientByEmail = patientService.getByEmail;
+export const createPatient = patientService.create;
+export const updatePatient = patientService.update;
+export const deletePatient = patientService.delete;

@@ -1,6 +1,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { patientService, PatientCreateInput, PatientUpdateInput } from '@/lib/services/patientService';
+import { 
+  patientService, 
+  PatientCreateInput, 
+  PatientUpdateInput 
+} from '@/lib/services/patientService';
 
 export const usePatients = () => {
   const queryClient = useQueryClient();

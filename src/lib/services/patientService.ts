@@ -1,86 +1,54 @@
 
 import { prisma } from '../prisma';
-import type { Patient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
-export type PatientCreateInput = {
-  name: string;
-  email: string;
-  phone?: string;
-  medicalHistory?: string;
+// Get all patients
+export const getAllPatients = async () => {
+  return prisma.patient.findMany({
+    include: {
+      appointments: true,
+    },
+  });
 };
 
-export type PatientUpdateInput = Partial<PatientCreateInput>;
+// Get patient by ID
+export const getPatientById = async (id: string) => {
+  return prisma.patient.findUnique({
+    where: { id },
+    include: {
+      appointments: true,
+    },
+  });
+};
 
-export const patientService = {
-  // Get all patients
-  getAll: async () => {
-    try {
-      return await prisma.patient.findMany({
-        orderBy: { name: 'asc' }
-      });
-    } catch (error) {
-      console.error('Error fetching patients:', error);
-      throw error;
-    }
-  },
+// Get patient by email
+export const getPatientByEmail = async (email: string) => {
+  return prisma.patient.findUnique({
+    where: { email },
+    include: {
+      appointments: true,
+    },
+  });
+};
 
-  // Get patient by ID
-  getById: async (id: string) => {
-    try {
-      return await prisma.patient.findUnique({
-        where: { id },
-        include: { appointments: true }
-      });
-    } catch (error) {
-      console.error(`Error fetching patient ${id}:`, error);
-      throw error;
-    }
-  },
+// Create patient
+export const createPatient = async (data: Prisma.PatientCreateInput) => {
+  return prisma.patient.create({
+    data,
+  });
+};
 
-  // Get patient by email
-  getByEmail: async (email: string) => {
-    try {
-      return await prisma.patient.findUnique({
-        where: { email }
-      });
-    } catch (error) {
-      console.error(`Error fetching patient by email ${email}:`, error);
-      throw error;
-    }
-  },
+// Update patient
+export const updatePatient = async (id: string, data: Prisma.PatientUpdateInput) => {
+  return prisma.patient.update({
+    where: { id },
+    data,
+  });
+};
 
-  // Create new patient
-  create: async (data: PatientCreateInput) => {
-    try {
-      return await prisma.patient.create({ data });
-    } catch (error) {
-      console.error('Error creating patient:', error);
-      throw error;
-    }
-  },
-
-  // Update patient
-  update: async (id: string, data: PatientUpdateInput) => {
-    try {
-      return await prisma.patient.update({
-        where: { id },
-        data
-      });
-    } catch (error) {
-      console.error(`Error updating patient ${id}:`, error);
-      throw error;
-    }
-  },
-  
-  // Delete patient
-  delete: async (id: string) => {
-    try {
-      return await prisma.patient.delete({
-        where: { id }
-      });
-    } catch (error) {
-      console.error(`Error deleting patient ${id}:`, error);
-      throw error;
-    }
-  }
+// Delete patient
+export const deletePatient = async (id: string) => {
+  return prisma.patient.delete({
+    where: { id },
+  });
 };

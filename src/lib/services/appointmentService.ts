@@ -1,79 +1,49 @@
 
-import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
+import { PrismaClient, Appointment } from '@prisma/client';
 
-// Type definitions for appointment inputs
-export type AppointmentCreateInput = Omit<Prisma.AppointmentUncheckedCreateInput, 'id'> & { patientId?: string };
-export type AppointmentUpdateInput = Partial<Omit<Prisma.AppointmentUncheckedUpdateInput, 'id'>>;
+const prisma = new PrismaClient();
 
-// Create a service object to export
 export const appointmentService = {
-  getAll: async () => {
-    return prisma.appointment.findMany({
-      include: {
-        patient: true,
-      },
+  async create(data: any): Promise<Appointment> {
+    return await prisma.appointment.create({
+      data,
     });
   },
 
-  getUpcoming: async () => {
+  async findById(id: string): Promise<Appointment | null> {
+    return await prisma.appointment.findUnique({
+      where: { id },
+    });
+  },
+
+  async findMany(): Promise<Appointment[]> {
+    return await prisma.appointment.findMany();
+  },
+
+  async update(id: string, data: any): Promise<Appointment> {
+    return await prisma.appointment.update({
+      where: { id },
+      data,
+    });
+  },
+
+  async delete(id: string): Promise<Appointment> {
+    return await prisma.appointment.delete({
+      where: { id },
+    });
+  },
+
+  async getUpcoming(): Promise<Appointment[]> {
     const now = new Date();
-    return prisma.appointment.findMany({
+    return await prisma.appointment.findMany({
       where: {
-        dateTime: {
-          gte: now
+        appointmentDate: {
+          gte: now,
         },
-        status: {
-          not: 'Cancelled'
-        }
-      },
-      include: {
-        patient: true,
       },
       orderBy: {
-        dateTime: 'asc'
-      }
-    });
-  },
-
-  getById: async (id: string) => {
-    return prisma.appointment.findUnique({
-      where: { id },
-      include: {
-        patient: true,
+        appointmentDate: 'asc',
       },
     });
   },
-
-  create: async (data: AppointmentCreateInput) => {
-    return prisma.appointment.create({
-      data: data as any,
-      include: {
-        patient: true,
-      },
-    });
-  },
-
-  update: async (id: string, data: AppointmentUpdateInput) => {
-    return prisma.appointment.update({
-      where: { id },
-      data: data as any,
-      include: {
-        patient: true,
-      },
-    });
-  },
-
-  delete: async (id: string) => {
-    return prisma.appointment.delete({
-      where: { id },
-    });
-  }
 };
-
-// Keep the individual function exports for backward compatibility
-export const getAllAppointments = appointmentService.getAll;
-export const getAppointmentById = appointmentService.getById;
-export const createAppointment = appointmentService.create;
-export const updateAppointment = appointmentService.update;
-export const deleteAppointment = appointmentService.delete;

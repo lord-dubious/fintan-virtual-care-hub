@@ -11,7 +11,7 @@ import DateTimeStep from '@/components/booking/DateTimeStep';
 import PatientInfoStep from '@/components/booking/PatientInfoStep';
 import PaymentStep from '@/components/booking/PaymentStep';
 import { Card } from "@/components/ui/card";
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, ArrowLeft } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const BookingPage = () => {
@@ -32,6 +32,7 @@ const BookingPage = () => {
   });
 
   const totalSteps = 4;
+  const stepTitles = ['Consultation Type', 'Date & Time', 'Your Information', 'Payment'];
 
   const updateBookingData = (data: Partial<typeof bookingData>) => {
     setBookingData(prev => ({ ...prev, ...data }));
@@ -54,7 +55,7 @@ const BookingPage = () => {
   const handleSubmit = () => {
     toast({
       title: "Booking Successful",
-      description: "Your appointment has been confirmed.",
+      description: "Your appointment has been confirmed. You'll receive confirmation details shortly.",
     });
     navigate('/booking/confirmation', { state: { bookingData } });
   };
@@ -90,11 +91,25 @@ const BookingPage = () => {
     }
   };
 
-  // Helper function to determine the step status
   const getStepStatus = (step: number) => {
     if (step === currentStep) return "current";
     if (step < currentStep) return "completed";
     return "upcoming";
+  };
+
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return bookingData.consultationType !== '';
+      case 2:
+        return bookingData.date && bookingData.time;
+      case 3:
+        return bookingData.patientName && bookingData.patientEmail && bookingData.patientPhone;
+      case 4:
+        return true;
+      default:
+        return false;
+    }
   };
 
   return (
@@ -102,82 +117,89 @@ const BookingPage = () => {
       <Navbar />
       <main className={`flex-grow ${isMobile ? 'mobile-content' : ''}`}>
         <div className="container mx-auto px-4 py-8 md:py-12">
-          <div className="max-w-3xl mx-auto">
-            <div className="mb-6 text-center">
-              <h1 className="text-2xl md:text-3xl font-bold dark:text-medical-dark-text-primary">Book Your Consultation</h1>
+          <div className="max-w-4xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/')}
+                className="mb-4 text-medical-neutral-600 dark:text-medical-dark-text-secondary hover:text-medical-primary dark:hover:text-medical-accent"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+              <h1 className="text-3xl md:text-4xl font-bold dark:text-medical-dark-text-primary">
+                Book with Dr. Fintan Ekochin
+              </h1>
               <p className="mt-2 text-medical-neutral-600 dark:text-medical-dark-text-secondary">
-                Complete the steps below to schedule your appointment
+                Complete your consultation booking in {totalSteps} simple steps
               </p>
             </div>
             
-            {/* Step indicators */}
+            {/* Progress Bar */}
             <div className="mb-8">
-              <div className="relative flex items-center justify-between">
-                {[1, 2, 3, 4].map((step) => {
-                  const status = getStepStatus(step);
+              <div className="flex items-center justify-between mb-4">
+                {stepTitles.map((title, index) => {
+                  const stepNumber = index + 1;
+                  const status = getStepStatus(stepNumber);
                   return (
-                    <div key={step} className="flex flex-col items-center relative z-10">
+                    <div key={stepNumber} className="flex flex-col items-center relative z-10 flex-1">
                       <div 
                         className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all",
+                          "w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all mb-2",
                           status === "completed" ? "bg-green-500 text-white" : 
                           status === "current" ? "bg-medical-primary dark:bg-medical-accent text-white dark:text-medical-dark-surface" : 
                           "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                         )}
                       >
-                        {status === "completed" ? <CheckCircle className="h-5 w-5" /> : step}
+                        {status === "completed" ? <CheckCircle className="h-5 w-5" /> : stepNumber}
                       </div>
                       <span 
                         className={cn(
-                          "mt-2 text-xs hidden md:block",
+                          "text-xs text-center max-w-24",
                           status === "completed" ? "text-green-600 dark:text-green-400" : 
                           status === "current" ? "text-medical-primary dark:text-medical-accent font-medium" : 
                           "text-gray-500 dark:text-gray-400"
                         )}
                       >
-                        {step === 1 ? "Type" : step === 2 ? "Schedule" : step === 3 ? "Info" : "Payment"}
+                        {title}
                       </span>
                     </div>
                   );
                 })}
-                {/* Progress line */}
-                <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 -z-10">
-                  <div 
-                    className="absolute top-0 left-0 h-full bg-green-500 dark:bg-green-400 transition-all duration-300 ease-in-out"
-                    style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
-                  ></div>
-                </div>
               </div>
-              <div className="flex justify-between mt-1 text-xs text-medical-neutral-600 dark:text-medical-dark-text-secondary md:hidden">
-                <div>Type</div>
-                <div>Schedule</div>
-                <div>Info</div>
-                <div>Payment</div>
+              {/* Progress line */}
+              <div className="relative h-1 bg-gray-200 dark:bg-gray-700 rounded">
+                <div 
+                  className="absolute top-0 left-0 h-full bg-green-500 rounded transition-all duration-300 ease-in-out"
+                  style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
+                ></div>
               </div>
             </div>
 
-            {/* Step content */}
-            <Card className="bg-white dark:bg-medical-dark-surface shadow-md rounded-xl p-6 mb-6 border-medical-border-light dark:border-medical-dark-border animate-fade-in">
+            {/* Step Content */}
+            <Card className="bg-white dark:bg-medical-dark-surface shadow-lg rounded-xl p-6 mb-8 border-medical-border-light dark:border-medical-dark-border">
               {renderStepContent()}
             </Card>
 
-            {/* Navigation buttons */}
+            {/* Navigation */}
             {currentStep < totalSteps && (
-              <div className="flex justify-between mt-6">
+              <div className="flex justify-between">
                 <Button 
                   variant="outline" 
                   onClick={handlePrevious}
                   disabled={currentStep === 1}
-                  className="dark:bg-transparent dark:text-medical-dark-text-primary dark:hover:bg-medical-primary/20 px-6"
+                  className="dark:bg-transparent dark:text-medical-dark-text-primary dark:hover:bg-medical-primary/20 px-8"
                 >
-                  Back
+                  Previous
                 </Button>
                 
                 <Button 
                   onClick={handleNext}
+                  disabled={!isStepValid()}
                   className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 px-8"
                 >
-                  Continue
+                  {currentStep === totalSteps - 1 ? 'Review & Pay' : 'Continue'}
                 </Button>
               </div>
             )}

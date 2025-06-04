@@ -1,3 +1,5 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -8,34 +10,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Appointment {
-  id            String    @id @default(cuid())
-  patientId     String
-  patient       Patient   @relation(fields: [patientId], references: [id])
-  dateTime      DateTime
-  type          String    // "Video" or "Audio"
-  status        String    // "Scheduled", "Completed", "Cancelled"
-  notes         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
-
-model Patient {
-  id              String        @id @default(cuid())
-  name            String
-  email           String        @unique
-  phone           String?
-  appointments    Appointment[]
-  medicalHistory  String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-}
-
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  password    String   // Hashed password
-  role        String   // "admin", "doctor", etc.
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String?   // Hashed password
+  name            String?
+  twitterUsername String?
+  twitterId       String?   @unique
+  googleId        String?   @unique
+  onboardingStep  Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  apiKeys         ApiKey[]
+  botPersonas     BotPersona[]
+  categories      Category[]
+  brainEntries    BrainEntry[]
+  scheduledPosts  ScheduledPost[]
+  drafts          Draft[]
+  postedTweets    PostedTweet[]
+}
+
+model ApiKey {
+  id             String   @id @default(cuid())
+  userId         String
+  provider       String   // 'openai' or 'google'
+  encryptedKey   String
+  baseUrl        String?  // For custom OpenAI endpoints
+  preferredModel String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+model BotPersona {
+  id                String    @id @default(cuid())
+  userId           String
+  name             String
+  description      String?
+  personalityConfig Json
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scheduledPosts  ScheduledPost[]
+  drafts          Draft[]
+  postedTweets    PostedTweet[]
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  userId       String
+  name         String
+  color        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brainEntries BrainEntry[]
+
+  @@unique([userId, name])
+}
+
+model BrainEntry {
+  id          String    @id @default(cuid())
+  userId      String
+  categoryId  String?
+  content     String
+  embedding   Unsupported("vector(1536)")?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id])
+}
+
+model ScheduledPost {
+  id           String    @id @default(cuid())
+  userId       String
+  content      String
+  mediaUrls    String[]
+  scheduledFor DateTime
+  botPersonaId String?
+  status       String    @default("pending")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  botPersona  BotPersona? @relation(fields: [botPersonaId], references: [id])
+}
+
+model Draft {
+  id           String    @id @default(cuid())
+  userId       String
+  content      String
+  mediaUrls    String[]
+  botPersonaId String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  botPersona  BotPersona? @relation(fields: [botPersonaId], references: [id])
+}
+
+model PostedTweet {
+  id                String    @id @default(cuid())
+  userId           String
+  tweetId          String
+  content          String
+  mediaUrls        String[]
+  botPersonaId     String?
+  performanceMetrics Json?
+  postedAt         DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  botPersona       BotPersona? @relation(fields: [botPersonaId], references: [id])
 }

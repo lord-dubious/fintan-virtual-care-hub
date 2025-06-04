@@ -66,14 +66,13 @@ const Index = () => {
               <Card className="mb-8 overflow-hidden shadow-xl">
                 <CardContent className="p-0">
                   <div className="grid lg:grid-cols-2 gap-0">
-                    {/* Profile Image Placeholder - Large Card */}
+                    {/* Profile Image */}
                     <div className="bg-gradient-to-br from-medical-primary/10 to-medical-accent/10 dark:from-medical-primary/20 dark:to-medical-accent/20 flex items-center justify-center min-h-[300px] lg:min-h-[400px]">
-                      <div className="text-8xl font-bold text-medical-primary dark:text-medical-accent">F</div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-medical-neutral-500 dark:text-medical-dark-text-secondary text-sm bg-white dark:bg-medical-dark-surface px-3 py-1 rounded-full shadow-sm">
-                          Profile photo will be added here
-                        </span>
-                      </div>
+                      <img 
+                        src="/Drekochin portrait.png" 
+                        alt="Dr. Fintan Ekochin" 
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     
                     {/* Profile Info */}

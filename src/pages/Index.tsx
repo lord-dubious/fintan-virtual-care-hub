@@ -13,7 +13,10 @@ import {
   CheckCircle,
   Award,
   Globe,
-  Users
+  Users,
+  Stethoscope,
+  Brain,
+  Heart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -54,9 +57,27 @@ const Index = () => {
   const expectations = [
     "Amalgamation of Orthodox and Alternative medicine",
     "Complementary, Functional, Orthomolecular approach",
-    "Pharmacologically minimalist healthcare",
-    "Most consultations end without drug prescriptions",
+    "Pharmacologically minimalist healthcare - most consultations end without drug prescriptions",
+    "Focus on lifestyle medicine and natural healing approaches",
     "Efficient cross-border client care"
+  ];
+
+  const specialties = [
+    {
+      icon: Brain,
+      title: "Neurological Care",
+      description: "Expert diagnosis and treatment of neurological conditions"
+    },
+    {
+      icon: Heart,
+      title: "Integrative Medicine",
+      description: "Combining traditional and alternative medicine approaches"
+    },
+    {
+      icon: Stethoscope,
+      title: "Lifestyle Medicine",
+      description: "Focus on prevention through lifestyle modifications"
+    }
   ];
 
   return (
@@ -84,36 +105,28 @@ const Index = () => {
                     Neurologist & Integrative Medicine Specialist
                   </p>
                   
-                  {/* Bio from the document */}
+                  {/* Bio */}
                   <div className="bg-white dark:bg-medical-dark-surface p-6 rounded-lg shadow-sm mb-6">
                     <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary mb-4 leading-relaxed">
                       Dr. Fintan Ekochin is one of two generations of the EKOCHIN Family of Doctors. He largely grew up in 
                       Nigeria with some years of childhood spent in Austria, where he added German to his Igbo and English language 
                       proficiency.
                     </p>
-                    <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary mb-4 leading-relaxed">
+                    <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary leading-relaxed">
                       After completing Primary and Secondary schools in Nigeria and a University Preparatory course in Medical 
-                      School in Vienna after studying Medical Latin and also completing a diploma in Radiographic equipment sales.
+                      School in Vienna, he studied Medical Latin and completed a diploma in Radiographic equipment sales.
                     </p>
                   </div>
 
-                  {/* Key Stats */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="text-center p-3 bg-white dark:bg-medical-dark-surface rounded-lg shadow-sm">
-                      <Users className="h-6 w-6 text-medical-primary dark:text-medical-accent mx-auto mb-2" />
-                      <div className="font-bold text-lg dark:text-medical-dark-text-primary">2,000+</div>
-                      <div className="text-xs text-medical-neutral-600 dark:text-medical-dark-text-secondary">Patients</div>
-                    </div>
-                    <div className="text-center p-3 bg-white dark:bg-medical-dark-surface rounded-lg shadow-sm">
-                      <Award className="h-6 w-6 text-medical-primary dark:text-medical-accent mx-auto mb-2" />
-                      <div className="font-bold text-lg dark:text-medical-dark-text-primary">15+</div>
-                      <div className="text-xs text-medical-neutral-600 dark:text-medical-dark-text-secondary">Years</div>
-                    </div>
-                    <div className="text-center p-3 bg-white dark:bg-medical-dark-surface rounded-lg shadow-sm">
-                      <Globe className="h-6 w-6 text-medical-primary dark:text-medical-accent mx-auto mb-2" />
-                      <div className="font-bold text-lg dark:text-medical-dark-text-primary">3</div>
-                      <div className="text-xs text-medical-neutral-600 dark:text-medical-dark-text-secondary">Countries</div>
-                    </div>
+                  {/* Specialties */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    {specialties.map((specialty, index) => (
+                      <div key={index} className="text-center p-3 bg-white dark:bg-medical-dark-surface rounded-lg shadow-sm">
+                        <specialty.icon className="h-6 w-6 text-medical-primary dark:text-medical-accent mx-auto mb-2" />
+                        <div className="font-bold text-sm dark:text-medical-dark-text-primary">{specialty.title}</div>
+                        <div className="text-xs text-medical-neutral-600 dark:text-medical-dark-text-secondary">{specialty.description}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -155,7 +168,7 @@ const Index = () => {
                   </Link>
 
                   <p className="text-center text-sm text-medical-neutral-500 dark:text-medical-dark-text-secondary mt-4">
-                    Available Monday-Saturday • Secure & HIPAA Compliant
+                    Available Monday-Saturday • Secure & Private
                   </p>
                 </div>
               </div>
@@ -179,7 +192,7 @@ const Index = () => {
                 {expectations.map((expectation, index) => (
                   <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                    <span className="dark:text-medical-dark-text-secondary">{expectation}</span>
+                    <span className="dark:text-medical-dark-text-secondary text-left">{expectation}</span>
                   </div>
                 ))}
               </div>

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, Calendar, Info, Phone, ChevronRight } from "lucide-react";
+import { Menu, X, Home, Calendar, Info, Phone, ChevronRight, LogIn, UserPlus } from "lucide-react";
 import { Link, useLocation } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from '../theme/ThemeProvider';
@@ -102,7 +102,7 @@ const Navbar: React.FC = () => {
     );
   }
 
-  // Desktop navigation - simplified
+  // Desktop navigation - with login and signup buttons
   return (
     <nav className="bg-white dark:bg-medical-dark-surface py-4 shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 flex justify-between items-center">
@@ -121,10 +121,21 @@ const Navbar: React.FC = () => {
           <Link to="/contact" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium">
             Contact
           </Link>
-          <ThemeToggle />
-          <Link to="/booking">
-            <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90">Book Consultation</Button>
-          </Link>
+          
+          <div className="flex items-center space-x-3">
+            <ThemeToggle />
+            <Button variant="ghost" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent">
+              <LogIn className="h-4 w-4 mr-2" />
+              Login
+            </Button>
+            <Button variant="outline" className="border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Sign Up
+            </Button>
+            <Link to="/booking">
+              <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90">Book Consultation</Button>
+            </Link>
+          </div>
         </div>
         
         <div className="md:hidden flex items-center gap-2">

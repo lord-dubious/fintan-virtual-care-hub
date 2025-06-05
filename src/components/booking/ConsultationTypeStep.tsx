@@ -46,6 +46,10 @@ const ConsultationTypeStep: React.FC<ConsultationTypeStepProps> = ({ bookingData
     }
   ];
 
+  const handleCardClick = (typeId: string) => {
+    updateBookingData({ consultationType: typeId });
+  };
+
   return (
     <div>
       <div className="text-center mb-8">
@@ -65,29 +69,42 @@ const ConsultationTypeStep: React.FC<ConsultationTypeStepProps> = ({ bookingData
         {consultationTypes.map((type) => (
           <Card 
             key={type.id} 
-            className={`cursor-pointer transition-all border-2 ${
+            className={`cursor-pointer transition-all duration-300 border-2 transform hover:scale-[1.02] active:scale-[0.98] ${
               bookingData.consultationType === type.id 
-                ? 'border-medical-primary dark:border-medical-accent bg-medical-primary/5 dark:bg-medical-accent/5' 
-                : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700'
+                ? 'border-medical-primary dark:border-medical-accent bg-medical-primary/5 dark:bg-medical-accent/5 shadow-lg' 
+                : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md'
             } ${type.recommended ? 'ring-2 ring-medical-primary/20 dark:ring-medical-accent/20' : ''}`}
+            onClick={() => handleCardClick(type.id)}
           >
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <RadioGroupItem value={type.id} id={type.id} className="mt-1" />
+                <RadioGroupItem 
+                  value={type.id} 
+                  id={type.id} 
+                  className="mt-1 pointer-events-none" 
+                />
                 
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-full bg-medical-primary/10 dark:bg-medical-accent/20 flex items-center justify-center">
-                        <type.icon className="h-6 w-6 text-medical-primary dark:text-medical-accent" />
+                      <div className={`h-12 w-12 rounded-full flex items-center justify-center transition-all duration-300 ${
+                        bookingData.consultationType === type.id 
+                          ? 'bg-medical-primary/20 dark:bg-medical-accent/30 scale-110' 
+                          : 'bg-medical-primary/10 dark:bg-medical-accent/20'
+                      }`}>
+                        <type.icon className={`h-6 w-6 transition-all duration-300 ${
+                          bookingData.consultationType === type.id 
+                            ? 'text-medical-primary dark:text-medical-accent scale-110' 
+                            : 'text-medical-primary dark:text-medical-accent'
+                        }`} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <Label htmlFor={type.id} className="text-lg font-semibold cursor-pointer dark:text-medical-dark-text-primary">
+                          <Label htmlFor={type.id} className="text-lg font-semibold cursor-pointer dark:text-medical-dark-text-primary pointer-events-none">
                             {type.title}
                           </Label>
                           {type.recommended && (
-                            <span className="px-2 py-1 bg-medical-primary/10 dark:bg-medical-accent/20 text-medical-primary dark:text-medical-accent text-xs rounded-full font-medium">
+                            <span className="px-2 py-1 bg-medical-primary/10 dark:bg-medical-accent/20 text-medical-primary dark:text-medical-accent text-xs rounded-full font-medium animate-pulse">
                               Recommended
                             </span>
                           )}
@@ -124,22 +141,22 @@ const ConsultationTypeStep: React.FC<ConsultationTypeStepProps> = ({ bookingData
         ))}
       </RadioGroup>
       
-      <div className="mt-8 p-4 bg-medical-primary/5 dark:bg-medical-accent/5 rounded-lg">
+      <div className="mt-8 p-4 bg-medical-primary/5 dark:bg-medical-accent/5 rounded-lg hover:bg-medical-primary/10 dark:hover:bg-medical-accent/10 transition-all duration-300">
         <h3 className="font-semibold mb-2 dark:text-medical-dark-text-primary">All consultations include:</h3>
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary">
-          <li className="flex items-center gap-2">
+          <li className="flex items-center gap-2 hover:text-medical-primary dark:hover:text-medical-accent transition-colors duration-200">
             <CheckCircle className="h-4 w-4 text-green-500" />
             Personalized medical advice
           </li>
-          <li className="flex items-center gap-2">
+          <li className="flex items-center gap-2 hover:text-medical-primary dark:hover:text-medical-accent transition-colors duration-200">
             <CheckCircle className="h-4 w-4 text-green-500" />
             Secure, HIPAA-compliant platform
           </li>
-          <li className="flex items-center gap-2">
+          <li className="flex items-center gap-2 hover:text-medical-primary dark:hover:text-medical-accent transition-colors duration-200">
             <CheckCircle className="h-4 w-4 text-green-500" />
             Follow-up recommendations
           </li>
-          <li className="flex items-center gap-2">
+          <li className="flex items-center gap-2 hover:text-medical-primary dark:hover:text-medical-accent transition-colors duration-200">
             <CheckCircle className="h-4 w-4 text-green-500" />
             Prescription when appropriate
           </li>

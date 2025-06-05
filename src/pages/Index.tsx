@@ -63,15 +63,23 @@ const Index = () => {
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               {/* Large Profile Card */}
-              <Card className="mb-8 overflow-hidden shadow-xl">
+              <Card className="mb-8 overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer">
                 <CardContent className="p-0">
                   <div className="grid lg:grid-cols-2 gap-0">
                     {/* Profile Image */}
-                    <div className="bg-gradient-to-br from-medical-primary/10 to-medical-accent/10 dark:from-medical-primary/20 dark:to-medical-accent/20 flex items-center justify-center min-h-[300px] lg:min-h-[400px]">
+                    <div className="relative bg-gradient-to-br from-medical-primary/10 to-medical-accent/10 dark:from-medical-primary/20 dark:to-medical-accent/20 flex items-center justify-center min-h-[300px] lg:min-h-[400px] overflow-hidden">
                       <img 
                         src="/Drekochin portrait.png" 
                         alt="Dr. Fintan Ekochin" 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover object-center"
+                        style={{ display: 'block' }}
+                        onError={(e) => {
+                          console.log('Image failed to load:', e);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={() => {
+                          console.log('Image loaded successfully');
+                        }}
                       />
                     </div>
                     
@@ -91,7 +99,7 @@ const Index = () => {
                       </p>
 
                       <Link to="/booking">
-                        <Button className="w-full lg:w-auto bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-3 px-8 text-lg">
+                        <Button className="w-full lg:w-auto bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-3 px-8 text-lg transform hover:scale-105 transition-all duration-200 active:scale-95">
                           Book Your Consultation
                           <ArrowRight className="ml-2 h-5 w-5" />
                         </Button>
@@ -104,9 +112,9 @@ const Index = () => {
               {/* Specialties Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {specialties.map((specialty, index) => (
-                  <Card key={index} className="text-center p-4 hover:shadow-md transition-shadow">
+                  <Card key={index} className="text-center p-4 hover:shadow-lg transition-all duration-300 transform hover:scale-105 hover:bg-medical-primary/5 dark:hover:bg-medical-accent/5 cursor-pointer active:scale-95">
                     <CardContent className="p-0">
-                      <specialty.icon className="h-8 w-8 text-medical-primary dark:text-medical-accent mx-auto mb-3" />
+                      <specialty.icon className="h-8 w-8 text-medical-primary dark:text-medical-accent mx-auto mb-3 transition-transform duration-200 group-hover:scale-110" />
                       <h3 className="font-bold text-sm mb-2 dark:text-medical-dark-text-primary">{specialty.title}</h3>
                       <p className="text-xs text-medical-neutral-600 dark:text-medical-dark-text-secondary">{specialty.description}</p>
                     </CardContent>
@@ -131,7 +139,7 @@ const Index = () => {
               
               <div className="grid md:grid-cols-2 gap-6">
                 {expectations.map((expectation, index) => (
-                  <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-left">
+                  <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-left hover:bg-medical-primary/5 dark:hover:bg-medical-accent/5 transition-all duration-300 transform hover:scale-105 cursor-pointer active:scale-95">
                     <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
                     <span className="dark:text-medical-dark-text-secondary">{expectation}</span>
                   </div>
@@ -140,7 +148,7 @@ const Index = () => {
 
               <div className="mt-10">
                 <Link to="/booking">
-                  <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-3 px-8 text-lg">
+                  <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-3 px-8 text-lg transform hover:scale-105 transition-all duration-200 active:scale-95">
                     Start Your Journey
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>

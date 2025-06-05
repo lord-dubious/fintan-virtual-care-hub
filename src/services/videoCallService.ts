@@ -1,84 +1,79 @@
 
-// Video Call Service for consultation sessions
+import { webrtcService } from './webrtcService';
+
 export interface VideoCallSession {
   sessionId: string;
-  participantId: string;
-  doctorId: string;
-  patientId: string;
-  startTime: Date;
-  endTime?: Date;
-  status: 'waiting' | 'active' | 'ended' | 'failed';
+  roomId: string;
+  isActive: boolean;
+  participants: string[];
+  createdAt: Date;
 }
 
-export interface VideoCallConfig {
-  video: boolean;
-  audio: boolean;
-  screenShare?: boolean;
-  quality: 'low' | 'medium' | 'high';
+export interface SignalingMessage {
+  type: 'offer' | 'answer' | 'ice-candidate' | 'join' | 'leave';
+  sessionId: string;
+  data: any;
+  from: string;
 }
 
 class VideoCallService {
-  private localStream: MediaStream | null = null;
-  private remoteStream: MediaStream | null = null;
-  private peerConnection: RTCPeerConnection | null = null;
-  private isInitialized = false;
-
-  async initializeVideoCall(config: VideoCallConfig): Promise<boolean> {
-    try {
-      // Get user media
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        video: config.video,
-        audio: config.audio
-      });
-
-      // Initialize peer connection
-      this.peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      });
-
-      // Add local stream to peer connection
-      this.localStream.getTracks().forEach(track => {
-        if (this.peerConnection && this.localStream) {
-          this.peerConnection.addTrack(track, this.localStream);
-        }
-      });
-
-      this.isInitialized = true;
-      return true;
-    } catch (error) {
-      console.error('Failed to initialize video call:', error);
-      return false;
-    }
-  }
+  private currentSession: VideoCallSession | null = null;
+  private signalingConnection: WebSocket | null = null;
+  
+  // In a real implementation, this would be your signaling server URL
+  private signalingServerUrl = 'wss://your-signaling-server.com';
 
   async createSession(appointmentId: string): Promise<VideoCallSession> {
-    const session: VideoCallSession = {
-      sessionId: `session_${Date.now()}`,
-      participantId: `participant_${Date.now()}`,
-      doctorId: 'dr_fintan',
-      patientId: `patient_${Date.now()}`,
-      startTime: new Date(),
-      status: 'waiting'
+    const sessionId = `session_${appointmentId}_${Date.now()}`;
+    
+    this.currentSession = {
+      sessionId,
+      roomId: appointmentId,
+      isActive: true,
+      participants: [],
+      createdAt: new Date()
     };
 
-    // In a real implementation, this would create a session on your backend
-    console.log('Creating video call session:', session);
-    
-    return session;
+    // Initialize WebRTC
+    await webrtcService.initializeMedia({
+      video: { width: 1280, height: 720 },
+      audio: true
+    });
+
+    // Setup signaling
+    this.setupSignaling(sessionId);
+
+    // Create peer as initiator
+    webrtcService.createPeer(true);
+    this.setupWebRTCCallbacks();
+
+    console.log('Video call session created:', sessionId);
+    return this.currentSession;
   }
 
   async joinSession(sessionId: string): Promise<boolean> {
     try {
-      if (!this.isInitialized) {
-        await this.initializeVideoCall({ video: true, audio: true, quality: 'medium' });
-      }
+      // Initialize media
+      await webrtcService.initializeMedia({
+        video: { width: 1280, height: 720 },
+        audio: true
+      });
 
-      // In a real implementation, this would connect to the session
-      console.log('Joining video call session:', sessionId);
-      
+      // Setup signaling
+      this.setupSignaling(sessionId);
+
+      // Create peer as non-initiator
+      webrtcService.createPeer(false);
+      this.setupWebRTCCallbacks();
+
+      // Send join signal
+      this.sendSignalingMessage({
+        type: 'join',
+        sessionId,
+        data: { userId: 'current-user' },
+        from: 'current-user'
+      });
+
       return true;
     } catch (error) {
       console.error('Failed to join session:', error);
@@ -86,44 +81,99 @@ class VideoCallService {
     }
   }
 
+  private setupSignaling(sessionId: string) {
+    // In a real implementation, connect to your signaling server
+    console.log('Setting up signaling for session:', sessionId);
+    
+    // Mock signaling for demo - in production, use WebSocket connection
+    // this.signalingConnection = new WebSocket(`${this.signalingServerUrl}?session=${sessionId}`);
+    
+    // For now, we'll simulate signaling locally
+    this.simulateSignaling();
+  }
+
+  private simulateSignaling() {
+    // This is a mock implementation for demo purposes
+    // In production, implement proper WebSocket signaling
+    setTimeout(() => {
+      console.log('Simulating signaling connection established');
+    }, 1000);
+  }
+
+  private setupWebRTCCallbacks() {
+    webrtcService.onSignal = (data) => {
+      console.log('Sending signal data:', data);
+      this.sendSignalingMessage({
+        type: data.type === 'offer' ? 'offer' : data.type === 'answer' ? 'answer' : 'ice-candidate',
+        sessionId: this.currentSession?.sessionId || '',
+        data,
+        from: 'current-user'
+      });
+    };
+
+    webrtcService.onRemoteStream = (stream) => {
+      console.log('Remote stream received');
+      // Stream will be handled by the VideoCallInterface component
+    };
+
+    webrtcService.onConnect = () => {
+      console.log('Peer connection established');
+    };
+
+    webrtcService.onError = (error) => {
+      console.error('WebRTC error:', error);
+    };
+  }
+
+  private sendSignalingMessage(message: SignalingMessage) {
+    if (this.signalingConnection && this.signalingConnection.readyState === WebSocket.OPEN) {
+      this.signalingConnection.send(JSON.stringify(message));
+    } else {
+      // Mock signaling for demo
+      console.log('Would send signaling message:', message);
+    }
+  }
+
   async endSession(sessionId: string): Promise<void> {
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(track => track.stop());
-      this.localStream = null;
+    webrtcService.endCall();
+    
+    if (this.signalingConnection) {
+      this.sendSignalingMessage({
+        type: 'leave',
+        sessionId,
+        data: {},
+        from: 'current-user'
+      });
+      this.signalingConnection.close();
+      this.signalingConnection = null;
     }
 
-    if (this.peerConnection) {
-      this.peerConnection.close();
-      this.peerConnection = null;
-    }
-
+    this.currentSession = null;
     console.log('Video call session ended:', sessionId);
   }
 
+  async toggleVideo(): Promise<boolean> {
+    return await webrtcService.toggleVideo();
+  }
+
+  async toggleAudio(): Promise<boolean> {
+    return await webrtcService.toggleAudio();
+  }
+
+  async shareScreen(): Promise<MediaStream | null> {
+    return await webrtcService.shareScreen();
+  }
+
   getLocalStream(): MediaStream | null {
-    return this.localStream;
+    return webrtcService.getLocalStream();
   }
 
   getRemoteStream(): MediaStream | null {
-    return this.remoteStream;
+    return webrtcService.getRemoteStream();
   }
 
-  async toggleVideo(): Promise<void> {
-    if (this.localStream) {
-      const videoTrack = this.localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-      }
-    }
-  }
-
-  async toggleAudio(): Promise<void> {
-    if (this.localStream) {
-      const audioTrack = this.localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-      }
-    }
+  getCurrentSession(): VideoCallSession | null {
+    return this.currentSession;
   }
 }
 

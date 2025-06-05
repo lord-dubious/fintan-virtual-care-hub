@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Menu, X, Home, Calendar, Info, Phone, ChevronRight, LogIn, UserPlus } from "lucide-react";
@@ -21,20 +20,20 @@ const Navbar: React.FC = () => {
     return (
       <>
         {/* Mobile top nav bar */}
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-medical-dark-surface border-b border-medical-border-light dark:border-medical-dark-border h-14 flex items-center px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-medical-primary to-medical-secondary flex items-center justify-center text-white font-bold text-lg">F</div>
-            <span className="font-semibold text-xl text-medical-primary dark:text-medical-accent">Dr. Fintan</span>
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-medical-dark-surface border-b border-medical-border-light dark:border-medical-dark-border h-16 flex items-center px-4 shadow-sm">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-medical-primary to-medical-secondary flex items-center justify-center text-white font-bold text-lg shadow-md">F</div>
+            <span className="font-bold text-xl text-medical-primary dark:text-medical-accent">Dr. Fintan</span>
           </Link>
           <div className="flex items-center gap-3 ml-auto">
             <ThemeToggle />
             <Sheet>
               <SheetTrigger asChild>
-                <button className="touch-target p-2 rounded-full bg-medical-bg-light dark:bg-medical-dark-surface/50" aria-label="Menu">
+                <button className="touch-target p-3 rounded-full bg-medical-bg-light dark:bg-medical-dark-surface/50 shadow-sm border border-medical-border-light dark:border-medical-dark-border" aria-label="Menu">
                   <Menu className="h-5 w-5 text-medical-neutral-600 dark:text-medical-dark-text-primary" />
                 </button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-white dark:bg-medical-dark-surface border-medical-border-light dark:border-medical-dark-border w-[280px] px-2">
+              <SheetContent side="right" className="bg-white dark:bg-medical-dark-surface border-medical-border-light dark:border-medical-dark-border w-[300px] px-4">
                 <div className="flex items-center justify-between mb-6 mt-2 px-2">
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-medical-primary to-medical-secondary flex items-center justify-center text-white font-bold text-lg">F</div>
@@ -74,7 +73,7 @@ const Navbar: React.FC = () => {
             </Sheet>
           </div>
         </nav>
-        <div className="h-14"></div>
+        <div className="h-16"></div>
         
         {/* Mobile bottom navigation */}
         <div className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-medical-dark-surface border-t border-medical-border-light dark:border-medical-dark-border flex items-center justify-around px-2 z-50">
@@ -102,60 +101,145 @@ const Navbar: React.FC = () => {
     );
   }
 
-  // Desktop navigation - with login and signup buttons
+  // Desktop navigation - improved formatting
   return (
-    <nav className="bg-white dark:bg-medical-dark-surface py-4 shadow-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-medical-primary to-medical-secondary flex items-center justify-center text-white font-bold text-lg">F</div>
-          <span className="font-semibold text-xl text-medical-primary dark:text-medical-accent">Dr. Fintan</span>
+    <nav className="bg-white dark:bg-medical-dark-surface py-3 shadow-md sticky top-0 z-50 border-b border-medical-border-light dark:border-medical-dark-border">
+      <div className="container mx-auto px-6 flex justify-between items-center">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-medical-primary to-medical-secondary flex items-center justify-center text-white font-bold text-lg shadow-lg">F</div>
+          <span className="font-bold text-2xl text-medical-primary dark:text-medical-accent">Dr. Fintan</span>
         </Link>
         
-        <div className="hidden md:flex items-center space-x-6">
-          <Link to="/" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium">
+        {/* Navigation Links */}
+        <div className="hidden lg:flex items-center space-x-8">
+          <Link 
+            to="/" 
+            className={`text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium transition-colors px-3 py-2 rounded-md hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 ${
+              location.pathname === '/' ? 'text-medical-primary dark:text-medical-accent bg-medical-bg-light dark:bg-medical-dark-surface/30' : ''
+            }`}
+          >
             Home
           </Link>
-          <Link to="/about" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium">
+          <Link 
+            to="/about" 
+            className={`text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium transition-colors px-3 py-2 rounded-md hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 ${
+              location.pathname === '/about' ? 'text-medical-primary dark:text-medical-accent bg-medical-bg-light dark:bg-medical-dark-surface/30' : ''
+            }`}
+          >
             About
           </Link>
-          <Link to="/contact" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium">
+          <Link 
+            to="/contact" 
+            className={`text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium transition-colors px-3 py-2 rounded-md hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 ${
+              location.pathname === '/contact' ? 'text-medical-primary dark:text-medical-accent bg-medical-bg-light dark:bg-medical-dark-surface/30' : ''
+            }`}
+          >
             Contact
           </Link>
+        </div>
+        
+        {/* Auth & Action Buttons */}
+        <div className="hidden lg:flex items-center space-x-4">
+          <ThemeToggle />
           
-          <div className="flex items-center space-x-3">
-            <ThemeToggle />
-            <Button variant="ghost" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent">
+          {/* Auth Buttons */}
+          <div className="flex items-center space-x-3 border-r border-medical-border-light dark:border-medical-dark-border pr-4">
+            <Button 
+              variant="ghost" 
+              className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
+            >
               <LogIn className="h-4 w-4 mr-2" />
               Login
             </Button>
-            <Button variant="outline" className="border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white">
+            <Button 
+              variant="outline" 
+              className="border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white font-medium transition-all duration-200"
+            >
               <UserPlus className="h-4 w-4 mr-2" />
               Sign Up
             </Button>
-            <Link to="/booking">
-              <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90">Book Consultation</Button>
-            </Link>
           </div>
+          
+          {/* CTA Button */}
+          <Link to="/booking">
+            <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 font-semibold px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+              <Calendar className="h-4 w-4 mr-2" />
+              Book Consultation
+            </Button>
+          </Link>
         </div>
         
-        <div className="md:hidden flex items-center gap-2">
+        {/* Mobile Menu Toggle */}
+        <div className="lg:hidden flex items-center gap-3">
           <ThemeToggle />
-          <button onClick={toggleMenu}>
-            {isMenuOpen ? <X className="h-6 w-6 text-medical-neutral-600 dark:text-medical-dark-text-primary" /> : <Menu className="h-6 w-6 text-medical-neutral-600 dark:text-medical-dark-text-primary" />}
+          <button 
+            onClick={toggleMenu}
+            className="p-2 rounded-md hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 transition-colors"
+          >
+            {isMenuOpen ? 
+              <X className="h-6 w-6 text-medical-neutral-600 dark:text-medical-dark-text-primary" /> : 
+              <Menu className="h-6 w-6 text-medical-neutral-600 dark:text-medical-dark-text-primary" />
+            }
           </button>
         </div>
       </div>
       
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-medical-dark-surface w-full py-4 px-4 shadow-md animate-fade-in">
+        <div className="lg:hidden bg-white dark:bg-medical-dark-surface w-full py-6 px-6 shadow-lg animate-fade-in border-t border-medical-border-light dark:border-medical-dark-border">
           <div className="flex flex-col space-y-4">
-            <Link to="/" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-2" onClick={toggleMenu}>Home</Link>
-            <Link to="/about" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-2" onClick={toggleMenu}>About</Link>
-            <Link to="/contact" className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-2" onClick={toggleMenu}>Contact</Link>
-            <Link to="/booking">
-              <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white w-full dark:bg-medical-accent dark:hover:bg-medical-accent/90" onClick={toggleMenu}>Book Consultation</Button>
+            <Link 
+              to="/" 
+              className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-3 px-4 rounded-lg hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 transition-all" 
+              onClick={toggleMenu}
+            >
+              Home
             </Link>
+            <Link 
+              to="/about" 
+              className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-3 px-4 rounded-lg hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 transition-all" 
+              onClick={toggleMenu}
+            >
+              About
+            </Link>
+            <Link 
+              to="/contact" 
+              className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-3 px-4 rounded-lg hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 transition-all" 
+              onClick={toggleMenu}
+            >
+              Contact
+            </Link>
+            
+            <div className="border-t dark:border-gray-700 my-4"></div>
+            
+            <div className="flex flex-col space-y-3">
+              <Button 
+                variant="outline" 
+                className="w-full border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white py-3"
+                onClick={toggleMenu}
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Login
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full border-medical-secondary text-medical-secondary hover:bg-medical-secondary hover:text-white py-3"
+                onClick={toggleMenu}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Sign Up
+              </Button>
+              <Link to="/booking">
+                <Button 
+                  className="bg-medical-primary hover:bg-medical-primary/90 text-white w-full dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-3 font-semibold" 
+                  onClick={toggleMenu}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Book Consultation
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       )}

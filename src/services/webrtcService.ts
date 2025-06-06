@@ -1,8 +1,9 @@
 
-import Peer from 'simple-peer';
+import DailyIframe from '@daily-co/daily-js';
 
 export interface WebRTCConfig {
-  iceServers: RTCIceServer[];
+  roomUrl?: string;
+  token?: string;
 }
 
 export interface MediaConstraints {
@@ -11,153 +12,133 @@ export interface MediaConstraints {
 }
 
 class WebRTCService {
-  private localStream: MediaStream | null = null;
-  private remoteStream: MediaStream | null = null;
-  private peer: Peer.Instance | null = null;
-  private isInitiator: boolean = false;
+  private callObject: any = null;
+  private localVideo: HTMLVideoElement | null = null;
+  private remoteVideo: HTMLVideoElement | null = null;
   
-  private config: WebRTCConfig = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' }
-    ]
-  };
-
-  async initializeMedia(constraints: MediaConstraints = { video: true, audio: true }): Promise<MediaStream> {
+  async initializeCall(roomUrl: string, token?: string): Promise<any> {
     try {
-      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      return this.localStream;
+      // Create call object
+      this.callObject = DailyIframe.createCallObject({
+        url: roomUrl,
+        token: token,
+      });
+
+      // Set up event listeners
+      this.setupEventListeners();
+
+      // Join the call
+      await this.callObject.join();
+      
+      return this.callObject;
     } catch (error) {
-      console.error('Failed to get user media:', error);
-      throw new Error('Camera/microphone access denied');
+      console.error('Failed to initialize Daily.co call:', error);
+      throw new Error('Failed to initialize video call');
     }
   }
 
-  createPeer(isInitiator: boolean, stream?: MediaStream): Peer.Instance {
-    this.isInitiator = isInitiator;
-    
-    const peerConfig = {
-      initiator: isInitiator,
-      stream: stream || this.localStream,
-      config: this.config,
-      trickle: true
-    };
+  private setupEventListeners() {
+    if (!this.callObject) return;
 
-    this.peer = new Peer(peerConfig);
-    
-    this.setupPeerEvents();
-    return this.peer;
-  }
-
-  private setupPeerEvents() {
-    if (!this.peer) return;
-
-    this.peer.on('signal', (data) => {
-      console.log('Peer signal:', data);
-      // In a real implementation, send this signal data to the remote peer via signaling server
-      this.onSignal?.(data);
-    });
-
-    this.peer.on('stream', (stream) => {
-      console.log('Received remote stream');
-      this.remoteStream = stream;
-      this.onRemoteStream?.(stream);
-    });
-
-    this.peer.on('connect', () => {
-      console.log('Peer connected');
+    this.callObject.on('joined-meeting', () => {
+      console.log('Joined meeting successfully');
       this.onConnect?.();
     });
 
-    this.peer.on('error', (error) => {
-      console.error('Peer error:', error);
+    this.callObject.on('participant-joined', (event: any) => {
+      console.log('Participant joined:', event.participant);
+    });
+
+    this.callObject.on('participant-left', (event: any) => {
+      console.log('Participant left:', event.participant);
+    });
+
+    this.callObject.on('track-started', (event: any) => {
+      console.log('Track started:', event);
+      if (event.participant.local) {
+        this.onLocalStream?.(event.track);
+      } else {
+        this.onRemoteStream?.(event.track);
+      }
+    });
+
+    this.callObject.on('error', (error: any) => {
+      console.error('Daily.co error:', error);
       this.onError?.(error);
     });
 
-    this.peer.on('close', () => {
-      console.log('Peer connection closed');
+    this.callObject.on('left-meeting', () => {
+      console.log('Left meeting');
       this.onClose?.();
     });
   }
 
-  signal(data: any) {
-    if (this.peer) {
-      this.peer.signal(data);
-    }
-  }
-
   async toggleVideo(): Promise<boolean> {
-    if (!this.localStream) return false;
+    if (!this.callObject) return false;
     
-    const videoTrack = this.localStream.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.enabled = !videoTrack.enabled;
-      return videoTrack.enabled;
+    try {
+      const currentState = this.callObject.localVideo();
+      await this.callObject.setLocalVideo(!currentState);
+      return !currentState;
+    } catch (error) {
+      console.error('Failed to toggle video:', error);
+      return false;
     }
-    return false;
   }
 
   async toggleAudio(): Promise<boolean> {
-    if (!this.localStream) return false;
+    if (!this.callObject) return false;
     
-    const audioTrack = this.localStream.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      return audioTrack.enabled;
+    try {
+      const currentState = this.callObject.localAudio();
+      await this.callObject.setLocalAudio(!currentState);
+      return !currentState;
+    } catch (error) {
+      console.error('Failed to toggle audio:', error);
+      return false;
     }
-    return false;
   }
 
-  async shareScreen(): Promise<MediaStream | null> {
+  async shareScreen(): Promise<boolean> {
+    if (!this.callObject) return false;
+    
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true
-      });
-
-      if (this.peer) {
-        // Replace video track with screen share
-        const sender = this.peer._pc?.getSenders().find(s => 
-          s.track && s.track.kind === 'video'
-        );
-        
-        if (sender) {
-          await sender.replaceTrack(screenStream.getVideoTracks()[0]);
-        }
-      }
-
-      return screenStream;
+      await this.callObject.startScreenShare();
+      return true;
     } catch (error) {
       console.error('Failed to share screen:', error);
-      return null;
+      return false;
     }
   }
 
-  endCall() {
-    if (this.peer) {
-      this.peer.destroy();
-      this.peer = null;
+  async stopScreenShare(): Promise<void> {
+    if (!this.callObject) return;
+    
+    try {
+      await this.callObject.stopScreenShare();
+    } catch (error) {
+      console.error('Failed to stop screen share:', error);
     }
-
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(track => track.stop());
-      this.localStream = null;
-    }
-
-    this.remoteStream = null;
   }
 
-  getLocalStream(): MediaStream | null {
-    return this.localStream;
+  async endCall(): Promise<void> {
+    if (this.callObject) {
+      try {
+        await this.callObject.leave();
+        this.callObject.destroy();
+        this.callObject = null;
+      } catch (error) {
+        console.error('Failed to end call:', error);
+      }
+    }
   }
 
-  getRemoteStream(): MediaStream | null {
-    return this.remoteStream;
+  getCallObject(): any {
+    return this.callObject;
   }
 
   // Event callbacks - to be set by the consuming component
-  onSignal?: (data: any) => void;
+  onLocalStream?: (stream: MediaStream) => void;
   onRemoteStream?: (stream: MediaStream) => void;
   onConnect?: () => void;
   onError?: (error: Error) => void;

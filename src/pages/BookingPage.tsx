@@ -87,15 +87,15 @@ const BookingPage: React.FC = () => {
       case 1:
         return (
           <ConsultationTypeStep
-            selectedType={bookingData.consultationType}
+            consultationType={bookingData.consultationType}
             onTypeSelect={(type) => updateBookingData('consultationType', type)}
           />
         );
       case 2:
         return (
           <DateTimeStep
-            selectedDate={bookingData.selectedDate}
-            selectedTime={bookingData.selectedTime}
+            date={bookingData.selectedDate}
+            time={bookingData.selectedTime}
             onDateSelect={(date) => updateBookingData('selectedDate', date)}
             onTimeSelect={(time) => updateBookingData('selectedTime', time)}
           />
@@ -103,15 +103,22 @@ const BookingPage: React.FC = () => {
       case 3:
         return (
           <PatientInfoStep
-            patientInfo={bookingData.patientInfo}
+            firstName={bookingData.patientInfo.firstName}
+            lastName={bookingData.patientInfo.lastName}
+            email={bookingData.patientInfo.email}
+            phone={bookingData.patientInfo.phone}
+            dateOfBirth={bookingData.patientInfo.dateOfBirth}
+            reason={bookingData.patientInfo.reason}
             onInfoChange={(info) => updateBookingData('patientInfo', info)}
           />
         );
       case 4:
         return (
           <PaymentStep
-            bookingData={bookingData}
-            selectedMethod={bookingData.paymentMethod}
+            consultationType={bookingData.consultationType}
+            date={bookingData.selectedDate || new Date()}
+            time={bookingData.selectedTime}
+            paymentMethod={bookingData.paymentMethod}
             onMethodSelect={(method) => updateBookingData('paymentMethod', method)}
           />
         );

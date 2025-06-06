@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { videoCallService, VideoCallSession } from '@/services/videoCallService';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Monitor } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Monitor, MonitorSpeaker } from 'lucide-react';
 
 interface VideoCallInterfaceProps {
   session: VideoCallSession;
@@ -11,23 +11,28 @@ interface VideoCallInterfaceProps {
 }
 
 const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({ session, onEndCall }) => {
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
 
   useEffect(() => {
     const initializeCall = async () => {
-      const success = await videoCallService.joinSession(session.sessionId);
-      if (success) {
-        setIsConnected(true);
-        
-        // Set local video stream
-        const localStream = videoCallService.getLocalStream();
-        if (localVideoRef.current && localStream) {
-          localVideoRef.current.srcObject = localStream;
+      try {
+        const success = await videoCallService.joinSession(session.sessionId, session.roomUrl);
+        if (success) {
+          setIsConnected(true);
+          
+          // Get the Daily.co call object and embed it
+          const callObject = videoCallService.getCallObject();
+          if (callObject && containerRef.current) {
+            // Daily.co handles video rendering internally
+            console.log('Daily.co call initialized');
+          }
         }
+      } catch (error) {
+        console.error('Failed to initialize call:', error);
       }
     };
 
@@ -36,16 +41,29 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({ session, onEndC
     return () => {
       videoCallService.endSession(session.sessionId);
     };
-  }, [session.sessionId]);
+  }, [session.sessionId, session.roomUrl]);
 
   const handleToggleVideo = async () => {
-    await videoCallService.toggleVideo();
-    setIsVideoEnabled(!isVideoEnabled);
+    const newState = await videoCallService.toggleVideo();
+    setIsVideoEnabled(newState);
   };
 
   const handleToggleAudio = async () => {
-    await videoCallService.toggleAudio();
-    setIsAudioEnabled(!isAudioEnabled);
+    const newState = await videoCallService.toggleAudio();
+    setIsAudioEnabled(newState);
+  };
+
+  const handleToggleScreenShare = async () => {
+    if (isScreenSharing) {
+      const callObject = videoCallService.getCallObject();
+      if (callObject) {
+        await callObject.stopScreenShare();
+      }
+      setIsScreenSharing(false);
+    } else {
+      const success = await videoCallService.shareScreen();
+      setIsScreenSharing(success);
+    }
   };
 
   const handleEndCall = async () => {
@@ -55,31 +73,10 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({ session, onEndC
 
   return (
     <div className="h-screen bg-gray-900 flex flex-col">
-      {/* Video Area */}
-      <div className="flex-1 relative">
-        {/* Remote Video */}
-        <video
-          ref={remoteVideoRef}
-          autoPlay
-          playsInline
-          className="w-full h-full object-cover"
-        />
-        
-        {/* Local Video - Picture in Picture */}
-        <Card className="absolute top-4 right-4 w-48 h-36 overflow-hidden">
-          <CardContent className="p-0 h-full">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
-          </CardContent>
-        </Card>
-
+      {/* Video Container - Daily.co will manage this */}
+      <div ref={containerRef} className="flex-1 relative bg-gray-800">
         {/* Connection Status */}
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-4 left-4 z-10">
           <Card className="bg-black/50 text-white">
             <CardContent className="p-2">
               <div className="flex items-center gap-2">
@@ -93,7 +90,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({ session, onEndC
         </div>
 
         {/* Session Info */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
           <Card className="bg-black/50 text-white">
             <CardContent className="p-2">
               <p className="text-sm text-center">
@@ -102,6 +99,16 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({ session, onEndC
             </CardContent>
           </Card>
         </div>
+
+        {/* Placeholder for video when not connected */}
+        {!isConnected && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-white text-center">
+              <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <p className="text-lg">Connecting to video call...</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Controls */}
@@ -126,11 +133,12 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({ session, onEndC
           </Button>
 
           <Button
-            variant="outline"
+            variant={isScreenSharing ? "default" : "outline"}
             size="lg"
+            onClick={handleToggleScreenShare}
             className="rounded-full w-14 h-14"
           >
-            <Monitor className="h-6 w-6" />
+            {isScreenSharing ? <MonitorSpeaker className="h-6 w-6" /> : <Monitor className="h-6 w-6" />}
           </Button>
 
           <Button

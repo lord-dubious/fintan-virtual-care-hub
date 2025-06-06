@@ -6,57 +6,25 @@ import { PrismaNeon } from '@prisma/adapter-neon';
 // Configure Neon for serverless environments
 neonConfig.fetchConnectionCache = true;
 
-// PrismaClient is attached to the `global` object in development to prevent
-// exhausting your database connection limit.
+let prisma: PrismaClient;
+
 declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
+  var __prisma: PrismaClient | undefined;
 }
 
-function createPrismaClient() {
-  // Check if we have a DATABASE_URL for serverless deployment
-  const databaseUrl = process.env.DATABASE_URL;
-  
-  if (databaseUrl && databaseUrl.includes('neon')) {
-    // Use Neon serverless adapter for production
-    const pool = new Pool({ connectionString: databaseUrl });
-    const adapter = new PrismaNeon(pool);
-    
-    return new PrismaClient({
-      adapter,
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    });
-  } else {
-    // Fallback to regular Prisma client for development
-    return new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+if (process.env.NODE_ENV === 'production') {
+  // In production, use Neon adapter for better performance
+  const neon = new Pool({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaNeon(neon);
+  prisma = new PrismaClient({ adapter });
+} else {
+  // In development, use regular Prisma client with connection pooling
+  if (!global.__prisma) {
+    global.__prisma = new PrismaClient({
+      log: ['query', 'error', 'warn'],
     });
   }
+  prisma = global.__prisma;
 }
 
-export const prisma = global.prisma || createPrismaClient();
-
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
-}
-
-// Utility function to ensure connection in serverless environments
-export async function connectPrisma() {
-  try {
-    await prisma.$connect();
-    console.log('Prisma connected successfully');
-  } catch (error) {
-    console.error('Failed to connect to database:', error);
-    throw error;
-  }
-}
-
-// Utility function to disconnect in serverless environments
-export async function disconnectPrisma() {
-  try {
-    await prisma.$disconnect();
-    console.log('Prisma disconnected successfully');
-  } catch (error) {
-    console.error('Failed to disconnect from database:', error);
-  }
-}
+export { prisma };

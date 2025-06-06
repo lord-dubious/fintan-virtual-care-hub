@@ -13,6 +13,7 @@ import BookingPage from "./pages/BookingPage";
 import FaqPage from "./pages/FaqPage";
 import ContactPage from "./pages/ContactPage";
 import BookingConfirmation from "./pages/BookingConfirmation";
+import ConsultationPage from "./pages/ConsultationPage";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminAppointments from "./pages/admin/AdminAppointments";
@@ -57,6 +58,7 @@ const App = () => {
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/booking" element={<BookingPage />} />
               <Route path="/booking/confirmation" element={<BookingConfirmation />} />
+              <Route path="/consultation" element={<ConsultationPage />} />
               <Route path="/faq" element={<FaqPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/admin/login" element={<AdminLogin />} />

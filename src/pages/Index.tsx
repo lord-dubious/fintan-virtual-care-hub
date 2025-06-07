@@ -8,10 +8,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   ArrowRight,
   CheckCircle,
-  Stethoscope,
-  Globe,
+  Brain,
   Heart,
-  Pill
+  Stethoscope,
+  Globe
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -32,19 +32,19 @@ const Index = () => {
 
   const specialties = [
     {
-      icon: Stethoscope,
-      title: "Evidence-Based Medicine",
-      description: "Using scientifically proven treatments and diagnostic methods"
+      icon: Brain,
+      title: "Neurological Care",
+      description: "Expert diagnosis and treatment of neurological conditions"
     },
     {
       icon: Heart,
-      title: "Functional Medicine", 
-      description: "Treating symptoms and identifying root causes"
+      title: "Integrative Medicine", 
+      description: "Combining traditional and alternative medicine approaches"
     },
     {
-      icon: Pill,
-      title: "Integrative Medicine",
-      description: "Combining conventional and complementary therapies"
+      icon: Stethoscope,
+      title: "Lifestyle Medicine",
+      description: "Focus on prevention through lifestyle modifications"
     },
     {
       icon: Globe,
@@ -67,11 +67,11 @@ const Index = () => {
                 <CardContent className="p-0">
                   <div className={`${isMobile ? 'flex flex-col' : 'grid lg:grid-cols-2'} gap-0`}>
                     {/* Profile Image */}
-                    <div className={`relative bg-gradient-to-br from-medical-primary/10 to-medical-accent/10 dark:from-medical-primary/20 dark:to-medical-accent/20 flex items-center justify-center ${isMobile ? 'h-40' : 'min-h-[300px] lg:min-h-[400px]'} overflow-hidden`}>
+                    <div className={`relative bg-gradient-to-br from-medical-primary/10 to-medical-accent/10 dark:from-medical-primary/20 dark:to-medical-accent/20 flex items-center justify-center ${isMobile ? 'h-64' : 'min-h-[300px] lg:min-h-[400px]'} overflow-hidden`}>
                       <img 
-                        src="/lovable-uploads/f9f43bab-1cfa-4a52-932b-418da532abc2.png" 
+                        src="/Drekochin portrait.png" 
                         alt="Dr. Fintan Ekochin" 
-                        className={`${isMobile ? 'w-full h-full object-cover object-center' : 'w-full h-full object-cover object-center'}`}
+                        className={`${isMobile ? 'w-full h-full object-cover object-center scale-110' : 'w-full h-full object-cover object-center'}`}
                         style={{ display: 'block' }}
                         onError={(e) => {
                           console.log('Image failed to load:', e);
@@ -89,13 +89,13 @@ const Index = () => {
                         Dr. Fintan Ekochin, MD
                       </h1>
                       <p className={`${isMobile ? 'text-lg' : 'text-xl'} text-medical-primary dark:text-medical-accent font-medium mb-4`}>
-                        Fellow of the West African College of Physicians
+                        Neurologist & Integrative Medicine Specialist
                       </p>
                       
                       <p className={`text-medical-neutral-600 dark:text-medical-dark-text-secondary ${isMobile ? 'mb-4 text-sm leading-relaxed' : 'mb-6 leading-relaxed'}`}>
-                        Dr. Ekochin Fintan is one of the rising doctors in the EKOCHIN Family of Doctors. He largely grew up in 
-                        Nigeria with some years of childhood spent in Austria, Germany and the German he had later to his Igbo and cultural language 
-                        proficiency.
+                        Dr. Fintan Ekochin is one of two generations of the EKOCHIN Family of Doctors. He largely grew up in 
+                        Nigeria with some years of childhood spent in Austria, where he added German to his Igbo and English 
+                        language proficiency.
                       </p>
 
                       <Link to="/booking">

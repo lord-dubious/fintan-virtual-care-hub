@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,7 +23,6 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import OfflinePage from "./pages/OfflinePage";
 import AdminLayout from "./components/admin/AdminLayout";
 import { useEffect, useState } from "react";
-import { AuthProvider } from './hooks/useAuth';
 
 const queryClient = new QueryClient();
 
@@ -48,38 +48,35 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/services" element={<ServicesPage />} />
-                <Route path="/booking" element={<BookingPage />} />
-                <Route path="/booking/confirmation" element={<BookingConfirmation />} />
-                <Route path="/consultation" element={<ConsultationPage />} />
-                <Route path="/patient-dashboard" element={<PatientDashboard />} />
-                <Route path="/faq" element={<FaqPage />} />
-                <Route path="/contact" element={<ContactPage />} />
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                  <Route path="dashboard" element={<AdminDashboard />} />
-                  <Route path="appointments" element={<AdminAppointments />} />
-                  <Route path="patients" element={<AdminPatients />} />
-                  <Route path="settings" element={<AdminSettings />} />
-                </Route>
-                <Route path="/offline" element={<OfflinePage />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </ThemeProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/booking" element={<BookingPage />} />
+              <Route path="/booking/confirmation" element={<BookingConfirmation />} />
+              <Route path="/consultation" element={<ConsultationPage />} />
+              <Route path="/faq" element={<FaqPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="appointments" element={<AdminAppointments />} />
+                <Route path="patients" element={<AdminPatients />} />
+                <Route path="settings" element={<AdminSettings />} />
+              </Route>
+              <Route path="/offline" element={<OfflinePage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

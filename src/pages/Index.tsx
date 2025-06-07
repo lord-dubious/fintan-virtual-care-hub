@@ -67,7 +67,7 @@ const Index = () => {
                 <CardContent className="p-0">
                   <div className={`${isMobile ? 'flex flex-col' : 'grid lg:grid-cols-2'} gap-0`}>
                     {/* Profile Image */}
-                    <div className={`relative bg-gradient-to-br from-medical-primary/10 to-medical-accent/10 dark:from-medical-primary/20 dark:to-medical-accent/20 flex items-center justify-center ${isMobile ? 'h-48' : 'min-h-[300px] lg:min-h-[400px]'} overflow-hidden`}>
+                    <div className={`relative bg-gradient-to-br from-medical-primary/10 to-medical-accent/10 dark:from-medical-primary/20 dark:to-medical-accent/20 flex items-center justify-center ${isMobile ? 'h-40' : 'min-h-[300px] lg:min-h-[400px]'} overflow-hidden`}>
                       <img 
                         src="/lovable-uploads/f9f43bab-1cfa-4a52-932b-418da532abc2.png" 
                         alt="Dr. Fintan Ekochin" 

@@ -9,6 +9,7 @@ import DateTimeStep from '@/components/booking/DateTimeStep';
 import PatientInfoStep from '@/components/booking/PatientInfoStep';
 import PaymentStep from '@/components/booking/PaymentStep';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNavigate } from 'react-router-dom';
 
 export interface BookingData {
   consultationType: 'video' | 'audio' | '';
@@ -27,6 +28,7 @@ export interface BookingData {
 
 const BookingPage: React.FC = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
   
@@ -82,44 +84,70 @@ const BookingPage: React.FC = () => {
     }
   };
 
+  const handleSubmit = () => {
+    console.log('Booking submitted:', bookingData);
+    navigate('/booking/confirmation');
+  };
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
         return (
           <ConsultationTypeStep
-            consultationType={bookingData.consultationType}
+            selectedType={bookingData.consultationType}
             onTypeSelect={(type) => updateBookingData('consultationType', type)}
           />
         );
       case 2:
         return (
           <DateTimeStep
-            date={bookingData.selectedDate}
-            time={bookingData.selectedTime}
-            onDateSelect={(date) => updateBookingData('selectedDate', date)}
-            onTimeSelect={(time) => updateBookingData('selectedTime', time)}
+            bookingData={{
+              date: bookingData.selectedDate,
+              time: bookingData.selectedTime
+            }}
+            updateBookingData={(data) => {
+              if (data.date !== undefined) updateBookingData('selectedDate', data.date);
+              if (data.time !== undefined) updateBookingData('selectedTime', data.time);
+            }}
           />
         );
       case 3:
         return (
           <PatientInfoStep
-            firstName={bookingData.patientInfo.firstName}
-            lastName={bookingData.patientInfo.lastName}
-            email={bookingData.patientInfo.email}
-            phone={bookingData.patientInfo.phone}
-            dateOfBirth={bookingData.patientInfo.dateOfBirth}
-            reason={bookingData.patientInfo.reason}
-            onInfoChange={(info) => updateBookingData('patientInfo', info)}
+            bookingData={{
+              patientName: `${bookingData.patientInfo.firstName} ${bookingData.patientInfo.lastName}`.trim(),
+              patientEmail: bookingData.patientInfo.email,
+              patientPhone: bookingData.patientInfo.phone,
+              dateOfBirth: bookingData.patientInfo.dateOfBirth ? new Date(bookingData.patientInfo.dateOfBirth) : null,
+              reason: bookingData.patientInfo.reason
+            }}
+            updateBookingData={(data) => {
+              const updates: any = {};
+              if (data.patientName !== undefined) {
+                const [firstName, ...lastNameParts] = data.patientName.split(' ');
+                updates.firstName = firstName || '';
+                updates.lastName = lastNameParts.join(' ') || '';
+              }
+              if (data.patientEmail !== undefined) updates.email = data.patientEmail;
+              if (data.patientPhone !== undefined) updates.phone = data.patientPhone;
+              if (data.dateOfBirth !== undefined) updates.dateOfBirth = data.dateOfBirth?.toISOString() || '';
+              if (data.reason !== undefined) updates.reason = data.reason;
+              
+              updateBookingData('patientInfo', { ...bookingData.patientInfo, ...updates });
+            }}
           />
         );
       case 4:
         return (
           <PaymentStep
-            consultationType={bookingData.consultationType}
-            date={bookingData.selectedDate || new Date()}
-            time={bookingData.selectedTime}
-            paymentMethod={bookingData.paymentMethod}
-            onMethodSelect={(method) => updateBookingData('paymentMethod', method)}
+            bookingData={{
+              consultationType: bookingData.consultationType,
+              date: bookingData.selectedDate,
+              time: bookingData.selectedTime,
+              paymentMethod: bookingData.paymentMethod
+            }}
+            updateBookingData={(data) => updateBookingData('paymentMethod', data.paymentMethod)}
+            onSubmit={handleSubmit}
           />
         );
       default:

@@ -15,8 +15,8 @@ declare global {
 if (process.env.NODE_ENV === 'production') {
   // In production, use Neon adapter for better performance
   const connectionString = process.env.DATABASE_URL || '';
-  const neon = new Pool({ connectionString });
-  const adapter = new PrismaNeon(neon);
+  const pool = new Pool({ connectionString });
+  const adapter = new PrismaNeon(pool);
   prisma = new PrismaClient({ adapter });
 } else {
   // In development, use regular Prisma client with connection pooling

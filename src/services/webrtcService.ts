@@ -16,9 +16,13 @@ class WebRTCService {
   private localVideo: HTMLVideoElement | null = null;
   private remoteVideo: HTMLVideoElement | null = null;
   
-  async initializeCall(roomUrl: string, token?: string): Promise<any> {
+  async initializeCall(
+    roomUrl: string, 
+    token?: string, 
+    mediaConstraints: MediaConstraints = { video: true, audio: true }
+  ): Promise<any> {
     try {
-      // Create call object
+      // Create call object with media constraints
       this.callObject = DailyIframe.createCallObject({
         url: roomUrl,
         token: token,
@@ -27,13 +31,16 @@ class WebRTCService {
       // Set up event listeners
       this.setupEventListeners();
 
-      // Join the call
-      await this.callObject.join();
+      // Join the call with specified media settings
+      await this.callObject.join({
+        video: mediaConstraints.video,
+        audio: mediaConstraints.audio
+      });
       
       return this.callObject;
     } catch (error) {
       console.error('Failed to initialize Daily.co call:', error);
-      throw new Error('Failed to initialize video call');
+      throw new Error('Failed to initialize call');
     }
   }
 
@@ -47,10 +54,12 @@ class WebRTCService {
 
     this.callObject.on('participant-joined', (event: any) => {
       console.log('Participant joined:', event.participant);
+      this.onParticipantJoined?.(event.participant);
     });
 
     this.callObject.on('participant-left', (event: any) => {
       console.log('Participant left:', event.participant);
+      this.onParticipantLeft?.(event.participant);
     });
 
     this.callObject.on('track-started', (event: any) => {
@@ -121,6 +130,16 @@ class WebRTCService {
     }
   }
 
+  async sendChatMessage(message: string): Promise<void> {
+    if (!this.callObject) return;
+    
+    try {
+      await this.callObject.sendAppMessage({ type: 'chat', message, timestamp: Date.now() });
+    } catch (error) {
+      console.error('Failed to send chat message:', error);
+    }
+  }
+
   async endCall(): Promise<void> {
     if (this.callObject) {
       try {
@@ -143,6 +162,9 @@ class WebRTCService {
   onConnect?: () => void;
   onError?: (error: Error) => void;
   onClose?: () => void;
+  onParticipantJoined?: (participant: any) => void;
+  onParticipantLeft?: (participant: any) => void;
+  onChatMessage?: (message: any) => void;
 }
 
 export const webrtcService = new WebRTCService();

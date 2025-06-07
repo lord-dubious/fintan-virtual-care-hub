@@ -1,166 +1,175 @@
 
 import React from 'react';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Video, Phone, MessageSquare, Clock, CheckCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Video, Phone, Clock, DollarSign, Users, Shield } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ConsultationTypeStepProps {
   bookingData: {
-    consultationType: string;
+    consultationType: 'video' | 'audio' | '';
   };
-  updateBookingData: (data: { consultationType: string }) => void;
+  updateBookingData: (data: { consultationType: 'video' | 'audio' }) => void;
 }
 
-const ConsultationTypeStep: React.FC<ConsultationTypeStepProps> = ({ bookingData, updateBookingData }) => {
+const ConsultationTypeStep: React.FC<ConsultationTypeStepProps> = ({
+  bookingData,
+  updateBookingData
+}) => {
   const consultationTypes = [
     {
-      id: 'video',
+      id: 'video' as const,
       title: 'Video Consultation',
-      price: '$85',
-      duration: '30 minutes',
+      description: 'Face-to-face consultation with full visual examination',
       icon: Video,
-      description: 'Face-to-face virtual consultation with Dr. Ekochin via secure video',
-      features: ['Visual assessment', 'Real-time interaction', 'Digital prescriptions', 'Best for new patients'],
+      duration: '30 minutes',
+      price: '$75',
+      features: [
+        'HD video call',
+        'Visual examination',
+        'Screen sharing',
+        'Recording available'
+      ],
       recommended: true
     },
     {
-      id: 'audio',
+      id: 'audio' as const,
       title: 'Audio Consultation',
-      price: '$65',
-      duration: '30 minutes',
+      description: 'Voice-only consultation for follow-ups and general advice',
       icon: Phone,
-      description: 'Voice-only consultation perfect for follow-ups and discussions',
-      features: ['High-quality audio', 'Lower bandwidth needed', 'Perfect for follow-ups', 'Private & secure'],
-      recommended: false
-    },
-    {
-      id: 'message',
-      title: 'Messaging Consultation',
+      duration: '20 minutes',
       price: '$45',
-      duration: '24-48 hours response',
-      icon: MessageSquare,
-      description: 'Text-based consultation for non-urgent medical questions',
-      features: ['Detailed written response', 'Flexible timing', 'Medical advice & guidance', 'Document sharing'],
+      features: [
+        'High-quality audio',
+        'Secure connection',
+        'Text chat support',
+        'Lower bandwidth'
+      ],
       recommended: false
     }
   ];
 
-  const handleCardClick = (typeId: string) => {
-    updateBookingData({ consultationType: typeId });
-  };
-
   return (
-    <div>
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold mb-3 dark:text-medical-dark-text-primary">
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2 dark:text-medical-dark-text-primary">
           Choose Your Consultation Type
         </h2>
         <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">
-          Select the consultation format that best suits your needs
+          Select the consultation format that works best for you
         </p>
       </div>
-      
-      <RadioGroup
-        value={bookingData.consultationType}
-        onValueChange={(value) => updateBookingData({ consultationType: value })}
-        className="space-y-4"
-      >
-        {consultationTypes.map((type) => (
-          <Card 
-            key={type.id} 
-            className={`cursor-pointer transition-all duration-300 border-2 transform hover:scale-[1.02] active:scale-[0.98] ${
-              bookingData.consultationType === type.id 
-                ? 'border-medical-primary dark:border-medical-accent bg-medical-primary/5 dark:bg-medical-accent/5 shadow-lg' 
-                : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md'
-            } ${type.recommended ? 'ring-2 ring-medical-primary/20 dark:ring-medical-accent/20' : ''}`}
-            onClick={() => handleCardClick(type.id)}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <RadioGroupItem 
-                  value={type.id} 
-                  id={type.id} 
-                  className="mt-1 pointer-events-none" 
-                />
-                
-                <div className="flex-1">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-12 w-12 rounded-full flex items-center justify-center transition-all duration-300 ${
-                        bookingData.consultationType === type.id 
-                          ? 'bg-medical-primary/20 dark:bg-medical-accent/30 scale-110' 
-                          : 'bg-medical-primary/10 dark:bg-medical-accent/20'
-                      }`}>
-                        <type.icon className={`h-6 w-6 transition-all duration-300 ${
-                          bookingData.consultationType === type.id 
-                            ? 'text-medical-primary dark:text-medical-accent scale-110' 
-                            : 'text-medical-primary dark:text-medical-accent'
-                        }`} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Label htmlFor={type.id} className="text-lg font-semibold cursor-pointer dark:text-medical-dark-text-primary pointer-events-none">
-                            {type.title}
-                          </Label>
-                          {type.recommended && (
-                            <span className="px-2 py-1 bg-medical-primary/10 dark:bg-medical-accent/20 text-medical-primary dark:text-medical-accent text-xs rounded-full font-medium animate-pulse">
-                              Recommended
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary">
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {type.duration}
-                          </div>
-                          <div className="font-semibold text-medical-primary dark:text-medical-accent">
-                            {type.price}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {consultationTypes.map((type) => {
+          const Icon = type.icon;
+          const isSelected = bookingData.consultationType === type.id;
+
+          return (
+            <Card
+              key={type.id}
+              className={cn(
+                "relative cursor-pointer transition-all duration-200 hover:shadow-lg",
+                isSelected
+                  ? "ring-2 ring-medical-primary dark:ring-medical-accent border-medical-primary dark:border-medical-accent"
+                  : "hover:border-medical-primary/50 dark:hover:border-medical-accent/50"
+              )}
+              onClick={() => updateBookingData({ consultationType: type.id })}
+            >
+              {type.recommended && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <Badge className="bg-medical-primary text-white dark:bg-medical-accent">
+                    Recommended
+                  </Badge>
+                </div>
+              )}
+
+              <CardContent className="p-6">
+                <div className="text-center mb-4">
+                  <div className={cn(
+                    "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 transition-colors",
+                    isSelected
+                      ? "bg-medical-primary text-white dark:bg-medical-accent"
+                      : "bg-medical-neutral-100 text-medical-primary dark:bg-medical-dark-surface dark:text-medical-accent"
+                  )}>
+                    <Icon className="h-8 w-8" />
                   </div>
-                  
-                  <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary mb-4">
+                  <h3 className="text-xl font-semibold mb-2 dark:text-medical-dark-text-primary">
+                    {type.title}
+                  </h3>
+                  <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary text-sm">
                     {type.description}
                   </p>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    {type.features.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm">
-                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                        <span className="dark:text-medical-dark-text-secondary">{feature}</span>
-                      </div>
-                    ))}
+                </div>
+
+                <div className="space-y-4">
+                  {/* Pricing and Duration */}
+                  <div className="flex justify-between items-center p-3 bg-medical-neutral-50 dark:bg-medical-dark-surface rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-medical-neutral-500" />
+                      <span className="text-sm dark:text-medical-dark-text-secondary">
+                        {type.duration}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-medical-neutral-500" />
+                      <span className="text-lg font-semibold text-medical-primary dark:text-medical-accent">
+                        {type.price}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Features */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium flex items-center gap-2 dark:text-medical-dark-text-primary">
+                      <Shield className="h-4 w-4" />
+                      What's included:
+                    </h4>
+                    <ul className="space-y-1">
+                      {type.features.map((feature, index) => (
+                        <li key={index} className="text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-medical-primary dark:bg-medical-accent rounded-full" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </RadioGroup>
-      
-      <div className="mt-8 p-4 bg-medical-primary/5 dark:bg-medical-accent/5 rounded-lg hover:bg-medical-primary/10 dark:hover:bg-medical-accent/10 transition-all duration-300">
-        <h3 className="font-semibold mb-2 dark:text-medical-dark-text-primary">All consultations include:</h3>
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary">
-          <li className="flex items-center gap-2 hover:text-medical-primary dark:hover:text-medical-accent transition-colors duration-200">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            Personalized medical advice
-          </li>
-          <li className="flex items-center gap-2 hover:text-medical-primary dark:hover:text-medical-accent transition-colors duration-200">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            Secure, HIPAA-compliant platform
-          </li>
-          <li className="flex items-center gap-2 hover:text-medical-primary dark:hover:text-medical-accent transition-colors duration-200">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            Follow-up recommendations
-          </li>
-          <li className="flex items-center gap-2 hover:text-medical-primary dark:hover:text-medical-accent transition-colors duration-200">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            Prescription when appropriate
-          </li>
-        </ul>
+
+                <Button
+                  className={cn(
+                    "w-full mt-6 transition-all",
+                    isSelected
+                      ? "bg-medical-primary hover:bg-medical-primary/90 dark:bg-medical-accent dark:hover:bg-medical-accent/90"
+                      : "bg-medical-neutral-100 text-medical-neutral-700 hover:bg-medical-neutral-200 dark:bg-medical-dark-surface dark:text-medical-dark-text-secondary dark:hover:bg-medical-dark-surface/80"
+                  )}
+                  variant={isSelected ? "default" : "outline"}
+                >
+                  {isSelected ? "Selected" : "Select This Option"}
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Additional Information */}
+      <div className="bg-medical-neutral-50 dark:bg-medical-dark-surface rounded-lg p-6">
+        <div className="flex items-start gap-3">
+          <Users className="h-5 w-5 text-medical-primary dark:text-medical-accent mt-0.5" />
+          <div>
+            <h4 className="font-medium mb-2 dark:text-medical-dark-text-primary">
+              All consultations include:
+            </h4>
+            <ul className="text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary space-y-1">
+              <li>• Secure, HIPAA-compliant platform</li>
+              <li>• Consultation summary and recommendations</li>
+              <li>• Follow-up support via message</li>
+              <li>• Prescription services when appropriate</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import BookingProgress from '@/components/booking/BookingProgress';
@@ -8,7 +7,9 @@ import ConsultationTypeStep from '@/components/booking/ConsultationTypeStep';
 import DateTimeStep from '@/components/booking/DateTimeStep';
 import PatientInfoStep from '@/components/booking/PatientInfoStep';
 import PaymentStep from '@/components/booking/PaymentStep';
+import PatientAuth from '@/components/auth/PatientAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 export interface BookingData {
@@ -29,6 +30,7 @@ export interface BookingData {
 const BookingPage: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
   
@@ -46,6 +48,15 @@ const BookingPage: React.FC = () => {
     },
     paymentMethod: ''
   });
+
+  // If not authenticated, show login screen
+  if (!isAuthenticated) {
+    return (
+      <PatientAuth onAuthSuccess={() => {
+        // User is now authenticated, component will re-render
+      }} />
+    );
+  }
 
   const stepTitles = ['Type', 'Date & Time', 'Your Info', 'Payment'];
 
@@ -86,7 +97,19 @@ const BookingPage: React.FC = () => {
 
   const handleSubmit = () => {
     console.log('Booking submitted:', bookingData);
-    navigate('/booking/confirmation');
+    navigate('/booking/confirmation', { 
+      state: { 
+        bookingData: {
+          ...bookingData,
+          date: bookingData.selectedDate,
+          time: bookingData.selectedTime,
+          patientName: `${bookingData.patientInfo.firstName} ${bookingData.patientInfo.lastName}`,
+          patientEmail: bookingData.patientInfo.email,
+          patientPhone: bookingData.patientInfo.phone,
+          consultationType: bookingData.consultationType
+        }
+      }
+    });
   };
 
   const renderStep = () => {

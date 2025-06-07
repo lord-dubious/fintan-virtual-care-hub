@@ -81,9 +81,9 @@ const BookingConfirmation = () => {
               <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90">
                 Add to Calendar
               </Button>
-              <Link to="/patient-dashboard">
-                <Button className="bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90">
-                  Go to Dashboard
+              <Link to="/">
+                <Button variant="outline" className="dark:bg-transparent dark:text-medical-dark-text-primary dark:hover:bg-medical-primary/20">
+                  Return to Home
                 </Button>
               </Link>
             </div>

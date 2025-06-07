@@ -13,7 +13,6 @@ import BookingPage from "./pages/BookingPage";
 import FaqPage from "./pages/FaqPage";
 import ContactPage from "./pages/ContactPage";
 import BookingConfirmation from "./pages/BookingConfirmation";
-import PatientDashboard from "./pages/PatientDashboard";
 import ConsultationPage from "./pages/ConsultationPage";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";

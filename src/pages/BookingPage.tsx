@@ -94,8 +94,10 @@ const BookingPage: React.FC = () => {
       case 1:
         return (
           <ConsultationTypeStep
-            selectedType={bookingData.consultationType}
-            onTypeSelect={(type) => updateBookingData('consultationType', type)}
+            bookingData={{
+              consultationType: bookingData.consultationType
+            }}
+            updateBookingData={(data) => updateBookingData('consultationType', data.consultationType)}
           />
         );
       case 2:

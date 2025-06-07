@@ -105,7 +105,8 @@ const BookingPage: React.FC = () => {
           <DateTimeStep
             bookingData={{
               date: bookingData.selectedDate,
-              time: bookingData.selectedTime
+              time: bookingData.selectedTime,
+              consultationType: bookingData.consultationType
             }}
             updateBookingData={(data) => {
               if (data.date !== undefined) updateBookingData('selectedDate', data.date);

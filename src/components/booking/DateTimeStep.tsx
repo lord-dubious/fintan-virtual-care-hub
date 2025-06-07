@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import BookingCalendar from './BookingCalendar';
+import IntelligentCalendar from './IntelligentCalendar';
 
 interface DateTimeStepProps {
   bookingData: {
     date: Date | null;
     time: string;
+    consultationType?: string;
   };
   updateBookingData: (data: { date?: Date | null; time?: string }) => void;
 }
@@ -25,19 +26,23 @@ const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingD
   };
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-6 dark:text-medical-dark-text-primary">Select Date & Time</h2>
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2 dark:text-medical-dark-text-primary">
+          When would you like to meet?
+        </h2>
+        <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">
+          Our AI will suggest the best available times for you, or you can browse manually
+        </p>
+      </div>
       
-      <BookingCalendar 
+      <IntelligentCalendar 
         selectedDate={selectedDate} 
         selectedTime={bookingData.time}
         onDateSelect={handleDateSelect}
         onTimeSelect={handleTimeSelect}
+        consultationType={bookingData.consultationType || 'consultation'}
       />
-      
-      <p className="mt-6 text-sm text-medical-neutral-600 dark:text-medical-dark-text-secondary">
-        Consultations available Monday-Saturday. Sunday closed.
-      </p>
     </div>
   );
 };

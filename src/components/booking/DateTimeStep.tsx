@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import IntelligentCalendar from './IntelligentCalendar';
+import EnhancedBookingCalendar from './EnhancedBookingCalendar';
 
 interface DateTimeStepProps {
   bookingData: {
@@ -28,15 +28,15 @@ const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingD
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2 dark:text-medical-dark-text-primary">
-          When would you like to meet?
+        <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          Schedule Your Consultation
         </h2>
-        <p className="text-medical-neutral-600 dark:text-medical-dark-text-secondary">
-          Our AI will suggest the best available times for you, or you can browse manually
+        <p className="text-gray-600 dark:text-gray-400 text-lg">
+          Choose the perfect time that works for you with our intelligent scheduling system
         </p>
       </div>
       
-      <IntelligentCalendar 
+      <EnhancedBookingCalendar 
         selectedDate={selectedDate} 
         selectedTime={bookingData.time}
         onDateSelect={handleDateSelect}

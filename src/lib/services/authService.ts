@@ -1,11 +1,17 @@
 import { PrismaClient, User, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
+
+// Get JWT secret from environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'fintan-virtual-care-hub-secret-key-2025';
+const TOKEN_EXPIRY = '7d'; // Token expires in 7 days
 
 export interface AuthResult {
   success: boolean;
   user?: User;
+  token?: string;
   message?: string;
 }
 
@@ -40,9 +46,21 @@ export const authService = {
         };
       }
 
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          userId: user.id,
+          email: user.email,
+          role: user.role
+        },
+        JWT_SECRET,
+        { expiresIn: TOKEN_EXPIRY }
+      );
+
       return {
         success: true,
         user,
+        token,
       };
     } catch (error) {
       console.error('Login error:', error);
@@ -96,9 +114,21 @@ export const authService = {
         });
       }
 
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          userId: user.id,
+          email: user.email,
+          role: user.role
+        },
+        JWT_SECRET,
+        { expiresIn: TOKEN_EXPIRY }
+      );
+
       return {
         success: true,
         user,
+        token,
       };
     } catch (error) {
       console.error('Registration error:', error);
@@ -106,6 +136,23 @@ export const authService = {
         success: false,
         message: 'An error occurred during registration',
       };
+    }
+  },
+
+  async verifyToken(token: string): Promise<User | null> {
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      
+      // Get the user from the database
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+      });
+
+      return user;
+    } catch (error) {
+      console.error('Token verification error:', error);
+      return null;
     }
   },
 

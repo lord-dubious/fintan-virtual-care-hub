@@ -125,6 +125,7 @@ For more detailed documentation, please refer to:
 - [Services Documentation](./docs/services-documentation.md) - Detailed API documentation
 - [Neon-Prisma Setup](./docs/neon-prisma-setup.md) - Database setup guide
 - [Database Schema](./docs/database-schema.md) - Database structure and relationships
+- [API Endpoints](./docs/api-endpoints.md) - Detailed API endpoint documentation
 
 ## Development
 

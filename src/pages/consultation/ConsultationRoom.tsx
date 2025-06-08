@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth/authProvider';
 import { consultationService } from '@/lib/services/consultationService';
-import { webrtcService } from '@/lib/services/webrtcService';
+import { dailyService } from '@/lib/services/dailyService';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp, MessageSquare, X, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -45,7 +45,7 @@ const ConsultationRoom: React.FC = () => {
           const token = await consultationService.generateRoomToken(consultationId, user.id);
           
           // Initialize call with Daily.co
-          const initResult = await webrtcService.initializeCall(
+          const initResult = await dailyService.initializeCall(
             result.consultation.roomUrl,
             token,
             { 
@@ -59,7 +59,7 @@ const ConsultationRoom: React.FC = () => {
           }
           
           // Set up event listeners for video requests
-          webrtcService.onVideoRequestReceived(() => {
+          dailyService.onVideoRequestReceived(() => {
             if (!isProvider) {
               setShowVideoConsentPrompt(true);
             }
@@ -84,13 +84,13 @@ const ConsultationRoom: React.FC = () => {
     
     // Clean up the call when component unmounts
     return () => {
-      webrtcService.endCall();
+      dailyService.endCall();
     };
   }, [consultationId, user]);
 
   // Toggle audio
   const toggleAudio = async () => {
-    const result = await webrtcService.toggleAudio();
+    const result = await dailyService.toggleAudio();
     if (result) {
       setIsAudioEnabled(!isAudioEnabled);
     }
@@ -103,7 +103,7 @@ const ConsultationRoom: React.FC = () => {
     }
     
     // Send video request to patient
-    await webrtcService.sendVideoRequest();
+    await dailyService.sendVideoRequest();
     setPendingVideoRequest(true);
     
     toast({
@@ -116,7 +116,7 @@ const ConsultationRoom: React.FC = () => {
   const acceptVideoRequest = async () => {
     setShowVideoConsentPrompt(false);
     
-    const result = await webrtcService.enableVideo();
+    const result = await dailyService.enableVideo();
     if (result) {
       setIsVideoEnabled(true);
       
@@ -137,7 +137,7 @@ const ConsultationRoom: React.FC = () => {
     setShowVideoConsentPrompt(false);
     
     // Notify provider that request was declined
-    webrtcService.sendVideoRequestResponse(false);
+    dailyService.sendVideoRequestResponse(false);
     
     toast({
       title: 'Video Request Declined',
@@ -164,7 +164,7 @@ const ConsultationRoom: React.FC = () => {
     }
 
     // Normal video toggle for video calls or after consent
-    const result = await webrtcService.toggleVideo();
+    const result = await dailyService.toggleVideo();
     if (result) {
       setIsVideoEnabled(!isVideoEnabled);
     }
@@ -172,7 +172,7 @@ const ConsultationRoom: React.FC = () => {
 
   // Toggle screen sharing
   const toggleScreenSharing = async () => {
-    const result = await webrtcService.shareScreen();
+    const result = await dailyService.shareScreen();
     if (result) {
       setIsScreenSharing(!isScreenSharing);
     }
@@ -180,7 +180,7 @@ const ConsultationRoom: React.FC = () => {
 
   // End call
   const endCall = async () => {
-    await webrtcService.endCall();
+    await dailyService.endCall();
     
     // Update consultation status if needed
     if (consultation && consultation.status === 'IN_PROGRESS') {

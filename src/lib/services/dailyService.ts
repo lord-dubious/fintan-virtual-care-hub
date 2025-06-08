@@ -1,6 +1,6 @@
 import DailyIframe from '@daily-co/daily-js';
 
-class WebRTCService {
+class DailyService {
   private callObject: any = null;
   private isVideoEnabled: boolean = true;
   private isAudioEnabled: boolean = true;
@@ -191,5 +191,5 @@ class WebRTCService {
   }
 }
 
-export const webrtcService = new WebRTCService();
+export const dailyService = new DailyService();
 

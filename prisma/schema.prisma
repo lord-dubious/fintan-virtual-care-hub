@@ -3,140 +3,204 @@
 
 generator client {
   provider = "prisma-client-js"
-  // Required for Neon's prepared statements feature
-  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // Enable the pgvector extension for Neon
-  extensions = [pgvector(map: "vector")]
-  // Recommended for Neon serverless
-  directUrl = env("DIRECT_URL")
 }
 
+// Base user model for authentication and shared properties
 model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String?   // Hashed password
+  name          String?
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  role          UserRole  @default(PATIENT)
+
+  // Relations
+  patient       Patient?
+  provider      Provider?
+  appointments  Appointment[] // Appointments created by this user
+}
+
+enum UserRole {
+  PATIENT
+  PROVIDER
+  ADMIN
+}
+
+// Patient-specific information
+model Patient {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  dateOfBirth   DateTime?
+  address       String?
+  emergencyContact String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+  medicalRecords MedicalRecord[]
+}
+
+// Healthcare provider information
+model Provider {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  title         String?   // Dr., Prof., etc.
+  specialization String?
+  bio           String?
+  licenseNumber String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+  availability  Availability[]
+}
+
+// Provider availability for scheduling
+model Availability {
+  id          String    @id @default(cuid())
+  providerId  String
+  dayOfWeek   Int       // 0-6 for Sunday-Saturday
+  startTime   String    // Format: "HH:MM" in 24-hour format
+  endTime     String    // Format: "HH:MM" in 24-hour format
+  isAvailable Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  provider    Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, dayOfWeek, startTime, endTime])
+}
+
+// Appointment model for scheduling consultations
+model Appointment {
   id              String    @id @default(cuid())
-  email           String    @unique
-  password        String?   // Hashed password
-  name            String?
-  twitterUsername String?
-  twitterId       String?   @unique
-  googleId        String?   @unique
-  onboardingStep  Int       @default(0)
+  patientId       String
+  providerId      String?
+  createdById     String    // User who created the appointment
+  consultationType ConsultationType
+  appointmentDate DateTime
+  reason          String?
+  status          AppointmentStatus @default(SCHEDULED)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   // Relations
-  apiKeys         ApiKey[]
-  botPersonas     BotPersona[]
-  categories      Category[]
-  brainEntries    BrainEntry[]
-  scheduledPosts  ScheduledPost[]
-  drafts          Draft[]
-  postedTweets    PostedTweet[]
+  patient         Patient   @relation(fields: [patientId], references: [id])
+  provider        Provider? @relation(fields: [providerId], references: [id])
+  createdBy       User      @relation(fields: [createdById], references: [id])
+  consultation    Consultation?
+  payment         Payment?
 }
 
-model ApiKey {
-  id             String   @id @default(cuid())
-  userId         String
-  provider       String   // 'openai' or 'google'
-  encryptedKey   String
-  baseUrl        String?  // For custom OpenAI endpoints
-  preferredModel String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, provider])
+enum ConsultationType {
+  VIDEO
+  AUDIO
 }
 
-model BotPersona {
-  id                String    @id @default(cuid())
-  userId           String
-  name             String
-  description      String?
-  personalityConfig Json
-  isActive         Boolean   @default(true)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scheduledPosts  ScheduledPost[]
-  drafts          Draft[]
-  postedTweets    PostedTweet[]
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
 }
 
-model Category {
-  id           String        @id @default(cuid())
-  userId       String
-  name         String
-  color        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+// Consultation model for video/audio calls
+model Consultation {
+  id              String    @id @default(cuid())
+  appointmentId   String    @unique
+  sessionId       String?   // Daily.co session ID
+  roomUrl         String?   // Daily.co room URL
+  startTime       DateTime?
+  endTime         DateTime?
+  status          ConsultationStatus @default(SCHEDULED)
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  brainEntries BrainEntry[]
-
-  @@unique([userId, name])
+  // Relations
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  prescriptions   Prescription[]
 }
 
-model BrainEntry {
-  id          String    @id @default(cuid())
-  userId      String
-  categoryId  String?
-  content     String
-  embedding   Unsupported("vector")?
-  metadata    Json?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category    Category? @relation(fields: [categoryId], references: [id])
+enum ConsultationStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
-model ScheduledPost {
-  id           String    @id @default(cuid())
-  userId       String
-  content      String
-  mediaUrls    String[]
-  scheduledFor DateTime
-  botPersonaId String?
-  status       String    @default("pending")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+// Payment model for tracking payments
+model Payment {
+  id              String    @id @default(cuid())
+  appointmentId   String    @unique
+  amount          Float
+  currency        String    @default("USD")
+  paymentMethod   PaymentMethod
+  transactionId   String?   // External payment processor transaction ID
+  status          PaymentStatus @default(PENDING)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  botPersona  BotPersona? @relation(fields: [botPersonaId], references: [id])
+  // Relations
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 }
 
-model Draft {
-  id           String    @id @default(cuid())
-  userId       String
-  content      String
-  mediaUrls    String[]
-  botPersonaId String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  botPersona  BotPersona? @relation(fields: [botPersonaId], references: [id])
+enum PaymentMethod {
+  STRIPE
+  PAYSTACK
+  CREDIT_CARD
+  BANK_TRANSFER
 }
 
-model PostedTweet {
-  id                String    @id @default(cuid())
-  userId           String
-  tweetId          String
-  content          String
-  mediaUrls        String[]
-  botPersonaId     String?
-  performanceMetrics Json?
-  postedAt         DateTime  @default(now())
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  botPersona       BotPersona? @relation(fields: [botPersonaId], references: [id])
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
+
+// Medical record for patient history
+model MedicalRecord {
+  id              String    @id @default(cuid())
+  patientId       String
+  title           String
+  description     String    @db.Text
+  recordType      String?   // Type of record (e.g., "Allergy", "Condition", "Medication")
+  recordDate      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  patient         Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// Prescription model for medications prescribed during consultations
+model Prescription {
+  id              String    @id @default(cuid())
+  consultationId  String
+  medication      String
+  dosage          String
+  frequency       String
+  duration        String
+  instructions    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  consultation    Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+}
+

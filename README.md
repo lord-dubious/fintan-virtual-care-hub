@@ -124,6 +124,7 @@ For more detailed documentation, please refer to:
 - [Site Map](./docs/site-map.md) - Overview of the application structure
 - [Services Documentation](./docs/services-documentation.md) - Detailed API documentation
 - [Neon-Prisma Setup](./docs/neon-prisma-setup.md) - Database setup guide
+- [Database Schema](./docs/database-schema.md) - Database structure and relationships
 
 ## Development
 
@@ -155,9 +156,70 @@ The application is configured for deployment on Vercel. Simply connect your GitH
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+### Contribution Guidelines
+
+#### Code Style
+
+- Follow the existing code style and formatting
+- Use TypeScript for all new code
+- Add appropriate JSDoc comments for functions and classes
+- Use meaningful variable and function names
+- Keep functions small and focused on a single responsibility
+
+#### Testing
+
+- Write unit tests for all new functionality
+- Ensure all tests pass before submitting a PR
+- Aim for good test coverage of critical paths
+- Include both positive and negative test cases
+
+#### Documentation
+
+- Update documentation for any changed functionality
+- Document new features, APIs, or configuration options
+- Keep the README and other documentation files up to date
+- Add comments for complex logic or non-obvious code
+
+#### Pull Request Process
+
+1. Ensure your code follows the style guidelines
+2. Update the README.md with details of changes if applicable
+3. The PR should work in development and pass all tests
+4. PRs require review from at least one maintainer
+5. Squash commits before merging if requested
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Troubleshooting
+
+### Database Connection Issues
+
+- **Connection Refused**: Ensure your Neon PostgreSQL instance is running and accessible
+- **Authentication Failed**: Verify your database credentials in the `.env` file
+- **Migration Errors**: Make sure both `DATABASE_URL` and `DIRECT_URL` are correctly configured
+- **Prisma Client Generation**: If you encounter errors with the Prisma client, try running `npx prisma generate` manually
+
+### Daily.co Integration
+
+- **API Key Invalid**: Verify your Daily.co API key in the `.env` file
+- **Room Creation Failed**: Check your Daily.co account limits and permissions
+- **Video/Audio Not Working**: Ensure browser permissions for camera and microphone are granted
+- **Token Generation Errors**: Verify that your Daily.co API key has the necessary permissions
+
+### Development Environment
+
+- **Node.js Version**: This project requires Node.js v18 or higher
+- **Package Installation Errors**: Try deleting `node_modules` and running `npm install` again
+- **Build Failures**: Check for TypeScript errors with `npm run tsc`
+- **Test Failures**: Run tests individually to isolate the failing test
+
+For more detailed troubleshooting, refer to the documentation for each technology in the stack:
+- [Neon Documentation](https://neon.tech/docs/introduction)
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [Daily.co Documentation](https://docs.daily.co/)
+- [Next.js Documentation](https://nextjs.org/docs)
 
 ## Acknowledgements
 
@@ -166,4 +228,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Prisma](https://www.prisma.io/) for the ORM
 - [Tailwind CSS](https://tailwindcss.com/) for styling
 - [shadcn/ui](https://ui.shadcn.com/) for UI components
-

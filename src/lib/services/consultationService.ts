@@ -46,6 +46,49 @@ export const consultationService = {
     }
   },
 
+  // Get consultation by appointment ID
+  async getConsultationByAppointmentId(appointmentId: string): Promise<any> {
+    try {
+      const consultation = await prisma.consultation.findFirst({
+        where: { appointmentId },
+        include: {
+          appointment: {
+            include: {
+              patient: {
+                include: {
+                  user: true,
+                },
+              },
+              provider: {
+                include: {
+                  user: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!consultation) {
+        return {
+          success: false,
+          message: 'Consultation not found',
+        };
+      }
+
+      return {
+        success: true,
+        consultation,
+      };
+    } catch (error) {
+      console.error('Error fetching consultation by appointment ID:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch consultation',
+      };
+    }
+  },
+
   // Create a consultation room
   async createConsultationRoom(appointmentId: string): Promise<string> {
     try {

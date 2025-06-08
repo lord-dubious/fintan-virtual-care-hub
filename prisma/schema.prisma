@@ -10,197 +10,123 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Base user model for authentication and shared properties
 model User {
   id            String    @id @default(cuid())
-  email         String    @unique
-  password      String?   // Hashed password
   name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("PATIENT")
   phone         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  role          UserRole  @default(PATIENT)
 
-  // Relations
+  accounts      Account[]
+  sessions      Session[]
   patient       Patient?
   provider      Provider?
-  appointments  Appointment[] // Appointments created by this user
+  notifications Notification[]
 }
 
-enum UserRole {
-  PATIENT
-  PROVIDER
-  ADMIN
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
 }
 
-// Patient-specific information
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 model Patient {
-  id            String    @id @default(cuid())
-  userId        String    @unique
-  dateOfBirth   DateTime?
-  address       String?
-  emergencyContact String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointments  Appointment[]
-  medicalRecords MedicalRecord[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
 }
 
-// Healthcare provider information
 model Provider {
-  id            String    @id @default(cuid())
-  userId        String    @unique
-  title         String?   // Dr., Prof., etc.
+  id             String   @id @default(cuid())
+  userId         String   @unique
   specialization String?
-  bio           String?
-  licenseNumber String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  bio            String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointments  Appointment[]
-  availability  Availability[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
 }
 
-// Provider availability for scheduling
-model Availability {
-  id          String    @id @default(cuid())
-  providerId  String
-  dayOfWeek   Int       // 0-6 for Sunday-Saturday
-  startTime   String    // Format: "HH:MM" in 24-hour format
-  endTime     String    // Format: "HH:MM" in 24-hour format
-  isAvailable Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  provider    Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
-
-  @@unique([providerId, dayOfWeek, startTime, endTime])
-}
-
-// Appointment model for scheduling consultations
 model Appointment {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
+  providerId      String
   patientId       String
-  providerId      String?
-  createdById     String    // User who created the appointment
-  consultationType ConsultationType
   appointmentDate DateTime
-  reason          String?
-  status          AppointmentStatus @default(SCHEDULED)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  reason          String?  @db.Text
+  status          String   @default("SCHEDULED")
+  consultationType String   @default("VIDEO") // VIDEO or AUDIO
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  // Relations
-  patient         Patient   @relation(fields: [patientId], references: [id])
-  provider        Provider? @relation(fields: [providerId], references: [id])
-  createdBy       User      @relation(fields: [createdById], references: [id])
-  consultation    Consultation?
-  payment         Payment?
+  provider     Provider      @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  consultation Consultation?
 }
 
-enum ConsultationType {
-  VIDEO
-  AUDIO
-}
-
-enum AppointmentStatus {
-  SCHEDULED
-  CONFIRMED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-  NO_SHOW
-}
-
-// Consultation model for video/audio calls
 model Consultation {
-  id              String    @id @default(cuid())
-  appointmentId   String    @unique
-  sessionId       String?   // Daily.co session ID
-  roomUrl         String?   // Daily.co room URL
-  startTime       DateTime?
-  endTime         DateTime?
-  status          ConsultationStatus @default(SCHEDULED)
-  notes           String?   @db.Text
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  appointmentId String   @unique
+  roomUrl      String
+  status       String   @default("SCHEDULED")
+  videoEnabled Boolean  @default(false) // Tracks if video was enabled in an audio call
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  // Relations
-  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  prescriptions   Prescription[]
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 }
 
-enum ConsultationStatus {
-  SCHEDULED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String   @db.Text
+  type      String
+  userId    String
+  relatedId String?
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-// Payment model for tracking payments
-model Payment {
-  id              String    @id @default(cuid())
-  appointmentId   String    @unique
-  amount          Float
-  currency        String    @default("USD")
-  paymentMethod   PaymentMethod
-  transactionId   String?   // External payment processor transaction ID
-  status          PaymentStatus @default(PENDING)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  // Relations
-  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-}
-
-enum PaymentMethod {
-  STRIPE
-  PAYSTACK
-  CREDIT_CARD
-  BANK_TRANSFER
-}
-
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-}
-
-// Medical record for patient history
-model MedicalRecord {
-  id              String    @id @default(cuid())
-  patientId       String
-  title           String
-  description     String    @db.Text
-  recordType      String?   // Type of record (e.g., "Allergy", "Condition", "Medication")
-  recordDate      DateTime  @default(now())
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  // Relations
-  patient         Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
-}
-
-// Prescription model for medications prescribed during consultations
-model Prescription {
-  id              String    @id @default(cuid())
-  consultationId  String
-  medication      String
-  dosage          String
-  frequency       String
-  duration        String
-  instructions    String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  // Relations
-  consultation    Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 

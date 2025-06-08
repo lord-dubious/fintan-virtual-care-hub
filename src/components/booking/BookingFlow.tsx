@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth/authProvider';
 import { appointmentService } from '@/lib/services/appointmentService';
-import { notificationService, NotificationType } from '@/lib/services/notificationService';
 import { TimeSlot } from '@/lib/services/calendarService';
 import { AppointmentCalendar } from '@/components/calendar/AppointmentCalendar';
 import { TimeSlotPicker } from '@/components/booking/TimeSlotPicker';
@@ -11,8 +10,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { Mic, Video, Check, Info } from 'lucide-react';
 
 interface BookingFlowProps {
   providerId: string;
@@ -86,12 +87,9 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ providerId, providerNa
       });
 
       if (result.success && result.appointment) {
-        // Create notification
-        await notificationService.notifyAppointmentCreated(result.appointment.id);
-
         toast({
           title: 'Appointment Booked',
-          description: `Your appointment with ${providerName} has been scheduled for ${format(
+          description: `Your ${consultationType.toLowerCase()} appointment with ${providerName} has been scheduled for ${format(
             appointmentDate,
             'EEEE, MMMM d, yyyy \'at\' h:mm a'
           )}`,
@@ -168,22 +166,83 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ providerId, providerNa
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label>Consultation Type</Label>
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Consultation Type</h3>
+              
               <RadioGroup
                 value={consultationType}
                 onValueChange={(value) => setConsultationType(value as 'VIDEO' | 'AUDIO')}
-                className="flex space-x-4"
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="VIDEO" id="video" />
-                  <Label htmlFor="video">Video Call</Label>
+                <div className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                  consultationType === 'VIDEO' ? 'border-primary bg-primary/5' : 'border-gray-200'
+                }`}>
+                  <RadioGroupItem value="VIDEO" id="video" className="sr-only" />
+                  <Label htmlFor="video" className="flex flex-col items-center cursor-pointer">
+                    <div className="bg-primary/10 rounded-full p-4 mb-3">
+                      <Video className="h-8 w-8 text-primary" />
+                    </div>
+                    <span className="text-lg font-medium mb-1">Video Call</span>
+                    <p className="text-sm text-gray-500 text-center">
+                      Face-to-face consultation with video and audio
+                    </p>
+                    <ul className="text-sm text-gray-500 mt-3 space-y-1">
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        See and hear your provider
+                      </li>
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Show symptoms visually
+                      </li>
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Best for most consultations
+                      </li>
+                    </ul>
+                  </Label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="AUDIO" id="audio" />
-                  <Label htmlFor="audio">Audio Call</Label>
+                
+                <div className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                  consultationType === 'AUDIO' ? 'border-primary bg-primary/5' : 'border-gray-200'
+                }`}>
+                  <RadioGroupItem value="AUDIO" id="audio" className="sr-only" />
+                  <Label htmlFor="audio" className="flex flex-col items-center cursor-pointer">
+                    <div className="bg-blue-50 rounded-full p-4 mb-3">
+                      <Mic className="h-8 w-8 text-blue-500" />
+                    </div>
+                    <span className="text-lg font-medium mb-1">Audio Call</span>
+                    <p className="text-sm text-gray-500 text-center">
+                      Voice-only consultation without video
+                    </p>
+                    <ul className="text-sm text-gray-500 mt-3 space-y-1">
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Lower bandwidth required
+                      </li>
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        More privacy during call
+                      </li>
+                      <li className="flex items-center">
+                        <Info className="h-4 w-4 mr-2 text-blue-500" />
+                        Provider may request video if needed
+                      </li>
+                    </ul>
+                  </Label>
                 </div>
               </RadioGroup>
+              
+              {consultationType === 'AUDIO' && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>About Audio Calls</AlertTitle>
+                  <AlertDescription>
+                    During an audio call, your healthcare provider may request to enable video if needed for better diagnosis. 
+                    You will always be asked for consent before video is enabled.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             <div className="space-y-2">

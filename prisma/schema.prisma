@@ -3,11 +3,17 @@
 
 generator client {
   provider = "prisma-client-js"
+  // Required for Neon's prepared statements feature
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Enable the pgvector extension for Neon
+  extensions = [pgvector(map: "vector")]
+  // Recommended for Neon serverless
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -82,7 +88,7 @@ model BrainEntry {
   userId      String
   categoryId  String?
   content     String
-  embedding   Unsupported("vector(1536)")?
+  embedding   Unsupported("vector")?
   metadata    Json?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

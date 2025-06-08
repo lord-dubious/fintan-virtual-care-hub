@@ -8,6 +8,7 @@ import ConsultationTypeStep from '@/components/booking/ConsultationTypeStep';
 import DateTimeStep from '@/components/booking/DateTimeStep';
 import PatientInfoStep from '@/components/booking/PatientInfoStep';
 import PaymentStep from '@/components/booking/PaymentStep';
+import SimpleSignOn from '@/components/booking/SimpleSignOn';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,15 +23,18 @@ export interface BookingData {
     phone: string;
     dateOfBirth: string;
     reason: string;
+    reasonAudio?: string;
   };
   paymentMethod: string;
+  isAuthenticated: boolean;
+  userEmail: string;
 }
 
 const BookingPage: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4;
+  const [currentStep, setCurrentStep] = useState(0); // Start with auth step
+  const totalSteps = 5; // Updated to include auth step
   
   const [bookingData, setBookingData] = useState<BookingData>({
     consultationType: '',
@@ -42,12 +46,15 @@ const BookingPage: React.FC = () => {
       email: '',
       phone: '',
       dateOfBirth: '',
-      reason: ''
+      reason: '',
+      reasonAudio: ''
     },
-    paymentMethod: ''
+    paymentMethod: '',
+    isAuthenticated: false,
+    userEmail: ''
   });
 
-  const stepTitles = ['Type', 'Date & Time', 'Your Info', 'Payment'];
+  const stepTitles = ['Sign In', 'Type', 'Date & Time', 'Your Info', 'Payment'];
 
   const updateBookingData = (field: keyof BookingData, value: any) => {
     setBookingData(prev => ({
@@ -58,6 +65,8 @@ const BookingPage: React.FC = () => {
 
   const validateStep = (step: number): boolean => {
     switch (step) {
+      case 0:
+        return bookingData.isAuthenticated && bookingData.userEmail !== '';
       case 1:
         return bookingData.consultationType !== '';
       case 2:
@@ -73,24 +82,47 @@ const BookingPage: React.FC = () => {
   };
 
   const handleNext = () => {
-    if (currentStep < totalSteps && validateStep(currentStep)) {
+    if (currentStep < totalSteps - 1 && validateStep(currentStep)) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handlePrevious = () => {
-    if (currentStep > 1) {
+    if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
   };
 
   const handleSubmit = () => {
     console.log('Booking submitted:', bookingData);
-    navigate('/booking/confirmation');
+    navigate('/booking/confirmation', { 
+      state: { 
+        bookingData: {
+          ...bookingData,
+          paymentCompleted: true // Flag to show calendar integration
+        }
+      }
+    });
   };
 
   const renderStep = () => {
     switch (currentStep) {
+      case 0:
+        return (
+          <SimpleSignOn
+            onAuthenticated={(email: string) => {
+              updateBookingData('isAuthenticated', true);
+              updateBookingData('userEmail', email);
+              // Auto-populate email in patient info
+              updateBookingData('patientInfo', { 
+                ...bookingData.patientInfo, 
+                email 
+              });
+            }}
+            isAuthenticated={bookingData.isAuthenticated}
+            userEmail={bookingData.userEmail}
+          />
+        );
       case 1:
         return (
           <ConsultationTypeStep
@@ -122,7 +154,8 @@ const BookingPage: React.FC = () => {
               patientEmail: bookingData.patientInfo.email,
               patientPhone: bookingData.patientInfo.phone,
               dateOfBirth: bookingData.patientInfo.dateOfBirth ? new Date(bookingData.patientInfo.dateOfBirth) : null,
-              reason: bookingData.patientInfo.reason
+              reason: bookingData.patientInfo.reason,
+              reasonAudio: bookingData.patientInfo.reasonAudio
             }}
             updateBookingData={(data) => {
               const updates: any = {};
@@ -135,6 +168,7 @@ const BookingPage: React.FC = () => {
               if (data.patientPhone !== undefined) updates.phone = data.patientPhone;
               if (data.dateOfBirth !== undefined) updates.dateOfBirth = data.dateOfBirth?.toISOString() || '';
               if (data.reason !== undefined) updates.reason = data.reason;
+              if (data.reasonAudio !== undefined) updates.reasonAudio = data.reasonAudio;
               
               updateBookingData('patientInfo', { ...bookingData.patientInfo, ...updates });
             }}
@@ -159,35 +193,33 @@ const BookingPage: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-medical-primary/5 to-medical-accent/5 dark:from-medical-primary/10 dark:to-medical-accent/10 ${isMobile ? 'mobile-app-container' : ''}`}>
-      <div className={`container mx-auto px-4 py-8 ${isMobile ? 'mobile-content' : ''}`}>
-        <div className="max-w-4xl mx-auto">
-          <BookingHeader totalSteps={totalSteps} />
-          
-          <Card className="shadow-xl">
-            <CardContent className="p-6 md:p-8">
-              <BookingProgress
+    <div className={`min-h-screen bg-gradient-to-br from-medical-primary/5 to-medical-accent/5 dark:from-gray-900 dark:to-gray-800 ${isMobile ? 'px-3 py-4' : 'px-4 py-8'}`}>
+      <div className={`${isMobile ? 'max-w-full' : 'container mx-auto max-w-4xl'}`}>
+        <BookingHeader totalSteps={totalSteps} />
+        
+        <Card className={`shadow-xl border-0 dark:bg-gray-800/95 dark:border-gray-700 ${isMobile ? 'mx-0' : ''}`}>
+          <CardContent className={`${isMobile ? 'p-4' : 'p-6 md:p-8'}`}>
+            <BookingProgress
+              currentStep={currentStep}
+              totalSteps={totalSteps}
+              stepTitles={stepTitles}
+            />
+            
+            <div className={`${isMobile ? 'mt-6' : 'mt-8'}`}>
+              {renderStep()}
+            </div>
+            
+            <div className={`${isMobile ? 'mt-6' : 'mt-8'}`}>
+              <BookingNavigation
                 currentStep={currentStep}
                 totalSteps={totalSteps}
-                stepTitles={stepTitles}
+                isStepValid={validateStep(currentStep)}
+                onPrevious={handlePrevious}
+                onNext={handleNext}
               />
-              
-              <div className="mt-8">
-                {renderStep()}
-              </div>
-              
-              <div className="mt-8">
-                <BookingNavigation
-                  currentStep={currentStep}
-                  totalSteps={totalSteps}
-                  isStepValid={validateStep(currentStep)}
-                  onPrevious={handlePrevious}
-                  onNext={handleNext}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

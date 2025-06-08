@@ -1,14 +1,16 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Mic, MicOff, Play, Pause, Trash2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PatientInfoStepProps {
   bookingData: {
@@ -17,102 +19,304 @@ interface PatientInfoStepProps {
     patientPhone: string;
     dateOfBirth: Date | null;
     reason: string;
+    reasonAudio?: string;
   };
-  updateBookingData: (data: Partial<{
-    patientName: string;
-    patientEmail: string;
-    patientPhone: string;
-    dateOfBirth: Date | null;
-    reason: string;
-  }>) => void;
+  updateBookingData: (data: {
+    patientName?: string;
+    patientEmail?: string;
+    patientPhone?: string;
+    dateOfBirth?: Date | null;
+    reason?: string;
+    reasonAudio?: string;
+  }) => void;
 }
 
-const PatientInfoStep: React.FC<PatientInfoStepProps> = ({ bookingData, updateBookingData }) => {
-  return (
-    <div>
-      <h2 className="text-xl font-semibold mb-6 dark:text-medical-dark-text-primary">Patient Information</h2>
+const PatientInfoStep: React.FC<PatientInfoStepProps> = ({
+  bookingData,
+  updateBookingData
+}) => {
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (event) => {
+        chunks.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/wav' });
+        setAudioBlob(blob);
+        updateBookingData({ reasonAudio: URL.createObjectURL(blob) });
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+
+      toast({
+        title: "Recording started",
+        description: "Describe your health concerns or symptoms"
+      });
+    } catch (error) {
+      toast({
+        title: "Recording failed",
+        description: "Please allow microphone access to record",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setMediaRecorder(null);
       
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="patientName" className="dark:text-medical-dark-text-primary">Full Name</Label>
-          <Input 
+      toast({
+        title: "Recording saved",
+        description: "Your voice description has been recorded"
+      });
+    }
+  };
+
+  const playRecording = () => {
+    if (audioBlob && !isPlaying) {
+      const audio = new Audio(URL.createObjectURL(audioBlob));
+      audio.onended = () => {
+        setIsPlaying(false);
+        setCurrentAudio(null);
+      };
+      audio.play();
+      setCurrentAudio(audio);
+      setIsPlaying(true);
+    } else if (currentAudio && isPlaying) {
+      currentAudio.pause();
+      setIsPlaying(false);
+      setCurrentAudio(null);
+    }
+  };
+
+  const deleteRecording = () => {
+    setAudioBlob(null);
+    setIsPlaying(false);
+    if (currentAudio) {
+      currentAudio.pause();
+      setCurrentAudio(null);
+    }
+    updateBookingData({ reasonAudio: undefined });
+    
+    toast({
+      title: "Recording deleted",
+      description: "Voice recording has been removed"
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold mb-2 dark:text-white`}>
+          Your Information
+        </h2>
+        <p className={`text-gray-600 dark:text-gray-300 ${isMobile ? 'text-sm' : 'text-base'}`}>
+          Please provide your details for the consultation
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="patientName" className="dark:text-gray-200">
+            Full Name *
+          </Label>
+          <Input
             id="patientName"
             value={bookingData.patientName}
             onChange={(e) => updateBookingData({ patientName: e.target.value })}
             placeholder="Enter your full name"
-            className="mt-1"
+            className={`dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
           />
         </div>
-        
-        <div>
-          <Label htmlFor="patientEmail" className="dark:text-medical-dark-text-primary">Email Address</Label>
-          <Input 
+
+        <div className="space-y-2">
+          <Label htmlFor="patientEmail" className="dark:text-gray-200">
+            Email Address *
+          </Label>
+          <Input
             id="patientEmail"
             type="email"
             value={bookingData.patientEmail}
             onChange={(e) => updateBookingData({ patientEmail: e.target.value })}
-            placeholder="Enter your email address"
-            className="mt-1"
+            placeholder="your@email.com"
+            className={`dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
           />
         </div>
-        
-        <div>
-          <Label htmlFor="patientPhone" className="dark:text-medical-dark-text-primary">Phone Number</Label>
-          <Input 
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="patientPhone" className="dark:text-gray-200">
+            Phone Number *
+          </Label>
+          <Input
             id="patientPhone"
+            type="tel"
             value={bookingData.patientPhone}
             onChange={(e) => updateBookingData({ patientPhone: e.target.value })}
-            placeholder="Enter your phone number"
-            className="mt-1"
+            placeholder="+1 (555) 123-4567"
+            className={`dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
           />
         </div>
-        
-        <div>
-          <Label htmlFor="dateOfBirth" className="dark:text-medical-dark-text-primary">Date of Birth</Label>
+
+        <div className="space-y-2">
+          <Label className="dark:text-gray-200">Date of Birth</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
-                id="dateOfBirth"
-                variant={"outline"}
+                variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal mt-1",
+                  "justify-start text-left font-normal dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600",
                   !bookingData.dateOfBirth && "text-muted-foreground",
-                  "dark:bg-transparent dark:text-medical-dark-text-primary dark:hover:bg-medical-primary/20"
+                  isMobile ? 'h-10 text-sm' : 'h-11'
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {bookingData.dateOfBirth ? (
                   format(bookingData.dateOfBirth, "PPP")
                 ) : (
-                  <span>Select date of birth</span>
+                  <span>Pick a date</span>
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+            <PopoverContent className="w-auto p-0 dark:bg-gray-800 dark:border-gray-600">
               <Calendar
                 mode="single"
                 selected={bookingData.dateOfBirth || undefined}
                 onSelect={(date) => updateBookingData({ dateOfBirth: date || null })}
+                disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                 initialFocus
-                disabled={(date) =>
-                  date > new Date() || date < new Date("1900-01-01")
-                }
-                className="p-3 pointer-events-auto"
+                className="dark:bg-gray-800"
               />
             </PopoverContent>
           </Popover>
         </div>
-        
-        <div>
-          <Label htmlFor="reason" className="dark:text-medical-dark-text-primary">Reason for Consultation</Label>
-          <Textarea 
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="reason" className="dark:text-gray-200">
+            Reason for Consultation *
+          </Label>
+          <Textarea
             id="reason"
             value={bookingData.reason}
             onChange={(e) => updateBookingData({ reason: e.target.value })}
-            placeholder="Please briefly describe your symptoms or reason for consultation"
-            className="mt-1"
-            rows={4}
+            placeholder="Please describe your symptoms, concerns, or the reason for your consultation..."
+            rows={isMobile ? 3 : 4}
+            className={`dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isMobile ? 'text-sm' : ''}`}
           />
+        </div>
+
+        {/* Voice Recording Section */}
+        <div className="bg-blue-50 dark:bg-gray-800/50 rounded-lg p-4 border border-blue-200 dark:border-gray-600">
+          <div className="flex items-center justify-between mb-3">
+            <Label className="text-blue-800 dark:text-blue-300 font-medium">
+              Voice Description (Optional)
+            </Label>
+            <div className="text-xs text-blue-600 dark:text-blue-400">
+              Record your concerns
+            </div>
+          </div>
+          
+          <p className={`text-blue-700 dark:text-blue-300 mb-4 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            You can record a voice message to better describe your symptoms or health concerns.
+          </p>
+
+          <div className="flex items-center gap-3">
+            {!audioBlob ? (
+              <Button
+                type="button"
+                onClick={isRecording ? stopRecording : startRecording}
+                variant={isRecording ? "destructive" : "default"}
+                size={isMobile ? "sm" : "default"}
+                className={`${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
+              >
+                {isRecording ? (
+                  <>
+                    <MicOff className="mr-2 h-4 w-4" />
+                    Stop Recording
+                  </>
+                ) : (
+                  <>
+                    <Mic className="mr-2 h-4 w-4" />
+                    Start Recording
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  onClick={playRecording}
+                  variant="outline"
+                  size={isMobile ? "sm" : "default"}
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900/20"
+                >
+                  {isPlaying ? (
+                    <>
+                      <Pause className="mr-2 h-4 w-4" />
+                      Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Play
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  type="button"
+                  onClick={deleteRecording}
+                  variant="outline"
+                  size={isMobile ? "sm" : "default"}
+                  className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-900/20"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+                
+                <Button
+                  type="button"
+                  onClick={startRecording}
+                  variant="outline"
+                  size={isMobile ? "sm" : "default"}
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900/20"
+                >
+                  <Mic className="mr-2 h-4 w-4" />
+                  Re-record
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {isRecording && (
+            <div className="mt-3 flex items-center gap-2">
+              <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
+              <span className={`text-red-600 dark:text-red-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                Recording in progress...
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

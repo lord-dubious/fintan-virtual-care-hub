@@ -114,7 +114,7 @@ const Index = () => {
                       </div>
                     </div>
                     
-                    {/* Profile Info */}
+                    {/* Profile Info - Updated with exact content from document */}
                     <div className={`${isMobile ? 'order-2 p-6' : 'lg:col-span-3 p-8 lg:p-12'} flex flex-col justify-center bg-gradient-to-r from-white to-blue-50 dark:from-gray-800 dark:to-blue-900/20`}>
                       <div className="mb-4">
                         <h1 className={`${isMobile ? 'text-3xl' : 'text-4xl md:text-5xl'} font-bold mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent`}>
@@ -127,9 +127,14 @@ const Index = () => {
                       
                       <div className="space-y-4 mb-8">
                         <p className={`text-gray-600 dark:text-gray-300 ${isMobile ? 'text-sm leading-relaxed' : 'text-base leading-relaxed'}`}>
-                          Dr. Fintan Ekochin is one of two generations of the EKOCHIN Family of Doctors. He largely grew up in 
+                          Dr Ekochin Fintan is one of two generations of the EKOCHIN Family of Doctors. He largely grew up in 
                           Nigeria with some years of childhood spent in Austria, where he added German to his Igbo and English 
                           language proficiency.
+                        </p>
+                        
+                        <p className={`text-gray-600 dark:text-gray-300 ${isMobile ? 'text-sm leading-relaxed' : 'text-base leading-relaxed'}`}>
+                          He graduated from University of Nigeria after completing Primary and Secondary schools in Enugu and 
+                          Nsukka. He earned an MBBS from the premier University of Nigeria, College of Medicine.
                         </p>
                         
                         <div className="flex flex-wrap gap-2 mb-6">
@@ -186,21 +191,21 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Philosophy Section */}
+        {/* Philosophy Section - Updated with exact quote from document */}
         <section className={`${isMobile ? 'py-12 px-2' : 'py-20'} bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm`}>
           <div className={`${isMobile ? '' : 'container mx-auto px-4'}`}>
             <div className="max-w-5xl mx-auto text-center">
               <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl md:text-4xl'} font-bold mb-8 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent`}>
-                Philosophy of Care
+                What to expect from a virtual consultation with Dr. Fintan
               </h2>
               
               <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-l-4 border-blue-600 shadow-xl">
                 <CardContent className={`${isMobile ? 'p-6' : 'p-8'}`}>
                   <blockquote className={`${isMobile ? 'text-base' : 'text-lg md:text-xl'} italic text-gray-700 dark:text-gray-300 mb-6 leading-relaxed`}>
-                    "My medical practice is an amalgamation of Orthodox and Alternative medicine, yielding a blend of 
-                    Complementary, Functional, Orthomolecular, and Lifestyle Medicine. This delivers a pharmacologically 
-                    minimalist approach to healthcare. Most consultations end without a drug prescription, which makes 
-                    for efficient cross-border client care."
+                    "Dr Fintan's medical practice is an amalgamation of Orthodox and Alternative medicine, 
+                    yielding a blend of Complementary, Functional, Orthomolecular, and Lifestyle Medicine. 
+                    This delivers a pharmacologically minimalist approach to healthcare. Most consultations 
+                    end without a drug prescription, which makes for efficient cross border client care."
                   </blockquote>
                   <p className={`font-semibold ${isMobile ? 'text-base' : 'text-lg'} text-blue-600 dark:text-blue-400`}>— Dr. Fintan Ekochin</p>
                 </CardContent>

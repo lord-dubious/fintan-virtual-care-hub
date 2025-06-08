@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, addDays, isPast, isSameDay, isToday, isTomorrow, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -81,24 +80,24 @@ const EnhancedBookingCalendar: React.FC<EnhancedBookingCalendarProps> = ({
         // Generate time slots with smart prioritization
         if (date.getDay() >= 1 && date.getDay() <= 5) {
           const morningSlots = [
-            { time: "08:00 AM", priority: 'high' as const, reason: 'Early bird special' },
-            { time: "09:00 AM", priority: 'high' as const },
-            { time: "10:00 AM", priority: 'medium' as const },
-            { time: "11:00 AM", priority: 'medium' as const },
+            { time: "08:00 AM", available: true, priority: 'high' as const, reason: 'Early bird special' },
+            { time: "09:00 AM", available: true, priority: 'high' as const },
+            { time: "10:00 AM", available: true, priority: 'medium' as const },
+            { time: "11:00 AM", available: true, priority: 'medium' as const },
           ];
           const afternoonSlots = [
-            { time: "01:00 PM", priority: 'medium' as const },
-            { time: "02:00 PM", priority: 'high' as const, reason: 'Popular time' },
-            { time: "03:00 PM", priority: 'medium' as const },
-            { time: "04:00 PM", priority: 'low' as const },
-            { time: "05:00 PM", priority: 'low' as const },
+            { time: "01:00 PM", available: true, priority: 'medium' as const },
+            { time: "02:00 PM", available: true, priority: 'high' as const, reason: 'Popular time' },
+            { time: "03:00 PM", available: true, priority: 'medium' as const },
+            { time: "04:00 PM", available: true, priority: 'low' as const },
+            { time: "05:00 PM", available: true, priority: 'low' as const },
           ];
           timeSlots.push(...morningSlots, ...afternoonSlots);
         } else if (date.getDay() === 6) {
           timeSlots.push(
-            { time: "09:00 AM", priority: 'medium' as const, reason: 'Weekend availability' },
-            { time: "10:00 AM", priority: 'medium' as const },
-            { time: "11:00 AM", priority: 'low' as const },
+            { time: "09:00 AM", available: true, priority: 'medium' as const, reason: 'Weekend availability' },
+            { time: "10:00 AM", available: true, priority: 'medium' as const },
+            { time: "11:00 AM", available: true, priority: 'low' as const },
           );
         }
         

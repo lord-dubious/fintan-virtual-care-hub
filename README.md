@@ -1,73 +1,169 @@
-# Welcome to your Lovable project
+# Fintan Virtual Care Hub
 
-## Project info
+A comprehensive telemedicine platform that connects patients with healthcare providers through secure audio and video consultations.
 
-**URL**: https://lovable.dev/projects/fb1a7fae-d1ac-4175-aad6-fb508886930a
+## Project Overview
 
-## How can I edit this code?
+Fintan Virtual Care Hub is a full-stack telemedicine application that enables:
 
-There are several ways of editing your application.
+- Secure audio and video consultations between patients and healthcare providers
+- Appointment scheduling and management
+- Patient medical record management
+- Provider availability management
+- Secure payment processing
+- Real-time notifications
 
-**Use Lovable**
+## Technology Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fb1a7fae-d1ac-4175-aad6-fb508886930a) and start prompting.
+- **Frontend**: React, Next.js, Tailwind CSS, shadcn-ui
+- **Backend**: Node.js, Express
+- **Database**: PostgreSQL (Neon Serverless)
+- **ORM**: Prisma
+- **Real-time Communication**: Daily.co SDK
+- **Authentication**: JWT, bcrypt
+- **Payment Processing**: Stripe
+- **Hosting**: Vercel
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js (v18 or higher)
+- npm or yarn
+- A Neon PostgreSQL account
+- A Daily.co account (for video/audio calls)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/lord-dubious/fintan-virtual-care-hub.git
+   cd fintan-virtual-care-hub
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2. Install dependencies:
+   ```sh
+   npm install
+   # or
+   yarn install
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+3. Set up environment variables:
+   - Copy `.env.example` to `.env`
+   - Update the variables with your actual credentials
 
-# Step 3: Install the necessary dependencies.
-npm i
+4. Set up the database:
+   ```sh
+   node scripts/apply-migrations.js
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+5. Start the development server:
+   ```sh
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+## Demo Accounts
+
+For testing purposes, the following demo accounts are available:
+
+### Patient Accounts
+
+| Email | Password | Description |
+|-------|----------|-------------|
+| patient@example.com | Password123! | Regular patient account |
+| patient2@example.com | Password123! | Patient with existing appointments |
+
+### Provider Accounts
+
+| Email | Password | Description |
+|-------|----------|-------------|
+| doctor@example.com | Password123! | General practitioner |
+| specialist@example.com | Password123! | Specialist with limited availability |
+
+### Admin Account
+
+| Email | Password |
+|-------|----------|
+| admin@example.com | AdminPass123! |
+
+## Project Structure
+
+```
+fintan-virtual-care-hub/
+├── docs/                    # Documentation
+├── prisma/                  # Prisma schema and migrations
+├── public/                  # Static assets
+├── scripts/                 # Utility scripts
+├── src/
+│   ├── components/          # React components
+│   ├── hooks/               # Custom React hooks
+│   ├── lib/                 # Utility functions and services
+│   │   ├── auth/            # Authentication logic
+│   │   ├── services/        # Service layer
+│   │   └── utils/           # Helper utilities
+│   ├── pages/               # Application pages
+│   └── styles/              # CSS and styling
+└── tests/                   # Test files
 ```
 
-**Edit a file directly in GitHub**
+## Key Features
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- **Secure Audio/Video Consultations**: Powered by Daily.co SDK
+- **Appointment Management**: Schedule, reschedule, and cancel appointments
+- **Provider Availability**: Manage provider schedules and availability
+- **Patient Records**: Secure storage and access to patient medical records
+- **Real-time Notifications**: Appointment reminders and system notifications
+- **Payment Processing**: Secure payment handling for consultations
 
-**Use GitHub Codespaces**
+## Documentation
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+For more detailed documentation, please refer to:
 
-## What technologies are used for this project?
+- [Site Map](./docs/site-map.md) - Overview of the application structure
+- [Services Documentation](./docs/services-documentation.md) - Detailed API documentation
+- [Neon-Prisma Setup](./docs/neon-prisma-setup.md) - Database setup guide
 
-This project is built with:
+## Development
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Database Migrations
 
-## How can I deploy this project?
+To apply database migrations:
 
-Simply open [Lovable](https://lovable.dev/projects/fb1a7fae-d1ac-4175-aad6-fb508886930a) and click on Share -> Publish.
+```sh
+node scripts/apply-migrations.js
+```
 
-## Can I connect a custom domain to my Lovable project?
+### Running Tests
 
-Yes, you can!
+```sh
+npm test
+# or
+yarn test
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Deployment
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+The application is configured for deployment on Vercel. Simply connect your GitHub repository to Vercel and deploy.
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgements
+
+- [Daily.co](https://www.daily.co/) for their excellent video/audio SDK
+- [Neon](https://neon.tech/) for serverless PostgreSQL
+- [Prisma](https://www.prisma.io/) for the ORM
+- [Tailwind CSS](https://tailwindcss.com/) for styling
+- [shadcn/ui](https://ui.shadcn.com/) for UI components
+

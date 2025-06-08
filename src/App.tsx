@@ -1,4 +1,5 @@
 
+import React, { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,7 +22,6 @@ import AdminPatients from "./pages/admin/AdminPatients";
 import AdminSettings from "./pages/admin/AdminSettings";
 import OfflinePage from "./pages/OfflinePage";
 import AdminLayout from "./components/admin/AdminLayout";
-import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
 
@@ -70,7 +70,6 @@ const App = () => {
                 <Route path="settings" element={<AdminSettings />} />
               </Route>
               <Route path="/offline" element={<OfflinePage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

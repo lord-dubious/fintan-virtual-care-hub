@@ -39,8 +39,8 @@ Neon is a serverless PostgreSQL service that separates storage and compute to of
 
 Example:
 ```
-DATABASE_URL="postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?pgbouncer=true&connect_timeout=10"
-DIRECT_URL="postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?connect_timeout=10"
+DATABASE_URL="postgres://[YOUR_USERNAME]:[YOUR_PASSWORD]@[YOUR_NEON_HOST].neon.tech/[YOUR_DATABASE]?pgbouncer=true&connect_timeout=10"
+DIRECT_URL="postgres://[YOUR_USERNAME]:[YOUR_PASSWORD]@[YOUR_NEON_HOST].neon.tech/[YOUR_DATABASE]?connect_timeout=10"
 ```
 
 ## Configuring Prisma with Neon
@@ -107,8 +107,8 @@ export async function disconnectPrisma() {
 Ensure your `.env` file contains both connection strings:
 
 ```
-DATABASE_URL="postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?pgbouncer=true&connect_timeout=10"
-DIRECT_URL="postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?connect_timeout=10"
+DATABASE_URL="postgres://[YOUR_USERNAME]:[YOUR_PASSWORD]@[YOUR_NEON_HOST].neon.tech/[YOUR_DATABASE]?pgbouncer=true&connect_timeout=10"
+DIRECT_URL="postgres://[YOUR_USERNAME]:[YOUR_PASSWORD]@[YOUR_NEON_HOST].neon.tech/[YOUR_DATABASE]?connect_timeout=10"
 ```
 
 ### Step 4: Configure Prisma Schema
@@ -197,4 +197,3 @@ This script will:
 4. **Connection Management**: Properly close connections when your application shuts down
 
 5. **Serverless Considerations**: Be mindful of connection limits and cold starts in serverless environments
-

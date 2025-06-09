@@ -18,8 +18,8 @@ This guide provides instructions for deploying the Fintan Virtual Care Hub appli
    - For `DIRECT_URL`: Use the direct connection string with `?connect_timeout=10` added
    - Example:
      ```
-     DATABASE_URL="postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?pgbouncer=true&connect_timeout=10"
-     DIRECT_URL="postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?connect_timeout=10"
+     DATABASE_URL="postgres://[YOUR_USERNAME]:[YOUR_PASSWORD]@[YOUR_NEON_HOST].neon.tech/[YOUR_DATABASE]?pgbouncer=true&connect_timeout=10"
+     DIRECT_URL="postgres://[YOUR_USERNAME]:[YOUR_PASSWORD]@[YOUR_NEON_HOST].neon.tech/[YOUR_DATABASE]?connect_timeout=10"
      ```
 5. Test your connection locally using the setup script:
    ```
@@ -45,8 +45,8 @@ Add the following environment variables in the Render dashboard:
 
 ```
 NODE_ENV=production
-DATABASE_URL=postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?pgbouncer=true&connect_timeout=10
-DIRECT_URL=postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?connect_timeout=10
+DATABASE_URL=postgres://[YOUR_USERNAME]:[YOUR_PASSWORD]@[YOUR_NEON_HOST].neon.tech/[YOUR_DATABASE]?pgbouncer=true&connect_timeout=10
+DIRECT_URL=postgres://[YOUR_USERNAME]:[YOUR_PASSWORD]@[YOUR_NEON_HOST].neon.tech/[YOUR_DATABASE]?connect_timeout=10
 PORT=3000
 API_BASE_URL=https://your-render-app-name.onrender.com/api
 FRONTEND_URL=https://your-render-app-name.onrender.com
@@ -131,4 +131,3 @@ When using Neon with a serverless deployment like Render:
 3. **Connection Limits**: Monitor your connection usage as serverless plans often have connection limits
 4. **Autoscaling**: Configure your Neon project for autoscaling if you expect variable workloads
 5. **Backups**: Set up regular backups of your database to prevent data loss
-

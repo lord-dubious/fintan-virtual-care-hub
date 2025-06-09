@@ -1,54 +1,50 @@
-/**
- * Neon Database Setup Script
- * 
- * This script helps initialize the Neon database with the pgvector extension
- * and performs initial setup tasks.
- */
+import { PrismaClient } from '@prisma/client';
+import { Pool } from '@neondatabase/serverless';
+import { PrismaNeon } from '@prisma/adapter-neon';
+import dotenv from 'dotenv';
 
-const { Client } = require('pg');
-require('dotenv').config();
+// Load environment variables
+dotenv.config();
 
-async function setupNeonDatabase() {
-  // Use the DIRECT_URL for schema operations
-  const connectionString = process.env.DIRECT_URL;
+async function main() {
+  console.log('Setting up Neon database connection...');
   
-  if (!connectionString) {
-    console.error('Error: DIRECT_URL environment variable is not set');
+  // Check for required environment variables
+  if (!process.env.DATABASE_URL || !process.env.DIRECT_URL) {
+    console.error('Error: DATABASE_URL and DIRECT_URL environment variables are required');
+    console.error('Please set these variables in your .env file');
     process.exit(1);
   }
-
-  const client = new Client({
-    connectionString,
-  });
-
+  
   try {
-    console.log('Connecting to Neon database...');
-    await client.connect();
-    console.log('Connected successfully!');
-
-    // Check if pgvector extension is available
-    console.log('Checking pgvector extension...');
-    const extensionResult = await client.query(
-      "SELECT * FROM pg_extension WHERE extname = 'vector'"
-    );
-
-    if (extensionResult.rows.length === 0) {
-      console.log('Creating pgvector extension...');
-      await client.query('CREATE EXTENSION IF NOT EXISTS vector');
-      console.log('pgvector extension created successfully!');
-    } else {
-      console.log('pgvector extension is already installed.');
-    }
-
-    // Additional setup tasks can be added here
-
-    console.log('Database setup completed successfully!');
+    // Create connection pool
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    
+    // Create Neon adapter
+    const adapter = new PrismaNeon(pool);
+    
+    // Create Prisma client with Neon adapter
+    const prisma = new PrismaClient({ adapter });
+    
+    // Test connection
+    console.log('Testing database connection...');
+    await prisma.$connect();
+    console.log('✅ Successfully connected to Neon database');
+    
+    // Get database information
+    const result = await prisma.$queryRaw`SELECT current_database(), current_schema()`;
+    console.log('Database information:', result);
+    
+    // Clean up
+    await prisma.$disconnect();
+    await pool.end();
+    
+    console.log('✅ Neon database setup complete');
   } catch (error) {
-    console.error('Error setting up database:', error);
-  } finally {
-    await client.end();
+    console.error('Error setting up Neon database:', error);
+    process.exit(1);
   }
 }
 
-setupNeonDatabase().catch(console.error);
+main();
 

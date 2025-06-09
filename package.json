@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "prisma generate && prisma migrate deploy && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -14,7 +14,9 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node --esm prisma/seed.ts",
-    "db:setup": "node scripts/setup-neon-db.js"
+    "db:setup": "node scripts/setup-neon-db.js",
+    "db:test": "node scripts/test-neon-connection.js",
+    "start": "node server.js"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.80.0",
@@ -60,6 +62,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "*",
     "embla-carousel-react": "^8.3.0",
+    "express": "^4.18.2",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",

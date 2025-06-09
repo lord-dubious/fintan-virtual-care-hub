@@ -1,16 +1,7 @@
-
+import { PrismaClient, Consultation, ConsultationStatus } from '@prisma/client';
 import { webrtcService } from './webrtcService';
 
-// Mock types for frontend-only demo
-export interface Consultation {
-  id: string;
-  appointmentId: string;
-  sessionId?: string;
-  roomUrl?: string;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+const prisma = new PrismaClient();
 
 export interface AudioCallSession {
   sessionId: string;
@@ -25,26 +16,67 @@ class AudioCallService {
   private currentSession: AudioCallSession | null = null;
   
   async createSession(appointmentId: string): Promise<AudioCallSession> {
-    // Mock implementation
-    const sessionId = `audio_session_${appointmentId}_${Date.now()}`;
-    const roomUrl = `https://virtualcare.daily.co/audio-${appointmentId}`;
+    // Check if there's already a consultation for this appointment
+    const existingConsultation = await prisma.consultation.findUnique({
+      where: { appointmentId },
+    });
+
+    let consultation: Consultation;
+
+    if (existingConsultation) {
+      // Update existing consultation
+      consultation = await prisma.consultation.update({
+        where: { id: existingConsultation.id },
+        data: {
+          status: ConsultationStatus.IN_PROGRESS,
+          startTime: new Date(),
+        },
+      });
+    } else {
+      // Create a new consultation
+      const roomUrl = `https://virtualcare.daily.co/audio-${appointmentId}`;
+      const sessionId = `audio_session_${appointmentId}_${Date.now()}`;
+      
+      consultation = await prisma.consultation.create({
+        data: {
+          appointmentId,
+          sessionId,
+          roomUrl,
+          status: ConsultationStatus.IN_PROGRESS,
+          startTime: new Date(),
+        },
+      });
+    }
+
+    // Update appointment status
+    await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        status: 'IN_PROGRESS',
+      },
+    });
 
     this.currentSession = {
-      sessionId,
-      roomUrl,
+      sessionId: consultation.sessionId!,
+      roomUrl: consultation.roomUrl!,
       isActive: true,
       participants: [],
-      createdAt: new Date(),
+      createdAt: consultation.createdAt,
       type: 'audio-only'
     };
 
-    console.log('Audio call session created:', sessionId);
+    console.log('Audio call session created:', consultation.sessionId);
     return this.currentSession;
   }
 
   async joinSession(sessionId: string, roomUrl?: string): Promise<boolean> {
     try {
-      const room = roomUrl || this.currentSession?.roomUrl;
+      // Find the consultation by sessionId
+      const consultation = !roomUrl ? await prisma.consultation.findFirst({
+        where: { sessionId },
+      }) : null;
+
+      const room = roomUrl || consultation?.roomUrl;
       if (!room) {
         throw new Error('No room URL available');
       }
@@ -60,6 +92,32 @@ class AudioCallService {
 
   async endSession(sessionId: string): Promise<void> {
     await webrtcService.endCall();
+    
+    // Update consultation status
+    const consultation = await prisma.consultation.findFirst({
+      where: { sessionId },
+      include: { appointment: true },
+    });
+
+    if (consultation) {
+      // Update consultation
+      await prisma.consultation.update({
+        where: { id: consultation.id },
+        data: {
+          status: ConsultationStatus.COMPLETED,
+          endTime: new Date(),
+        },
+      });
+
+      // Update appointment status
+      await prisma.appointment.update({
+        where: { id: consultation.appointmentId },
+        data: {
+          status: 'COMPLETED',
+        },
+      });
+    }
+
     this.currentSession = null;
     console.log('Audio call session ended:', sessionId);
   }
@@ -78,3 +136,4 @@ class AudioCallService {
 }
 
 export const audioCallService = new AudioCallService();
+

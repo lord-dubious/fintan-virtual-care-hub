@@ -1,15 +1,6 @@
+import { PrismaClient, MedicalRecord } from '@prisma/client';
 
-// Mock types for frontend-only demo
-export interface MedicalRecord {
-  id: string;
-  patientId: string;
-  title: string;
-  description: string;
-  recordType?: string;
-  recordDate: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
+const prisma = new PrismaClient();
 
 export interface MedicalRecordCreateInput {
   patientId: string;
@@ -28,22 +19,28 @@ export interface MedicalRecordUpdateInput {
 
 export const medicalRecordService = {
   async create(data: MedicalRecordCreateInput): Promise<MedicalRecord> {
-    // Mock implementation
-    return {
-      id: `record_${Date.now()}`,
-      patientId: data.patientId,
-      title: data.title,
-      description: data.description,
-      recordType: data.recordType,
-      recordDate: data.recordDate || new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    return prisma.medicalRecord.create({
+      data: {
+        patientId: data.patientId,
+        title: data.title,
+        description: data.description,
+        recordType: data.recordType,
+        recordDate: data.recordDate || new Date(),
+      },
+    });
   },
 
   async findById(id: string): Promise<MedicalRecord | null> {
-    // Mock implementation
-    return null;
+    return prisma.medicalRecord.findUnique({
+      where: { id },
+      include: {
+        patient: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
   },
 
   async getById(id: string): Promise<MedicalRecord | null> {
@@ -51,8 +48,12 @@ export const medicalRecordService = {
   },
 
   async findByPatientId(patientId: string): Promise<MedicalRecord[]> {
-    // Mock implementation
-    return [];
+    return prisma.medicalRecord.findMany({
+      where: { patientId },
+      orderBy: {
+        recordDate: 'desc',
+      },
+    });
   },
 
   async getByPatientId(patientId: string): Promise<MedicalRecord[]> {
@@ -65,8 +66,41 @@ export const medicalRecordService = {
     fromDate?: Date;
     toDate?: Date;
   }): Promise<MedicalRecord[]> {
-    // Mock implementation
-    return [];
+    const where: any = {};
+
+    if (filters?.patientId) {
+      where.patientId = filters.patientId;
+    }
+
+    if (filters?.recordType) {
+      where.recordType = filters.recordType;
+    }
+
+    if (filters?.fromDate || filters?.toDate) {
+      where.recordDate = {};
+      
+      if (filters?.fromDate) {
+        where.recordDate.gte = filters.fromDate;
+      }
+      
+      if (filters?.toDate) {
+        where.recordDate.lte = filters.toDate;
+      }
+    }
+
+    return prisma.medicalRecord.findMany({
+      where,
+      include: {
+        patient: {
+          include: {
+            user: true,
+          },
+        },
+      },
+      orderBy: {
+        recordDate: 'desc',
+      },
+    });
   },
 
   async getAll(): Promise<MedicalRecord[]> {
@@ -74,29 +108,16 @@ export const medicalRecordService = {
   },
 
   async update(id: string, data: MedicalRecordUpdateInput): Promise<MedicalRecord> {
-    // Mock implementation
-    return {
-      id,
-      patientId: 'mock_patient',
-      title: data.title || 'Mock Record',
-      description: data.description || 'Mock description',
-      recordType: data.recordType,
-      recordDate: data.recordDate || new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    return prisma.medicalRecord.update({
+      where: { id },
+      data,
+    });
   },
 
   async delete(id: string): Promise<MedicalRecord> {
-    // Mock implementation
-    return {
-      id,
-      patientId: 'mock_patient',
-      title: 'Deleted Record',
-      description: 'Mock description',
-      recordDate: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    return prisma.medicalRecord.delete({
+      where: { id },
+    });
   },
 };
+

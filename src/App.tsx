@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/lib/auth/authProvider';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -17,7 +18,7 @@ import NotFound from '@/pages/not-found';
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="fintan-theme">
+    <ThemeProvider>
       <AuthProvider>
         <Router>
           <Routes>
@@ -106,4 +107,3 @@ function App() {
 }
 
 export default App;
-

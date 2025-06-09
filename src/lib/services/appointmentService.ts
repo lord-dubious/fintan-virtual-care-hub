@@ -1,103 +1,218 @@
+import { PrismaClient } from '@prisma/client';
+import { consultationService } from './consultationService';
+import { notificationService } from './notificationService';
 
-const prisma = { appointment: {} }; // Mock for now since Prisma isn't fully configured
+const prisma = new PrismaClient();
 
-export interface AppointmentCreateInput {
-  patientName: string;
-  patientEmail: string;
-  patientPhone: string;
-  consultationType: string;
+interface CreateAppointmentParams {
+  providerId: string;
+  patientId: string;
   appointmentDate: Date;
   reason?: string;
-  status?: string;
-}
-
-export interface AppointmentUpdateInput {
-  patientName?: string;
-  patientEmail?: string;
-  patientPhone?: string;
-  consultationType?: string;
-  appointmentDate?: Date;
-  reason?: string;
-  status?: string;
-}
-
-export interface Appointment {
-  id: string;
-  patientName: string;
-  patientEmail: string;
-  patientPhone: string;
-  consultationType: string;
-  appointmentDate: Date;
-  reason?: string;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
+  consultationType: 'VIDEO' | 'AUDIO';
 }
 
 export const appointmentService = {
-  async create(data: AppointmentCreateInput): Promise<Appointment> {
-    // Mock implementation
-    return {
-      id: 'mock-id',
-      ...data,
-      status: 'scheduled',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  // Get appointments for a user
+  async getUserAppointments(userId: string, role: string): Promise<any[]> {
+    try {
+      const where = role === 'PROVIDER'
+        ? { provider: { userId } }
+        : { patient: { userId } };
+
+      const appointments = await prisma.appointment.findMany({
+        where,
+        include: {
+          provider: {
+            include: {
+              user: true,
+            },
+          },
+          patient: {
+            include: {
+              user: true,
+            },
+          },
+          consultation: true,
+        },
+        orderBy: {
+          appointmentDate: 'asc',
+        },
+      });
+
+      return appointments;
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      return [];
+    }
   },
 
-  async findById(id: string): Promise<Appointment | null> {
-    // Mock implementation
-    return null;
+  // Get appointment by ID
+  async getAppointmentById(appointmentId: string): Promise<any> {
+    try {
+      const appointment = await prisma.appointment.findUnique({
+        where: { id: appointmentId },
+        include: {
+          provider: {
+            include: {
+              user: true,
+            },
+          },
+          patient: {
+            include: {
+              user: true,
+            },
+          },
+          consultation: true,
+        },
+      });
+
+      if (!appointment) {
+        return {
+          success: false,
+          message: 'Appointment not found',
+        };
+      }
+
+      return {
+        success: true,
+        appointment,
+      };
+    } catch (error) {
+      console.error('Error fetching appointment:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch appointment',
+      };
+    }
   },
 
-  async getById(id: string): Promise<Appointment | null> {
-    return this.findById(id);
+  // Create a new appointment
+  async createAppointment(params: CreateAppointmentParams): Promise<any> {
+    try {
+      // Create appointment
+      const appointment = await prisma.appointment.create({
+        data: {
+          providerId: params.providerId,
+          patientId: params.patientId,
+          appointmentDate: params.appointmentDate,
+          reason: params.reason || '',
+          status: 'SCHEDULED',
+          consultationType: params.consultationType,
+        },
+      });
+
+      // Send notifications
+      await notificationService.notifyAppointmentCreated(appointment.id);
+
+      return {
+        success: true,
+        appointment,
+      };
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+      return {
+        success: false,
+        message: 'Failed to create appointment',
+      };
+    }
   },
 
-  async findMany(): Promise<Appointment[]> {
-    // Mock implementation
-    return [];
+  // Update appointment status
+  async updateAppointmentStatus(appointmentId: string, status: string): Promise<any> {
+    try {
+      const appointment = await prisma.appointment.update({
+        where: { id: appointmentId },
+        data: {
+          status,
+          updatedAt: new Date(),
+        },
+      });
+
+      return {
+        success: true,
+        appointment,
+      };
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      return {
+        success: false,
+        message: 'Failed to update appointment status',
+      };
+    }
   },
 
-  async getAll(): Promise<Appointment[]> {
-    return this.findMany();
+  // Cancel appointment
+  async cancelAppointment(appointmentId: string): Promise<any> {
+    try {
+      const appointment = await prisma.appointment.update({
+        where: { id: appointmentId },
+        data: {
+          status: 'CANCELLED',
+          updatedAt: new Date(),
+        },
+      });
+
+      // TODO: Send cancellation notifications
+
+      return {
+        success: true,
+        appointment,
+      };
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      return {
+        success: false,
+        message: 'Failed to cancel appointment',
+      };
+    }
   },
 
-  async update(id: string, data: AppointmentUpdateInput): Promise<Appointment> {
-    // Mock implementation
-    return {
-      id,
-      patientName: data.patientName || '',
-      patientEmail: data.patientEmail || '',
-      patientPhone: data.patientPhone || '',
-      consultationType: data.consultationType || '',
-      appointmentDate: data.appointmentDate || new Date(),
-      reason: data.reason,
-      status: data.status || 'scheduled',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
+  // Join consultation
+  async joinConsultation(appointmentId: string): Promise<any> {
+    try {
+      // Get appointment
+      const appointmentResult = await this.getAppointmentById(appointmentId);
+      if (!appointmentResult.success) {
+        return appointmentResult;
+      }
 
-  async delete(id: string): Promise<Appointment> {
-    // Mock implementation
-    return {
-      id,
-      patientName: '',
-      patientEmail: '',
-      patientPhone: '',
-      consultationType: '',
-      appointmentDate: new Date(),
-      status: 'deleted',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
+      const appointment = appointmentResult.appointment;
 
-  async getUpcoming(): Promise<Appointment[]> {
-    const now = new Date();
-    // Mock implementation
-    return [];
+      // Check if appointment is scheduled
+      if (appointment.status !== 'SCHEDULED') {
+        return {
+          success: false,
+          message: `Cannot join consultation. Appointment status is ${appointment.status}`,
+        };
+      }
+
+      // Create or get consultation
+      let consultation;
+      if (appointment.consultation) {
+        consultation = appointment.consultation;
+      } else {
+        const consultationResult = await consultationService.createConsultation(appointmentId);
+        if (!consultationResult.success) {
+          return consultationResult;
+        }
+        consultation = consultationResult.consultation;
+      }
+
+      // Update appointment status to IN_PROGRESS
+      await this.updateAppointmentStatus(appointmentId, 'IN_PROGRESS');
+
+      return {
+        success: true,
+        consultation,
+      };
+    } catch (error) {
+      console.error('Error joining consultation:', error);
+      return {
+        success: false,
+        message: 'Failed to join consultation',
+      };
+    }
   },
 };
+

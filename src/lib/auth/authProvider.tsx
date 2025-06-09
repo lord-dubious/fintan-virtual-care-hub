@@ -1,59 +1,57 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/authService';
-import { useToast } from '@/hooks/use-toast';
 
-// Define the User type
-export interface User {
+// Define user type
+type UserRole = 'ADMIN' | 'PROVIDER' | 'PATIENT';
+
+interface User {
   id: string;
+  name: string;
   email: string;
-  name: string | null;
-  role: 'PATIENT' | 'PROVIDER' | 'ADMIN';
+  role: UserRole;
 }
 
-// Define the AuthContext type
+// Auth context type
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string, role: 'PATIENT' | 'PROVIDER') => Promise<boolean>;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  isAuthenticated: () => boolean;
-  hasRole: (role: 'PATIENT' | 'PROVIDER' | 'ADMIN') => boolean;
+  signup: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
 }
 
-// Create the AuthContext
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  login: async () => {},
+  logout: () => {},
+  signup: async () => {},
+});
 
-// Create the AuthProvider component
+// Auth provider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Check if the user is already logged in on component mount
+  // Check for existing session on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-          // Verify the token and get the user data
-          const userData = await authService.verifyToken(token);
-          if (userData) {
-            setUser(userData);
-          } else {
-            // Token is invalid, remove it
-            localStorage.removeItem('auth_token');
-          }
+        // In a real app, you would check for a valid token and fetch user data
+        const storedUser = localStorage.getItem('user');
+        
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
         }
-      } catch (err) {
-        console.error('Authentication error:', err);
-        setError('Authentication failed. Please try again.');
+      } catch (error) {
+        console.error('Authentication check failed:', error);
+        // Clear potentially corrupted data
+        localStorage.removeItem('user');
+        setUser(null);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
@@ -61,138 +59,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Login function
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
-      const result = await authService.login(email, password);
-      if (result.success && result.user && result.token) {
-        // Store the token in localStorage
-        localStorage.setItem('auth_token', result.token);
-        // Set the user data
-        setUser({
-          id: result.user.id,
-          email: result.user.email,
-          name: result.user.name,
-          role: result.user.role,
-        });
-        toast({
-          title: 'Login Successful',
-          description: `Welcome back, ${result.user.name || result.user.email}!`,
-        });
-        return true;
-      } else {
-        setError(result.message || 'Login failed. Please check your credentials.');
-        toast({
-          title: 'Login Failed',
-          description: result.message || 'Please check your credentials and try again.',
-          variant: 'destructive',
-        });
-        return false;
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('Login failed. Please try again.');
-      toast({
-        title: 'Login Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive',
-      });
-      return false;
+      // In a real app, you would make an API call to authenticate
+      // This is a mock implementation
+      const mockUser: User = {
+        id: '1',
+        name: 'Test User',
+        email,
+        role: 'PATIENT',
+      };
+      
+      // Store user in localStorage for persistence
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(mockUser);
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
     } finally {
-      setLoading(false);
-    }
-  };
-
-  // Register function
-  const register = async (
-    email: string,
-    password: string,
-    name: string,
-    role: 'PATIENT' | 'PROVIDER'
-  ): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await authService.register(email, password, name, role);
-      if (result.success && result.user && result.token) {
-        // Store the token in localStorage
-        localStorage.setItem('auth_token', result.token);
-        // Set the user data
-        setUser({
-          id: result.user.id,
-          email: result.user.email,
-          name: result.user.name,
-          role: result.user.role,
-        });
-        toast({
-          title: 'Registration Successful',
-          description: `Welcome to Virtual Care Hub, ${result.user.name || result.user.email}!`,
-        });
-        return true;
-      } else {
-        setError(result.message || 'Registration failed. Please try again.');
-        toast({
-          title: 'Registration Failed',
-          description: result.message || 'Please check your information and try again.',
-          variant: 'destructive',
-        });
-        return false;
-      }
-    } catch (err) {
-      console.error('Registration error:', err);
-      setError('Registration failed. Please try again.');
-      toast({
-        title: 'Registration Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive',
-      });
-      return false;
-    } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   // Logout function
   const logout = () => {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
     setUser(null);
-    navigate('/auth/login');
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
   };
 
-  // Check if the user is authenticated
-  const isAuthenticated = (): boolean => {
-    return !!user;
+  // Signup function
+  const signup = async (name: string, email: string, password: string, role: UserRole) => {
+    setIsLoading(true);
+    try {
+      // In a real app, you would make an API call to register the user
+      // This is a mock implementation
+      const mockUser: User = {
+        id: '1',
+        name,
+        email,
+        role,
+      };
+      
+      // Store user in localStorage for persistence
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(mockUser);
+    } catch (error) {
+      console.error('Signup failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Check if the user has a specific role
-  const hasRole = (role: 'PATIENT' | 'PROVIDER' | 'ADMIN'): boolean => {
-    return user?.role === role;
-  };
-
-  // Create the context value
-  const contextValue: AuthContextType = {
-    user,
-    loading,
-    error,
-    login,
-    register,
-    logout,
-    isAuthenticated,
-    hasRole,
-  };
-
-  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+  // Provide auth context to children
+  return (
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        isAuthenticated: !!user, 
+        isLoading, 
+        login, 
+        logout, 
+        signup 
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-// Create a hook to use the AuthContext
-export const useAuth = (): AuthContextType => {
+// Custom hook for using auth context
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

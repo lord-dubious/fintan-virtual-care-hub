@@ -1,22 +1,24 @@
 
-import { Patient, User } from '@/lib/prisma';
+// Mock types for frontend-only demo
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  role: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-const prisma = {
-  user: {
-    create: async (data: any) => ({ id: 'mock-user-id', ...data.data }),
-    update: async (params: any) => ({ id: params.where.id, ...params.data }),
-    delete: async (params: any) => ({ id: params.where.id }),
-    findUnique: async () => null,
-  },
-  patient: {
-    create: async (data: any) => ({ id: 'mock-patient-id', ...data.data }),
-    findUnique: async () => null,
-    findMany: async () => [],
-    update: async (params: any) => ({ id: params.where.id, ...params.data }),
-    delete: async (params: any) => ({ id: params.where.id }),
-  },
-  $transaction: async (callback: any) => callback(prisma),
-};
+export interface Patient {
+  id: string;
+  userId: string;
+  dateOfBirth?: Date;
+  address?: string;
+  emergencyContact?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface PatientCreateInput {
   email: string;
@@ -43,29 +45,33 @@ export interface PatientWithUser extends Patient {
 
 export const patientService = {
   async create(data: PatientCreateInput): Promise<PatientWithUser> {
-    const mockUser = {
+    // Mock implementation
+    const mockUser: User = {
       id: `user_${Date.now()}`,
       email: data.email,
       name: data.name,
       phone: data.phone || null,
-      role: 'PATIENT' as const,
+      role: 'PATIENT',
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
-    const mockPatient = {
+    const mockPatient: PatientWithUser = {
       id: `patient_${Date.now()}`,
       userId: mockUser.id,
-      dateOfBirth: data.dateOfBirth || null,
-      address: data.address || null,
-      emergencyContact: data.emergencyContact || null,
-      user: mockUser
+      dateOfBirth: data.dateOfBirth,
+      address: data.address,
+      emergencyContact: data.emergencyContact,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      user: mockUser,
     };
 
     return mockPatient;
   },
 
   async findById(id: string): Promise<PatientWithUser | null> {
+    // Mock implementation
     return null;
   },
 
@@ -74,6 +80,7 @@ export const patientService = {
   },
 
   async findByEmail(email: string): Promise<PatientWithUser | null> {
+    // Mock implementation
     return null;
   },
 
@@ -82,6 +89,7 @@ export const patientService = {
   },
 
   async findMany(): Promise<PatientWithUser[]> {
+    // Mock implementation
     return [];
   },
 
@@ -90,44 +98,12 @@ export const patientService = {
   },
 
   async update(id: string, data: PatientUpdateInput): Promise<PatientWithUser> {
-    const mockPatient = {
-      id,
-      userId: 'mock-user-id',
-      dateOfBirth: data.dateOfBirth || null,
-      address: data.address || null,
-      emergencyContact: data.emergencyContact || null,
-      user: {
-        id: 'mock-user-id',
-        email: data.email || 'mock@example.com',
-        name: data.name || 'Mock User',
-        phone: data.phone || null,
-        role: 'PATIENT' as const,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    };
-
-    return mockPatient;
+    // Mock implementation
+    throw new Error('Mock implementation - update not available');
   },
 
   async delete(id: string): Promise<PatientWithUser> {
-    const mockPatient = {
-      id,
-      userId: 'mock-user-id',
-      dateOfBirth: null,
-      address: null,
-      emergencyContact: null,
-      user: {
-        id: 'mock-user-id',
-        email: 'deleted@example.com',
-        name: 'Deleted User',
-        phone: null,
-        role: 'PATIENT' as const,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    };
-
-    return mockPatient;
+    // Mock implementation
+    throw new Error('Mock implementation - delete not available');
   },
 };

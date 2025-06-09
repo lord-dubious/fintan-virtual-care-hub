@@ -1,18 +1,16 @@
 
-import { Consultation } from '@/lib/prisma';
 import { webrtcService } from './webrtcService';
 
-const prisma = {
-  consultation: {
-    findUnique: async () => null,
-    findFirst: async () => null,
-    create: async (data: any) => ({ id: 'mock-consultation-id', ...data.data }),
-    update: async (params: any) => ({ id: params.where.id, ...params.data }),
-  },
-  appointment: {
-    update: async (params: any) => ({ id: params.where.id, ...params.data }),
-  },
-};
+// Mock types for frontend-only demo
+export interface Consultation {
+  id: string;
+  appointmentId: string;
+  sessionId?: string;
+  roomUrl?: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface AudioCallSession {
   sessionId: string;
@@ -27,37 +25,31 @@ class AudioCallService {
   private currentSession: AudioCallSession | null = null;
   
   async createSession(appointmentId: string): Promise<AudioCallSession> {
-    const roomUrl = `https://virtualcare.daily.co/audio-${appointmentId}`;
+    // Mock implementation
     const sessionId = `audio_session_${appointmentId}_${Date.now()}`;
-    
-    const consultation = {
-      id: 'mock-consultation-id',
-      appointmentId,
-      sessionId,
-      roomUrl,
-      status: 'IN_PROGRESS' as const,
-      startTime: new Date(),
-      endTime: null,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    const roomUrl = `https://virtualcare.daily.co/audio-${appointmentId}`;
 
     this.currentSession = {
-      sessionId: consultation.sessionId!,
-      roomUrl: consultation.roomUrl!,
+      sessionId,
+      roomUrl,
       isActive: true,
       participants: [],
-      createdAt: consultation.createdAt,
+      createdAt: new Date(),
       type: 'audio-only'
     };
 
-    console.log('Audio call session created:', consultation.sessionId);
+    console.log('Audio call session created:', sessionId);
     return this.currentSession;
   }
 
   async joinSession(sessionId: string, roomUrl?: string): Promise<boolean> {
     try {
-      const room = roomUrl || `https://virtualcare.daily.co/audio-${sessionId}`;
+      const room = roomUrl || this.currentSession?.roomUrl;
+      if (!room) {
+        throw new Error('No room URL available');
+      }
+
+      // Initialize with audio-only settings
       await webrtcService.initializeCall(room, undefined, { video: false, audio: true });
       return true;
     } catch (error) {

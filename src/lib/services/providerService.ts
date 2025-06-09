@@ -1,27 +1,25 @@
 
-import { Provider, User } from '@/lib/prisma';
+// Mock types for frontend-only demo
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  role: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-const prisma = {
-  user: {
-    create: async (data: any) => ({ id: 'mock-user-id', ...data.data }),
-    update: async (params: any) => ({ id: params.where.id, ...params.data }),
-    delete: async (params: any) => ({ id: params.where.id }),
-    findUnique: async () => null,
-  },
-  provider: {
-    create: async (data: any) => ({ id: 'mock-provider-id', ...data.data }),
-    findUnique: async () => null,
-    findMany: async () => [],
-    update: async (params: any) => ({ id: params.where.id, ...params.data }),
-    delete: async (params: any) => ({ id: params.where.id }),
-  },
-  availability: {
-    findFirst: async () => null,
-    create: async (data: any) => ({ id: 'mock-availability-id', ...data.data }),
-    update: async (params: any) => ({ id: params.where.id, ...params.data }),
-  },
-  $transaction: async (callback: any) => callback(prisma),
-};
+export interface Provider {
+  id: string;
+  userId: string;
+  title?: string;
+  specialization?: string;
+  bio?: string;
+  licenseNumber?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface ProviderCreateInput {
   email: string;
@@ -50,24 +48,27 @@ export interface ProviderWithUser extends Provider {
 
 export const providerService = {
   async create(data: ProviderCreateInput): Promise<ProviderWithUser> {
-    const mockUser = {
+    // Mock implementation
+    const mockUser: User = {
       id: `user_${Date.now()}`,
       email: data.email,
       name: data.name,
       phone: data.phone || null,
-      role: 'PROVIDER' as const,
+      role: 'PROVIDER',
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
-    const mockProvider = {
+    const mockProvider: ProviderWithUser = {
       id: `provider_${Date.now()}`,
       userId: mockUser.id,
-      title: data.title || null,
-      specialization: data.specialization || null,
-      bio: data.bio || null,
-      licenseNumber: data.licenseNumber || null,
-      user: mockUser
+      title: data.title,
+      specialization: data.specialization,
+      bio: data.bio,
+      licenseNumber: data.licenseNumber,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      user: mockUser,
     };
 
     return mockProvider;
@@ -98,47 +99,11 @@ export const providerService = {
   },
 
   async update(id: string, data: ProviderUpdateInput): Promise<ProviderWithUser> {
-    const mockProvider = {
-      id,
-      userId: 'mock-user-id',
-      title: data.title || null,
-      specialization: data.specialization || null,
-      bio: data.bio || null,
-      licenseNumber: data.licenseNumber || null,
-      user: {
-        id: 'mock-user-id',
-        email: data.email || 'mock@example.com',
-        name: data.name || 'Mock Provider',
-        phone: data.phone || null,
-        role: 'PROVIDER' as const,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    };
-
-    return mockProvider;
+    throw new Error('Mock implementation - update not available');
   },
 
   async delete(id: string): Promise<ProviderWithUser> {
-    const mockProvider = {
-      id,
-      userId: 'mock-user-id',
-      title: null,
-      specialization: null,
-      bio: null,
-      licenseNumber: null,
-      user: {
-        id: 'mock-user-id',
-        email: 'deleted@example.com',
-        name: 'Deleted Provider',
-        phone: null,
-        role: 'PROVIDER' as const,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    };
-
-    return mockProvider;
+    throw new Error('Mock implementation - delete not available');
   },
 
   async getAvailability(providerId: string, date?: Date): Promise<any[]> {
@@ -151,6 +116,6 @@ export const providerService = {
     endTime: string;
     isAvailable: boolean;
   }): Promise<any> {
-    return { id: 'mock-availability-id', ...availabilityData };
+    return {};
   },
 };

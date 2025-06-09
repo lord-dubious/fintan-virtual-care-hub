@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import BookingProgress from '@/components/booking/BookingProgress';
@@ -32,8 +33,8 @@ export interface BookingData {
 const BookingPage: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
-  const totalSteps = 5;
+  const [currentStep, setCurrentStep] = useState(0); // Start with auth step
+  const totalSteps = 5; // Updated to include auth step
   
   const [bookingData, setBookingData] = useState<BookingData>({
     consultationType: '',
@@ -98,7 +99,7 @@ const BookingPage: React.FC = () => {
       state: { 
         bookingData: {
           ...bookingData,
-          paymentCompleted: true
+          paymentCompleted: true // Flag to show calendar integration
         }
       }
     });
@@ -112,6 +113,7 @@ const BookingPage: React.FC = () => {
             onAuthenticated={(email: string) => {
               updateBookingData('isAuthenticated', true);
               updateBookingData('userEmail', email);
+              // Auto-populate email in patient info
               updateBookingData('patientInfo', { 
                 ...bookingData.patientInfo, 
                 email 
@@ -191,67 +193,23 @@ const BookingPage: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-medical-primary/5 to-medical-accent/5 dark:from-gray-900 dark:to-gray-800 ${
-      isMobile 
-        ? 'px-0 py-0' 
-        : 'px-4 py-8'
-    }`}>
-      <div className={`${
-        isMobile 
-          ? 'max-w-full min-h-screen flex flex-col' 
-          : 'container mx-auto max-w-4xl'
-      }`}>
-        {!isMobile && <BookingHeader totalSteps={totalSteps} />}
+    <div className={`min-h-screen bg-gradient-to-br from-medical-primary/5 to-medical-accent/5 dark:from-gray-900 dark:to-gray-800 ${isMobile ? 'px-3 py-4' : 'px-4 py-8'}`}>
+      <div className={`${isMobile ? 'max-w-full' : 'container mx-auto max-w-4xl'}`}>
+        <BookingHeader totalSteps={totalSteps} />
         
-        <Card className={`${
-          isMobile 
-            ? 'flex-1 shadow-none border-0 rounded-none bg-white dark:bg-gray-900' 
-            : 'shadow-xl border-0 dark:bg-gray-800/95 dark:border-gray-700'
-        }`}>
-          <CardContent className={`${
-            isMobile 
-              ? 'p-0 h-full flex flex-col' 
-              : 'p-6 md:p-8'
-          }`}>
-            {isMobile && (
-              <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h1 className="text-xl font-bold dark:text-white">
-                    Book Consultation
-                  </h1>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    Step {currentStep + 1} of {totalSteps}
-                  </span>
-                </div>
-                <BookingProgress
-                  currentStep={currentStep}
-                  totalSteps={totalSteps}
-                  stepTitles={stepTitles}
-                />
-              </div>
-            )}
+        <Card className={`shadow-xl border-0 dark:bg-gray-800/95 dark:border-gray-700 ${isMobile ? 'mx-0' : ''}`}>
+          <CardContent className={`${isMobile ? 'p-4' : 'p-6 md:p-8'}`}>
+            <BookingProgress
+              currentStep={currentStep}
+              totalSteps={totalSteps}
+              stepTitles={stepTitles}
+            />
             
-            {!isMobile && (
-              <BookingProgress
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-                stepTitles={stepTitles}
-              />
-            )}
-            
-            <div className={`${
-              isMobile 
-                ? 'flex-1 overflow-y-auto' 
-                : 'mt-8'
-            }`}>
+            <div className={`${isMobile ? 'mt-6' : 'mt-8'}`}>
               {renderStep()}
             </div>
             
-            <div className={`${
-              isMobile 
-                ? 'sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4' 
-                : 'mt-8'
-            }`}>
+            <div className={`${isMobile ? 'mt-6' : 'mt-8'}`}>
               <BookingNavigation
                 currentStep={currentStep}
                 totalSteps={totalSteps}

@@ -1,51 +1,130 @@
-import { PrismaClient } from '@prisma/client';
-import { Pool } from '@neondatabase/serverless';
-import { neon, neonConfig } from '@neondatabase/serverless';
-import { PrismaNeon } from '@prisma/adapter-neon';
 
-// Configure neon to use WebSockets for serverless environments
-neonConfig.webSocketConstructor = globalThis.WebSocket;
+// Mock Prisma client for frontend-only demo
+// In a real application, Prisma would only be used server-side
 
-// Create connection pool
-const connectionString = process.env.DATABASE_URL;
-
-// For edge runtimes, use the neon HTTP adapter
-let prisma: PrismaClient;
-
-if (process.env.NODE_ENV === 'production') {
-  // For production, use the Neon adapter with connection pooling
-  const pool = new Pool({ connectionString });
-  const adapter = new PrismaNeon(pool);
-  prisma = new PrismaClient({ adapter });
-} else {
-  // For development, use the standard Prisma client
-  prisma = new PrismaClient({
-    log: ['query', 'info', 'warn', 'error'],
-  });
+// Mock types
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  role: 'PATIENT' | 'PROVIDER' | 'ADMIN';
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export { prisma };
+export interface Patient {
+  id: string;
+  userId: string;
+  dateOfBirth: Date | null;
+  address: string | null;
+  emergencyContact: string | null;
+  user?: User;
+}
+
+export interface Provider {
+  id: string;
+  userId: string;
+  title: string | null;
+  specialization: string | null;
+  bio: string | null;
+  licenseNumber: string | null;
+  user?: User;
+}
+
+export interface Appointment {
+  id: string;
+  providerId: string;
+  patientId: string;
+  appointmentDate: Date;
+  status: string;
+  reason: string | null;
+  consultationType: 'VIDEO' | 'AUDIO';
+  patient?: Patient;
+  provider?: Provider;
+}
+
+export interface Consultation {
+  id: string;
+  appointmentId: string;
+  sessionId: string | null;
+  roomUrl: string | null;
+  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  startTime: Date | null;
+  endTime: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MedicalRecord {
+  id: string;
+  patientId: string;
+  title: string;
+  description: string;
+  recordType: string | null;
+  recordDate: Date;
+  patient?: Patient;
+}
+
+// Mock Prisma client
+export const prisma = {
+  user: {
+    findUnique: async () => null,
+    findMany: async () => [],
+    create: async () => null,
+    update: async () => null,
+    delete: async () => null,
+  },
+  patient: {
+    findUnique: async () => null,
+    findMany: async () => [],
+    create: async () => null,
+    update: async () => null,
+    delete: async () => null,
+  },
+  provider: {
+    findUnique: async () => null,
+    findMany: async () => [],
+    create: async () => null,
+    update: async () => null,
+    delete: async () => null,
+  },
+  appointment: {
+    findUnique: async () => null,
+    findMany: async () => [],
+    create: async () => null,
+    update: async () => null,
+    delete: async () => null,
+  },
+  consultation: {
+    findUnique: async () => null,
+    findFirst: async () => null,
+    findMany: async () => [],
+    create: async () => null,
+    update: async () => null,
+    delete: async () => null,
+  },
+  medicalRecord: {
+    findUnique: async () => null,
+    findMany: async () => [],
+    create: async () => null,
+    update: async () => null,
+    delete: async () => null,
+  },
+  $transaction: async (callback: any) => {
+    return callback(prisma);
+  },
+  $queryRaw: async () => [],
+};
 
 // Helper function to handle vector operations
 export async function createEmbedding(text: string, dimensions = 1536) {
-  // This is a placeholder. In a real application, you would:
-  // 1. Call an embedding API (like OpenAI's)
-  // 2. Return the vector
-  // For now, we'll return a mock vector of the specified dimensions
+  // Mock embedding for demo
   return Array(dimensions).fill(0).map(() => Math.random() - 0.5);
 }
 
 // Example function to perform vector similarity search
 export async function findSimilarEntries(embedding: number[], limit = 5) {
-  // This uses the cosine similarity operator <=> from pgvector
-  const result = await prisma.$queryRaw`
-    SELECT id, content, 1 - (embedding <=> ${embedding}::vector) as similarity
-    FROM "BrainEntry"
-    WHERE embedding IS NOT NULL
-    ORDER BY embedding <=> ${embedding}::vector
-    LIMIT ${limit}
-  `;
-  
-  return result;
+  // Mock similarity search for demo
+  return [];
 }
-

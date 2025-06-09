@@ -1,7 +1,18 @@
-import { PrismaClient, Consultation, ConsultationStatus } from '@prisma/client';
+
+import { Consultation } from '@/lib/prisma';
 import { webrtcService } from './webrtcService';
 
-const prisma = new PrismaClient();
+const prisma = {
+  consultation: {
+    findUnique: async () => null,
+    findFirst: async () => null,
+    create: async (data: any) => ({ id: 'mock-consultation-id', ...data.data }),
+    update: async (params: any) => ({ id: params.where.id, ...params.data }),
+  },
+  appointment: {
+    update: async (params: any) => ({ id: params.where.id, ...params.data }),
+  },
+};
 
 export interface VideoCallSession {
   sessionId: string;
@@ -15,45 +26,20 @@ class VideoCallService {
   private currentSession: VideoCallSession | null = null;
   
   async createSession(appointmentId: string): Promise<VideoCallSession> {
-    // Check if there's already a consultation for this appointment
-    const existingConsultation = await prisma.consultation.findUnique({
-      where: { appointmentId },
-    });
-
-    let consultation: Consultation;
-
-    if (existingConsultation) {
-      // Update existing consultation
-      consultation = await prisma.consultation.update({
-        where: { id: existingConsultation.id },
-        data: {
-          status: ConsultationStatus.IN_PROGRESS,
-          startTime: new Date(),
-        },
-      });
-    } else {
-      // Create a new consultation
-      const roomUrl = `https://virtualcare.daily.co/${appointmentId}`;
-      const sessionId = `session_${appointmentId}_${Date.now()}`;
-      
-      consultation = await prisma.consultation.create({
-        data: {
-          appointmentId,
-          sessionId,
-          roomUrl,
-          status: ConsultationStatus.IN_PROGRESS,
-          startTime: new Date(),
-        },
-      });
-    }
-
-    // Update appointment status
-    await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: 'IN_PROGRESS',
-      },
-    });
+    const roomUrl = `https://virtualcare.daily.co/${appointmentId}`;
+    const sessionId = `session_${appointmentId}_${Date.now()}`;
+    
+    const consultation = {
+      id: 'mock-consultation-id',
+      appointmentId,
+      sessionId,
+      roomUrl,
+      status: 'IN_PROGRESS' as const,
+      startTime: new Date(),
+      endTime: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
     this.currentSession = {
       sessionId: consultation.sessionId!,
@@ -69,16 +55,7 @@ class VideoCallService {
 
   async joinSession(sessionId: string, roomUrl?: string): Promise<boolean> {
     try {
-      // Find the consultation by sessionId
-      const consultation = !roomUrl ? await prisma.consultation.findFirst({
-        where: { sessionId },
-      }) : null;
-
-      const room = roomUrl || consultation?.roomUrl;
-      if (!room) {
-        throw new Error('No room URL available');
-      }
-
+      const room = roomUrl || `https://virtualcare.daily.co/${sessionId}`;
       await webrtcService.initializeCall(room);
       return true;
     } catch (error) {
@@ -89,32 +66,6 @@ class VideoCallService {
 
   async endSession(sessionId: string): Promise<void> {
     await webrtcService.endCall();
-    
-    // Update consultation status
-    const consultation = await prisma.consultation.findFirst({
-      where: { sessionId },
-      include: { appointment: true },
-    });
-
-    if (consultation) {
-      // Update consultation
-      await prisma.consultation.update({
-        where: { id: consultation.id },
-        data: {
-          status: ConsultationStatus.COMPLETED,
-          endTime: new Date(),
-        },
-      });
-
-      // Update appointment status
-      await prisma.appointment.update({
-        where: { id: consultation.appointmentId },
-        data: {
-          status: 'COMPLETED',
-        },
-      });
-    }
-
     this.currentSession = null;
     console.log('Video call session ended:', sessionId);
   }
@@ -141,4 +92,3 @@ class VideoCallService {
 }
 
 export const videoCallService = new VideoCallService();
-

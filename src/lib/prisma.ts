@@ -7,7 +7,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Connection configuration
-const connectionString = process.env.DATABASE_URL || '';
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+const connectionString = process.env.DATABASE_URL;
 
 // Create connection pool
 const pool = new Pool({ connectionString });
@@ -35,7 +38,9 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
 
 // Set global Prisma client in development
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}
 
 // Helper function for vector similarity search
 export async function findSimilarEntries(
@@ -63,4 +68,3 @@ export async function disconnectPrisma() {
   await prisma.$disconnect();
   await pool.end();
 }
-

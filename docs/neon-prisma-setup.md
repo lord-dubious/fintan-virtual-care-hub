@@ -1,91 +1,200 @@
-# Setting Up Prisma with Neon Serverless PostgreSQL
+# Neon PostgreSQL and Prisma Setup Guide
 
-This guide explains how to set up and use Prisma with Neon Serverless PostgreSQL for the Fintan Virtual Care Hub.
+This guide explains how to set up and configure Neon PostgreSQL with Prisma for the Fintan Virtual Care Hub application.
+
+## What is Neon?
+
+Neon is a serverless PostgreSQL service that separates storage and compute to offer autoscaling, branching, and bottomless storage. It's particularly well-suited for serverless deployments like Render.
 
 ## Prerequisites
 
-- A Neon account (sign up at [neon.tech](https://neon.tech))
-- Node.js and npm/yarn installed
+1. A Neon account (sign up at [neon.tech](https://neon.tech))
+2. Node.js and npm installed
+3. Basic knowledge of PostgreSQL and Prisma
 
-## Step 1: Create a Neon Project
+## Setting Up Neon
 
-1. Sign up or log in to [Neon](https://console.neon.tech)
-2. Create a new project
-3. Note your connection details (you'll need these for your `.env` file)
+### Step 1: Create a Neon Project
 
-## Step 2: Configure Environment Variables
+1. Sign in to your Neon account
+2. Click "New Project"
+3. Name your project (e.g., "fintan-virtual-care")
+4. Select a region closest to your users
+5. Click "Create Project"
 
-Create a `.env` file in the root of your project with the following variables:
+### Step 2: Create a Database
 
+1. In your new project, go to the "Databases" tab
+2. Click "Create Database"
+3. Name your database (e.g., "drfintan")
+4. Click "Create"
+
+### Step 3: Get Connection Strings
+
+1. Go to the "Connection Details" tab
+2. Note the connection string provided
+3. You'll need to create two versions of this string:
+   - `DATABASE_URL`: Add `?pgbouncer=true&connect_timeout=10` to the end
+   - `DIRECT_URL`: Add `?connect_timeout=10` to the end
+
+Example:
 ```
-DATABASE_URL="postgres://user:password@ep-some-id.region.aws.neon.tech/drfintan?pgbouncer=true&connect_timeout=10"
-DIRECT_URL="postgres://user:password@ep-some-id.region.aws.neon.tech/drfintan?connect_timeout=10"
+DATABASE_URL="postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?pgbouncer=true&connect_timeout=10"
+DIRECT_URL="postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?connect_timeout=10"
 ```
 
-Replace the placeholders with your actual Neon connection details:
-- `user`: Your Neon database username
-- `password`: Your Neon database password
-- `ep-some-id.region.aws.neon.tech`: Your Neon endpoint
-- `drfintan`: Your database name
+## Configuring Prisma with Neon
 
-## Step 3: Initialize Prisma
-
-If you haven't already initialized Prisma, run:
+### Step 1: Install Required Dependencies
 
 ```bash
-npx prisma init
+npm install @prisma/client @prisma/adapter-neon @neondatabase/serverless
 ```
 
-## Step 4: Run Migrations
+### Step 2: Configure Prisma Client
 
-To create your database schema in Neon:
-
-```bash
-npx prisma migrate dev --name init
-```
-
-This will:
-1. Create the necessary tables in your Neon database
-2. Generate the Prisma client
-
-## Step 5: Enable pgvector Extension
-
-The schema is already configured to use the pgvector extension. When you run migrations, Prisma will automatically enable this extension in your Neon database.
-
-## Step 6: Using Prisma in Your Application
-
-Import and use the Prisma client in your application:
+Create or update your Prisma client configuration file (e.g., `src/lib/prisma.ts`):
 
 ```typescript
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client';
+import { Pool } from '@neondatabase/serverless';
+import { PrismaNeon } from '@prisma/adapter-neon';
+import dotenv from 'dotenv';
 
-const prisma = new PrismaClient()
+// Load environment variables
+dotenv.config();
 
-// Example: Create a user
-async function createUser() {
-  const user = await prisma.user.create({
-    data: {
-      email: 'user@example.com',
-      name: 'Example User',
-    },
-  })
-  console.log(user)
+// Connection configuration
+const connectionString = process.env.DATABASE_URL || '';
+
+// Create connection pool
+const pool = new Pool({ connectionString });
+
+// Create Neon adapter
+const adapter = new PrismaNeon(pool);
+
+// Create and export Prisma client with Neon adapter
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+};
+
+// Define global type for PrismaClient
+type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
+
+// Create global variable for PrismaClient
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClientSingleton | undefined;
+};
+
+// Export Prisma client (create new or use existing)
+export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
+
+// Set global Prisma client in development
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+// Clean up function to be called on application shutdown
+export async function disconnectPrisma() {
+  await prisma.$disconnect();
+  await pool.end();
 }
 ```
 
-## Connection Pooling
+### Step 3: Update Environment Variables
 
-Neon uses connection pooling via PgBouncer. The `DATABASE_URL` includes the `pgbouncer=true` parameter to enable this feature. For operations that are not compatible with PgBouncer (like schema migrations), Prisma will use the `DIRECT_URL`.
+Ensure your `.env` file contains both connection strings:
+
+```
+DATABASE_URL="postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?pgbouncer=true&connect_timeout=10"
+DIRECT_URL="postgres://user:password@ep-some-id.us-east-2.aws.neon.tech/drfintan?connect_timeout=10"
+```
+
+### Step 4: Configure Prisma Schema
+
+Ensure your `prisma/schema.prisma` file is configured for PostgreSQL:
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Your models here...
+```
+
+## Running Migrations
+
+### Initial Setup
+
+1. Generate Prisma client:
+   ```bash
+   npx prisma generate
+   ```
+
+2. Create and apply migrations:
+   ```bash
+   npx prisma migrate dev --name init
+   ```
+
+### Production Migrations
+
+For production deployments (like Render), use:
+
+```bash
+npx prisma migrate deploy
+```
+
+This is automatically included in the build script in `package.json`:
+
+```json
+"build": "prisma generate && prisma migrate deploy && vite build"
+```
+
+## Testing the Connection
+
+Run the setup script to test your Neon connection:
+
+```bash
+npm run db:setup
+```
+
+This script will:
+1. Connect to your Neon database
+2. Verify the connection is working
+3. Display basic database information
 
 ## Troubleshooting
 
-- **Connection Issues**: Ensure your IP is allowed in Neon's IP restrictions
-- **Migration Errors**: Check that your `DIRECT_URL` is correctly configured
-- **Vector Operations**: If you encounter issues with vector operations, verify that the pgvector extension is properly enabled
+### Connection Issues
 
-## Additional Resources
+1. **Error: Could not connect to database**: Verify your connection strings and ensure your IP is allowed in Neon's IP restrictions (if enabled)
 
-- [Neon Documentation](https://neon.tech/docs)
-- [Prisma with Neon Guide](https://neon.tech/docs/guides/prisma)
-- [Prisma Documentation](https://www.prisma.io/docs)
+2. **Error: P1001: Can't reach database server**: Check if your Neon project is active and not in a suspended state
+
+3. **Error: P1003: Database does not exist**: Ensure you've created the database in Neon and specified the correct database name in your connection string
+
+### Migration Issues
+
+1. **Error: P1001 during migration**: Make sure you're using the `DIRECT_URL` for migrations (Prisma uses this automatically)
+
+2. **Error: P1010: User does not have permission**: Ensure your database user has the necessary permissions
+
+## Best Practices for Neon with Prisma
+
+1. **Connection Pooling**: Always use `pgbouncer=true` in your `DATABASE_URL` to enable connection pooling
+
+2. **Direct URL for Migrations**: Always provide a `DIRECT_URL` without pgbouncer for migrations
+
+3. **Connection Timeout**: Add `connect_timeout=10` to both URLs to prevent hanging connections
+
+4. **Connection Management**: Properly close connections when your application shuts down
+
+5. **Serverless Considerations**: Be mindful of connection limits and cold starts in serverless environments
 

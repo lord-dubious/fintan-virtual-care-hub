@@ -15,6 +15,7 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node --esm prisma/seed.ts",
     "db:setup": "node scripts/setup-neon-db.js",
+    "db:test": "node scripts/test-neon-connection.js",
     "start": "node server.js"
   },
   "dependencies": {
@@ -104,4 +105,3 @@
     "vite": "^5.4.1"
   }
 }
-

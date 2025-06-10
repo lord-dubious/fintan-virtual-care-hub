@@ -57,6 +57,7 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@stripe/stripe-js": "^2.4.0",
     "@tanstack/react-query": "^5.56.2",
+    "@types/jsonwebtoken": "^9.0.9",
     "add-to-calendar-button-react": "^2.9.1",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",

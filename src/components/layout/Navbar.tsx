@@ -1,26 +1,59 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, Calendar, Info, Phone, ChevronRight, LogIn, UserPlus, LogOut } from "lucide-react";
+import { Menu, X, Home, Calendar, Info, Phone, ChevronRight, LogIn, UserPlus, LogOut, Loader2 } from "lucide-react";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from '../theme/ThemeProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/lib/auth/authProvider';
+import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast"
 
 const Navbar: React.FC = () => {
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
+  const { toast } = useToast();
+  const { toast } = useToast();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      setIsLoading(true);
+      await logout();
+      toast({
+        title: 'Success',
+        description: 'You have been logged out successfully',
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast({
+        title: 'Logout failed',
+        description: 'Please try again later',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAuthNavigation = (path: string) => {
+    try {
+      setIsLoading(true);
+      if (isMobile) {
+        toggleMenu();
+      }
+      navigate(path);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Mobile app-like bottom navigation and top bar
@@ -71,8 +104,60 @@ const Navbar: React.FC = () => {
                     <ChevronRight className="h-4 w-4 opacity-50" />
                   </Link>
                   <div className="border-t dark:border-gray-700 my-4"></div>
+                  
+                  {/* Auth Buttons */}
+                  {!isAuthenticated ? (
+                    <>
+                      <Link to="/auth/login" className="mb-3">
+                        <Button 
+                          variant="outline" 
+                          className="w-full border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white py-3"
+                          onClick={() => handleAuthNavigation('/auth/login')}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <LogIn className="h-4 w-4 mr-2" />
+                          )}
+                          Login
+                        </Button>
+                      </Link>
+                      <Link to="/auth/register" className="mb-4">
+                        <Button 
+                          variant="outline" 
+                          className="w-full border-medical-secondary text-medical-secondary hover:bg-medical-secondary hover:text-white py-3"
+                          onClick={() => handleAuthNavigation('/auth/register')}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <UserPlus className="h-4 w-4 mr-2" />
+                          )}
+                          Sign Up
+                        </Button>
+                      </Link>
+                    </>
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      className="w-full text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent mb-4"
+                      onClick={handleLogout}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <LogOut className="h-4 w-4 mr-2" />
+                      )}
+                      Logout
+                    </Button>
+                  )}
+
                   <Link to="/booking">
                     <Button className="w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-5">
+                      <Calendar className="h-4 w-4 mr-2" />
                       Book a Consultation
                     </Button>
                   </Link>
@@ -155,32 +240,45 @@ const Navbar: React.FC = () => {
           <div className="flex items-center space-x-3 border-r border-medical-border-light dark:border-medical-dark-border pr-4">
             {!isAuthenticated ? (
               <>
-                <Link to="/auth/login">
-                  <Button 
-                    variant="ghost" 
-                    className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
-                  >
+                <Button 
+                  variant="ghost" 
+                  className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
+                  onClick={() => handleAuthNavigation('/auth/login')}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
                     <LogIn className="h-4 w-4 mr-2" />
-                    Login
-                  </Button>
-                </Link>
-                <Link to="/auth/register">
-                  <Button 
-                    variant="outline" 
-                    className="border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white font-medium transition-all duration-200"
-                  >
+                  )}
+                  Login
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white font-medium transition-all duration-200"
+                  onClick={() => handleAuthNavigation('/auth/register')}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Sign Up
-                  </Button>
-                </Link>
+                  )}
+                  Sign Up
+                </Button>
               </>
             ) : (
               <Button 
                 variant="ghost" 
                 className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
                 onClick={handleLogout}
+                disabled={isLoading}
               >
-                <LogOut className="h-4 w-4 mr-2" />
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <LogOut className="h-4 w-4 mr-2" />
+                )}
                 Logout
               </Button>
             )}
@@ -227,6 +325,10 @@ const Navbar: React.FC = () => {
               onClick={toggleMenu}
             >
               About
+            </Link>
+            <Link 
+              to="/contact" 
+              className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-3 px-4 rounded-lg hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 transition-all" 
               onClick={toggleMenu}
             >
               Contact
@@ -240,17 +342,33 @@ const Navbar: React.FC = () => {
                   <Button 
                     variant="outline" 
                     className="w-full border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white py-3"
-                    onClick={toggleMenu}
+                    onClick={() => {
+                      toggleMenu();
+                      handleAuthNavigation('/auth/login');
+                    }}
+                    disabled={isLoading}
                   >
-                    <LogIn className="h-4 w-4 mr-2" />
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <LogIn className="h-4 w-4 mr-2" />
+                    )}
                     Login
                   </Button>
                   <Button 
                     variant="outline" 
                     className="w-full border-medical-secondary text-medical-secondary hover:bg-medical-secondary hover:text-white py-3"
-                    onClick={toggleMenu}
+                    onClick={() => {
+                      toggleMenu();
+                      handleAuthNavigation('/auth/register');
+                    }}
+                    disabled={isLoading}
                   >
-                    <UserPlus className="h-4 w-4 mr-2" />
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <UserPlus className="h-4 w-4 mr-2" />
+                    )}
                     Sign Up
                   </Button>
                 </>
@@ -258,9 +376,17 @@ const Navbar: React.FC = () => {
                 <Button 
                   variant="ghost" 
                   className="w-full text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent py-3"
-                  onClick={handleLogout}
+                  onClick={() => {
+                    handleLogout();
+                    toggleMenu();
+                  }}
+                  disabled={isLoading}
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <LogOut className="h-4 w-4 mr-2" />
+                  )}
                   Logout
                 </Button>
               )}

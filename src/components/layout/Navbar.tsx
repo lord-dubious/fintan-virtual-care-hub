@@ -7,7 +7,6 @@ import { ThemeToggle } from '../theme/ThemeProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/lib/auth/authProvider';
 import { useToast } from "@/components/ui/use-toast";
-import { useToast } from "@/components/ui/use-toast"
 
 const Navbar: React.FC = () => {
   const isMobile = useIsMobile();
@@ -16,7 +15,6 @@ const Navbar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
-  const { toast } = useToast();
   const { toast } = useToast();
 
   const toggleMenu = () => {

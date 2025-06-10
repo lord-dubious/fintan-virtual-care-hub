@@ -1,103 +1,121 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authService } from '@/lib/services/authService';
-import { UserRole } from '@/types/prisma';
 
-interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  role: string;
-}
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { authService, AuthResult } from '@/services/authService';
+import { User, UserRole } from '@/types/prisma';
 
 interface AuthContextProps {
   user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  register: (email: string, password: string, name: string, role: 'PATIENT' | 'PROVIDER') => Promise<{ success: boolean; message?: string }>;
+  isLoading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  register: (email: string, password: string, name: string, role?: UserRole) => Promise<AuthResult>;
   logout: () => void;
-  checkAuth: () => Promise<void>;
+  isAuthenticated: () => boolean;
+  hasRole: (role: UserRole) => boolean;
 }
+
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    checkAuth();
+    checkAuthStatus();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const checkAuthStatus = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        const result = await authService.checkAuth(token);
+        if (result.success && result.user) {
+          setUser(result.user);
+        } else {
+          localStorage.removeItem('auth_token');
+        }
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      localStorage.removeItem('auth_token');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<AuthResult> => {
+    setError(null);
     try {
       const result = await authService.login(email, password);
       if (result.success && result.user && result.token) {
         setUser(result.user);
-        localStorage.setItem('authToken', result.token);
-        return { success: true };
+        localStorage.setItem('auth_token', result.token);
       } else {
-        return { success: false, message: result.message };
+        setError(result.message || 'Login failed');
       }
+      return result;
     } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, message: 'Login failed' };
+      const errorMessage = 'Login failed';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
-  const register = async (email: string, password: string, name: string, role: 'PATIENT' | 'PROVIDER') => {
+  const register = async (email: string, password: string, name: string, role: UserRole = UserRole.PATIENT): Promise<AuthResult> => {
+    setError(null);
     try {
-      const userRole = role === 'PATIENT' ? UserRole.PATIENT : UserRole.PROVIDER;
-      const result = await authService.register(email, password, name, userRole);
-      
+      const result = await authService.register(email, password, name, role);
       if (result.success && result.user && result.token) {
         setUser(result.user);
-        localStorage.setItem('authToken', result.token);
-        return { success: true };
+        localStorage.setItem('auth_token', result.token);
       } else {
-        return { success: false, message: result.message };
+        setError(result.message || 'Registration failed');
       }
+      return result;
     } catch (error) {
-      console.error('Registration error:', error);
-      return { success: false, message: 'Registration failed' };
+      const errorMessage = 'Registration failed';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('authToken');
+    setError(null);
+    localStorage.removeItem('auth_token');
   };
 
-  const checkAuth = async () => {
-    setLoading(true);
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      try {
-        const result = await authService.checkAuth(token);
-        if (result.success && result.user) {
-          setUser(result.user);
-        }
-      } catch (error) {
-        console.error('Authentication check failed:', error);
-      }
-    }
-    setLoading(false);
+  const isAuthenticated = (): boolean => {
+    return user !== null;
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const hasRole = (role: UserRole): boolean => {
+    return user?.role === role;
+  };
+
+  const value: AuthContextProps = {
+    user,
+    isLoading,
+    error,
+    login,
+    register,
+    logout,
+    isAuthenticated,
+    hasRole,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = (): AuthContextProps => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

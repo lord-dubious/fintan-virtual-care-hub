@@ -36,7 +36,7 @@ export const useVideoCall = () => {
     setError(null);
 
     try {
-      const success = await videoCallService.joinSession(sessionId);
+      const success = await videoCallService.joinSession(sessionId, `https://room.url/${sessionId}`);
       if (!success) {
         throw new Error('Failed to join call');
       }

@@ -1,63 +1,37 @@
-import React, { useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+
+import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from './authProvider';
+import { UserRole } from '@/types/prisma';
 
 interface AuthGuardProps {
   children: React.ReactNode;
-  allowedRoles?: ('PATIENT' | 'PROVIDER' | 'ADMIN')[];
+  requiredRole?: UserRole;
 }
 
-export const AuthGuard: React.FC<AuthGuardProps> = ({ 
-  children, 
-  allowedRoles = ['PATIENT', 'PROVIDER', 'ADMIN'] 
-}) => {
-  const { isAuthenticated, user, loading } = useAuth();
-  const location = useLocation();
+const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
+  const { user, isLoading, isAuthenticated } = useAuth();
 
-  // If still loading, show a loading indicator
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  // If not authenticated, redirect to login
   if (!isAuthenticated()) {
-    return <Navigate to="/auth/login" state={{ from: location }} replace />;
+    return <Navigate to="/auth/login" replace />;
   }
 
-  // If user doesn't have the required role, redirect to unauthorized
-  if (user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+  if (requiredRole && user?.role !== requiredRole) {
+    return <Navigate to="/dashboard" replace />;
   }
 
-  // If authenticated and has the required role, render the children
   return <>{children}</>;
 };
 
-export const RoleGuard: React.FC<{ 
-  children: React.ReactNode; 
-  role: 'PATIENT' | 'PROVIDER' | 'ADMIN';
-}> = ({ children, role }) => {
-  const { hasRole, loading } = useAuth();
-
-  // If still loading, show a loading indicator
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-12">
-        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // If user doesn't have the required role, don't render the children
-  if (!hasRole(role)) {
-    return null;
-  }
-
-  // If user has the required role, render the children
-  return <>{children}</>;
-};
-
+export default AuthGuard;

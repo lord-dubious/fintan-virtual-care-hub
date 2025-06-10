@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -5,15 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import AudioCallInterface from '@/components/audio/AudioCallInterface';
 
-interface ConsultationPageParams {
-  id?: string;
-}
-
 const ConsultationPage: React.FC = () => {
-  const { id } = useParams<ConsultationPageParams>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [consultation, setConsultation] = useState<any>(null); // Replace 'any' with your Consultation type
+  const [consultation, setConsultation] = useState<any>(null);
 
   useEffect(() => {
     if (id) {
@@ -42,6 +39,11 @@ const ConsultationPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEndCall = () => {
+    console.log('Call ended');
+    navigate('/dashboard');
   };
 
   if (loading) {
@@ -76,7 +78,7 @@ const ConsultationPage: React.FC = () => {
           <p>Scheduled At: {consultation.scheduledAt.toString()}</p>
           <p>Notes: {consultation.notes}</p>
 
-          <AudioCallInterface />
+          <AudioCallInterface onEndCall={handleEndCall} />
 
           <Button onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
         </CardContent>

@@ -1,18 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { dailyService } from '@/lib/services/dailyService';
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { dailyService } from '../../lib/services/dailyService';
 
 // Mock Daily.co
 vi.mock('@daily-co/daily-js', () => ({
   default: {
     createCallObject: vi.fn(() => ({
-      join: vi.fn(),
-      leave: vi.fn(),
-      setUserName: vi.fn(),
+      join: vi.fn().mockResolvedValue(true),
+      leave: vi.fn().mockResolvedValue(true),
+      destroy: vi.fn(),
       setLocalAudio: vi.fn(),
       setLocalVideo: vi.fn(),
-      destroy: vi.fn(),
-      on: vi.fn(),
-      off: vi.fn(),
+      localAudio: vi.fn().mockReturnValue(true),
+      localVideo: vi.fn().mockReturnValue(true),
+      startScreenShare: vi.fn(),
     })),
   },
 }));
@@ -22,60 +23,51 @@ describe('DailyService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(dailyService).toBeDefined();
+  describe('initializeCall', () => {
+    it('should initialize a call successfully', async () => {
+      const roomUrl = 'https://test.daily.co/room';
+      const token = 'test-token';
+      
+      const result = await dailyService.initializeCall(roomUrl, token);
+      
+      expect(result).toBe(true);
+    });
+
+    it('should handle initialization errors', async () => {
+      const roomUrl = 'invalid-url';
+      const token = 'invalid-token';
+      
+      const result = await dailyService.initializeCall(roomUrl, token);
+      
+      expect(result).toBe(false);
+    });
   });
 
-  it('should create a call object', () => {
-    const callObject = dailyService.createCallObject({
-      roomUrl: 'https://example.daily.co/room-name'
+  describe('toggleAudio', () => {
+    it('should toggle audio successfully', async () => {
+      await dailyService.initializeCall('https://test.daily.co/room', 'test-token');
+      
+      const result = await dailyService.toggleAudio();
+      
+      expect(result).toBe(true);
     });
-    expect(callObject).toBeDefined();
   });
 
-  it('should join a room', async () => {
-    const callObject = dailyService.createCallObject({
-      roomUrl: 'https://example.daily.co/room-name'
+  describe('endCall', () => {
+    it('should end call successfully', async () => {
+      await dailyService.initializeCall('https://test.daily.co/room', 'test-token');
+      
+      await expect(dailyService.endCall()).resolves.not.toThrow();
     });
-    
-    await dailyService.joinRoom('https://example.daily.co/room-name', {
-      userName: 'Test User',
-      audioOff: true,
-      videoOff: true
-    });
-    
-    expect(callObject.setUserName).toHaveBeenCalledWith('Test User');
-    expect(callObject.setLocalAudio).toHaveBeenCalledWith(false);
-    expect(callObject.setLocalVideo).toHaveBeenCalledWith(false);
-    expect(callObject.join).toHaveBeenCalled();
   });
 
-  it('should leave a room', async () => {
-    const callObject = dailyService.createCallObject({
-      roomUrl: 'https://example.daily.co/room-name'
+  describe('toggleVideo', () => {
+    it('should toggle video successfully', async () => {
+      await dailyService.initializeCall('https://test.daily.co/room', 'test-token');
+      
+      const result = await dailyService.toggleVideo();
+      
+      expect(result).toBe(true);
     });
-    
-    await dailyService.leaveRoom();
-    
-    expect(callObject.leave).toHaveBeenCalled();
-  });
-
-  it('should destroy a call object', () => {
-    const callObject = dailyService.createCallObject({
-      roomUrl: 'https://example.daily.co/room-name'
-    });
-    
-    dailyService.destroyCallObject();
-    
-    expect(callObject.destroy).toHaveBeenCalled();
-    expect(dailyService.getCallObject()).toBeNull();
-  });
-
-  it('should get the call object', () => {
-    const callObject = dailyService.createCallObject({
-      roomUrl: 'https://example.daily.co/room-name'
-    });
-    
-    expect(dailyService.getCallObject()).toBe(callObject);
   });
 });

@@ -1,5 +1,4 @@
-
-import { prisma } from '../lib/prisma';
+import prisma from '../lib/prisma';
 
 // Example of basic Prisma operations with Neon
 export async function examplePrismaOperations() {
@@ -53,7 +52,7 @@ export async function examplePrismaOperations() {
 // Example of querying appointments with relations
 export async function getAppointmentsWithDetails() {
   try {
-    const appointments = await prisma.appointment.findMany({
+    const appointments = await prisma.consultation.findMany({
       include: {
         patient: {
           include: {

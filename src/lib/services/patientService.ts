@@ -1,170 +1,83 @@
-import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 
-const prisma = new PrismaClient();
-
-export interface PatientCreateInput {
-  email: string;
-  password: string;
-  name: string;
-  phone?: string;
-  dateOfBirth?: Date;
-  address?: string;
-  emergencyContact?: string;
-}
-
-export interface PatientUpdateInput {
-  name?: string;
-  email?: string;
-  phone?: string;
-  dateOfBirth?: Date;
-  address?: string;
-  emergencyContact?: string;
-}
-
-export interface PatientWithUser extends Patient {
-  user: User;
-}
-
-async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 10;
-  return bcrypt.hash(password, saltRounds);
-}
+import prisma from '@/lib/prisma';
+import { Patient, User, UserRole } from '../../types/prisma';
 
 export const patientService = {
-  async create(data: PatientCreateInput): Promise<PatientWithUser> {
-    const hashedPassword = await hashPassword(data.password);
-
-    return prisma.$transaction(async (tx) => {
-      // Create user first
-      const user = await tx.user.create({
+  async createPatient(userId: string, data: Partial<Patient>): Promise<Patient | null> {
+    try {
+      const patient = await prisma.patient.create({
         data: {
-          email: data.email,
-          password: hashedPassword,
-          name: data.name,
-          phone: data.phone,
-          role: UserRole.PATIENT,
+          userId,
+          ...data,
         },
       });
-
-      // Then create patient profile
-      const patient = await tx.patient.create({
-        data: {
-          userId: user.id,
-          dateOfBirth: data.dateOfBirth,
-          address: data.address,
-          emergencyContact: data.emergencyContact,
-        },
-        include: {
-          user: true,
-        },
-      });
-
       return patient;
-    });
-  },
-
-  async findById(id: string): Promise<PatientWithUser | null> {
-    return prisma.patient.findUnique({
-      where: { id },
-      include: {
-        user: true,
-      },
-    });
-  },
-
-  async getById(id: string): Promise<PatientWithUser | null> {
-    return this.findById(id);
-  },
-
-  async findByEmail(email: string): Promise<PatientWithUser | null> {
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user || user.role !== UserRole.PATIENT) {
+    } catch (error) {
+      console.error('Error creating patient:', error);
       return null;
     }
-
-    return prisma.patient.findUnique({
-      where: { userId: user.id },
-      include: {
-        user: true,
-      },
-    });
   },
 
-  async getByEmail(email: string): Promise<PatientWithUser | null> {
-    return this.findByEmail(email);
-  },
-
-  async findMany(): Promise<PatientWithUser[]> {
-    return prisma.patient.findMany({
-      include: {
-        user: true,
-      },
-    });
-  },
-
-  async getAll(): Promise<PatientWithUser[]> {
-    return this.findMany();
-  },
-
-  async update(id: string, data: PatientUpdateInput): Promise<PatientWithUser> {
-    const patient = await prisma.patient.findUnique({
-      where: { id },
-      include: { user: true },
-    });
-
-    if (!patient) {
-      throw new Error(`Patient with ID ${id} not found`);
-    }
-
-    return prisma.$transaction(async (tx) => {
-      // Update user information
-      if (data.name || data.email || data.phone) {
-        await tx.user.update({
-          where: { id: patient.userId },
-          data: {
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-          },
-        });
-      }
-
-      // Update patient information
-      const updatedPatient = await tx.patient.update({
-        where: { id },
-        data: {
-          dateOfBirth: data.dateOfBirth,
-          address: data.address,
-          emergencyContact: data.emergencyContact,
+  async getPatientById(id: string): Promise<(Patient & { user?: User }) | null> {
+    try {
+      const patient = await prisma.patient.findUnique({
+        where: {
+          id: id,
         },
         include: {
           user: true,
         },
       });
-
-      return updatedPatient;
-    });
+      return patient;
+    } catch (error) {
+      console.error('Error fetching patient:', error);
+      return null;
+    }
   },
 
-  async delete(id: string): Promise<PatientWithUser> {
-    const patient = await prisma.patient.findUnique({
-      where: { id },
-      include: { user: true },
-    });
-
-    if (!patient) {
-      throw new Error(`Patient with ID ${id} not found`);
+  async getPatientByUserId(userId: string): Promise<(Patient & { user?: User }) | null> {
+    try {
+      const patient = await prisma.patient.findUnique({
+        where: {
+          userId: userId,
+        },
+        include: {
+          user: true,
+        },
+      });
+      return patient;
+    } catch (error) {
+      console.error('Error fetching patient:', error);
+      return null;
     }
+  },
 
-    // Delete the user (will cascade delete the patient due to onDelete: Cascade)
-    await prisma.user.delete({
-      where: { id: patient.userId },
-    });
+  async updatePatient(id: string, data: Partial<Patient>): Promise<Patient | null> {
+    try {
+      const patient = await prisma.patient.update({
+        where: {
+          id: id,
+        },
+        data: data,
+      });
+      return patient;
+    } catch (error) {
+      console.error('Error updating patient:', error);
+      return null;
+    }
+  },
 
-    return patient;
+  async deletePatient(id: string): Promise<Patient | null> {
+    try {
+      const patient = await prisma.patient.delete({
+        where: {
+          id: id,
+        },
+      });
+      return patient;
+    } catch (error) {
+      console.error('Error deleting patient:', error);
+      return null;
+    }
   },
 };

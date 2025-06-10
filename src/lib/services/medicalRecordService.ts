@@ -1,4 +1,5 @@
-import { PrismaClient, MedicalRecord } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { MedicalRecord } from '../../types/prisma';
 
 const prisma = new PrismaClient();
 
@@ -120,4 +121,3 @@ export const medicalRecordService = {
     });
   },
 };
-

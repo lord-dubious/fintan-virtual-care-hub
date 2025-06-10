@@ -1,4 +1,5 @@
-import { PrismaClient, Payment, PaymentMethod, PaymentStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { Payment, PaymentMethod, PaymentStatus } from '../../types/prisma';
 
 const prisma = new PrismaClient();
 
@@ -150,4 +151,3 @@ export const paymentService = {
     });
   },
 };
-

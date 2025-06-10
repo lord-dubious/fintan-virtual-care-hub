@@ -1,5 +1,5 @@
-import { PrismaClient, Patient, User, UserRole } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { PrismaClient } from '@prisma/client';
+import { Patient, User, UserRole } from '../../types/prisma';
 
 const prisma = new PrismaClient();
 
@@ -168,4 +168,3 @@ export const patientService = {
     return patient;
   },
 };
-

@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Menu, X, Home, Calendar, Info, Phone, ChevronRight, LogIn, UserPlus } from "lucide-react";
 import { Link, useLocation } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { ThemeToggle } from '../theme/ThemeProvider';
+import { ThemeToggle } from '../theme/ThemeToggle';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const Navbar: React.FC = () => {

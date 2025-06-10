@@ -1,6 +1,7 @@
-import { PrismaClient, User, UserRole } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { User, UserRole } from '../../types/prisma';
 
 const prisma = new PrismaClient();
 
@@ -248,4 +249,3 @@ export const authService = {
     }
   },
 };
-

@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/lib/auth/authProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,28 +13,21 @@ const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState('');
-  const { login, loading, error } = useAuth();
+  const { login, isLoading, error } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Get the redirect path from location state or default to dashboard
-  const from = location.state?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
-    // Validate form
     if (!email || !password) {
       setFormError('Please enter both email and password');
       return;
     }
 
-    // Attempt login
-    const success = await login(email, password);
-    if (success) {
-      // Redirect to the page they were trying to access or dashboard
-      navigate(from, { replace: true });
+    const result = await login(email, password);
+    if (result.success) {
+      navigate('/dashboard', { replace: true });
     }
   };
 
@@ -69,15 +63,7 @@ const LoginPage: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    to="/auth/reset-password"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -86,41 +72,18 @@ const LoginPage: React.FC = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
-                  <>
-                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-b-transparent"></span>
-                    Logging in...
-                  </>
-                ) : (
-                  'Login'
-                )}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Logging in...' : 'Login'}
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <div className="text-sm text-center text-gray-500">
+          <CardFooter>
+            <p className="text-center text-sm text-gray-600 w-full">
               Don't have an account?{' '}
               <Link to="/auth/register" className="text-primary hover:underline">
-                Register
+                Sign up
               </Link>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t"></span>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" type="button" disabled>
-                Google
-              </Button>
-              <Button variant="outline" type="button" disabled>
-                Microsoft
-              </Button>
-            </div>
+            </p>
           </CardFooter>
         </Card>
       </div>
@@ -129,4 +92,3 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
-

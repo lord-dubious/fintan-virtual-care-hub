@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth/authProvider';
@@ -5,8 +6,7 @@ import { consultationService } from '@/lib/services/consultationService';
 import { webrtcService } from '@/services/webrtcService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp, MessageSquare, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Mic, MicOff, Video, VideoOff, PhoneOff } from 'lucide-react';
 
 const VideoRoom: React.FC = () => {
   const { consultationId } = useParams<{ consultationId: string }>();
@@ -15,13 +15,9 @@ const VideoRoom: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
-  // Load consultation data
   useEffect(() => {
     const fetchConsultation = async () => {
       if (!consultationId) return;
@@ -33,171 +29,121 @@ const VideoRoom: React.FC = () => {
           setConsultation(result.consultation);
           
           // Initialize the video call
-          const initResult = await webrtcService.initializeCall(
-            result.consultation.roomUrl,
-            undefined,
-            { video: true, audio: true }
-          );
-          
-          if (!initResult) {
-            setError('Failed to initialize video call');
-          }
+          await webrtcService.initializeCall(`room-${consultationId}`, {
+            video: true,
+            audio: true
+          });
         } else {
-          setError(result.message || 'Failed to load consultation');
+          setError('Consultation not found');
         }
       } catch (err) {
-        console.error('Error fetching consultation:', err);
-        setError('An error occurred while loading the consultation');
+        setError('Failed to load consultation');
       } finally {
         setLoading(false);
       }
     };
 
     fetchConsultation();
-
-    // Clean up the call when component unmounts
-    return () => {
-      webrtcService.endCall();
-    };
   }, [consultationId]);
 
-  // Toggle audio
+  const handleEndCall = async () => {
+    await webrtcService.endCall();
+    navigate('/dashboard');
+  };
+
   const toggleAudio = async () => {
-    const result = await webrtcService.toggleAudio();
-    if (result) {
+    const success = await webrtcService.toggleAudio();
+    if (success) {
       setIsAudioEnabled(!isAudioEnabled);
     }
   };
 
-  // Toggle video
   const toggleVideo = async () => {
-    const result = await webrtcService.toggleVideo();
-    if (result) {
+    const success = await webrtcService.toggleVideo();
+    if (success) {
       setIsVideoEnabled(!isVideoEnabled);
     }
   };
 
-  // Toggle screen sharing
-  const toggleScreenSharing = async () => {
-    const result = await webrtcService.shareScreen();
-    if (result) {
-      setIsScreenSharing(!isScreenSharing);
-    }
-  };
-
-  // End call
-  const endCall = async () => {
-    await webrtcService.endCall();
-    
-    // Update consultation status if needed
-    if (consultation && consultation.status === 'IN_PROGRESS') {
-      await consultationService.updateConsultationStatus(consultationId!, 'COMPLETED');
-    }
-    
-    // Navigate back to appointments
-    const role = user?.role.toLowerCase();
-    navigate(`/${role}/appointments`);
-    
-    toast({
-      title: 'Call Ended',
-      description: 'The consultation has ended',
-    });
-  };
-
-  // Toggle chat
-  const toggleChat = () => {
-    setIsChatOpen(!isChatOpen);
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading consultation...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
-        <p className="text-gray-600 mb-6">{error}</p>
-        <Button onClick={() => navigate(-1)}>Go Back</Button>
+      <div className="flex items-center justify-center min-h-screen">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-red-600">{error}</p>
+            <Button onClick={() => navigate('/dashboard')} className="mt-4">
+              Back to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Video container */}
-      <div className="flex-1 bg-gray-900 relative" id="video-container">
-        {/* Video elements will be inserted here by the Daily.co library */}
-      </div>
-
-      {/* Controls */}
-      <div className="bg-gray-800 p-4">
-        <div className="flex justify-center space-x-4">
-          <Button
-            variant="outline"
-            size="icon"
-            className={`rounded-full ${!isAudioEnabled ? 'bg-red-500 text-white' : ''}`}
-            onClick={toggleAudio}
-          >
-            {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className={`rounded-full ${!isVideoEnabled ? 'bg-red-500 text-white' : ''}`}
-            onClick={toggleVideo}
-          >
-            {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className={`rounded-full ${isScreenSharing ? 'bg-green-500 text-white' : ''}`}
-            onClick={toggleScreenSharing}
-          >
-            <MonitorUp className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className={`rounded-full ${isChatOpen ? 'bg-blue-500 text-white' : ''}`}
-            onClick={toggleChat}
-          >
-            <MessageSquare className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="destructive"
-            size="icon"
-            className="rounded-full"
-            onClick={endCall}
-          >
-            <PhoneOff className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Chat sidebar */}
-      {isChatOpen && (
-        <div className="absolute top-0 right-0 h-full w-80 bg-white shadow-lg z-10">
-          <div className="flex justify-between items-center p-4 border-b">
-            <h3 className="font-medium">Chat</h3>
-            <Button variant="ghost" size="icon" onClick={toggleChat}>
-              <X className="h-5 w-5" />
-            </Button>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-screen">
+          {/* Video Area */}
+          <div className="bg-gray-800 rounded-lg flex items-center justify-center">
+            <div className="text-center">
+              <Video className="h-24 w-24 mx-auto mb-4 text-gray-400" />
+              <p>Video Feed</p>
+            </div>
           </div>
-          <div className="p-4">
-            {/* Chat messages would go here */}
-            <p className="text-gray-500 text-center">Chat functionality coming soon</p>
+
+          {/* Controls */}
+          <div className="flex flex-col justify-between">
+            <div className="bg-gray-800 rounded-lg p-6 mb-4">
+              <h2 className="text-xl font-semibold mb-4">
+                Consultation with Dr. Fintan
+              </h2>
+              <p className="text-gray-400">
+                Consultation ID: {consultationId}
+              </p>
+            </div>
+
+            <div className="flex justify-center space-x-4">
+              <Button
+                variant={isAudioEnabled ? "default" : "destructive"}
+                onClick={toggleAudio}
+                className="rounded-full p-4"
+              >
+                {isAudioEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
+              </Button>
+              
+              <Button
+                variant={isVideoEnabled ? "default" : "destructive"}
+                onClick={toggleVideo}
+                className="rounded-full p-4"
+              >
+                {isVideoEnabled ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
+              </Button>
+              
+              <Button
+                variant="destructive"
+                onClick={handleEndCall}
+                className="rounded-full p-4"
+              >
+                <PhoneOff className="h-6 w-6" />
+              </Button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 export default VideoRoom;
-

@@ -1,162 +1,155 @@
+
 import DailyIframe from '@daily-co/daily-js';
+
+export interface WebRTCParticipant {
+  id: string;
+  name?: string;
+  audio: boolean;
+  video: boolean;
+  isLocal: boolean;
+}
 
 class WebRTCService {
   private callObject: any = null;
-  private isVideoEnabled: boolean = true;
-  private isAudioEnabled: boolean = true;
-  private isScreenSharing: boolean = false;
+  private isConnected: boolean = false;
+  private participants: Map<string, WebRTCParticipant> = new Map();
 
-  async initializeCall(roomUrl: string, token?: string, options?: { video?: boolean, audio?: boolean }): Promise<boolean> {
+  // Event handlers
+  public onConnect: (() => void) | null = null;
+  public onParticipantJoined: ((participant: WebRTCParticipant) => void) | null = null;
+  public onParticipantLeft: ((participant: WebRTCParticipant) => void) | null = null;
+  public onError: ((error: Error) => void) | null = null;
+  public onClose: (() => void) | null = null;
+
+  constructor() {
+    this.createCallObject();
+  }
+
+  private createCallObject() {
     try {
-      // Clean up any existing call
-      if (this.callObject) {
-        await this.endCall();
-      }
-
-      // Set default options
-      const videoEnabled = options?.video !== undefined ? options.video : true;
-      const audioEnabled = options?.audio !== undefined ? options.audio : true;
-
-      // Create a new call object
       this.callObject = DailyIframe.createCallObject({
-        url: roomUrl,
-        token: token,
+        audioSource: true,
+        videoSource: true,
         dailyConfig: {
-          experimentalChromeVideoMuteLightOff: true,
-          useDevicePreferenceCookies: true,
+          // Removed problematic config
         },
       });
 
-      // Set initial device states
-      this.isVideoEnabled = videoEnabled;
-      this.isAudioEnabled = audioEnabled;
-
-      // Join the call
-      await this.callObject.join({
-        url: roomUrl,
-        token: token,
-        showLocalVideo: videoEnabled,
-        showParticipantsBar: true,
-        showLeaveButton: true,
-        showFullscreenButton: true,
-      });
-
-      // Set initial device states
-      if (!videoEnabled) {
-        await this.callObject.setLocalVideo(false);
-      }
-      
-      if (!audioEnabled) {
-        await this.callObject.setLocalAudio(false);
-      }
-
-      console.log('Successfully joined call:', roomUrl);
-      return true;
+      this.setupEventListeners();
     } catch (error) {
-      console.error('Failed to initialize call:', error);
-      this.callObject = null;
-      return false;
+      console.error('Failed to create call object:', error);
+      if (this.onError) {
+        this.onError(error as Error);
+      }
     }
   }
 
-  async endCall(): Promise<void> {
-    if (this.callObject) {
-      try {
-        // Stop screen sharing if active
-        if (this.isScreenSharing) {
-          await this.callObject.stopScreenShare();
-          this.isScreenSharing = false;
+  private setupEventListeners() {
+    if (!this.callObject) return;
+
+    this.callObject.on('joined-meeting', () => {
+      this.isConnected = true;
+      if (this.onConnect) {
+        this.onConnect();
+      }
+    });
+
+    this.callObject.on('participant-joined', (event: any) => {
+      const participant: WebRTCParticipant = {
+        id: event.participant.session_id,
+        name: event.participant.user_name,
+        audio: !event.participant.audio,
+        video: !event.participant.video,
+        isLocal: event.participant.local,
+      };
+
+      this.participants.set(participant.id, participant);
+      if (this.onParticipantJoined) {
+        this.onParticipantJoined(participant);
+      }
+    });
+
+    this.callObject.on('participant-left', (event: any) => {
+      const participant = this.participants.get(event.participant.session_id);
+      if (participant) {
+        this.participants.delete(participant.id);
+        if (this.onParticipantLeft) {
+          this.onParticipantLeft(participant);
         }
-        
-        // Leave the call
-        await this.callObject.leave();
-        
-        // Clean up
-        this.callObject.destroy();
-        this.callObject = null;
-        
-        console.log('Call ended successfully');
-      } catch (error) {
-        console.error('Error ending call:', error);
-        // Force cleanup even if there was an error
-        this.callObject = null;
       }
-    }
-  }
+    });
 
-  async toggleVideo(): Promise<boolean> {
-    if (!this.callObject) {
-      console.error('No active call');
-      return false;
-    }
-
-    try {
-      this.isVideoEnabled = !this.isVideoEnabled;
-      await this.callObject.setLocalVideo(this.isVideoEnabled);
-      console.log('Video toggled:', this.isVideoEnabled);
-      return true;
-    } catch (error) {
-      console.error('Error toggling video:', error);
-      return false;
-    }
-  }
-
-  async toggleAudio(): Promise<boolean> {
-    if (!this.callObject) {
-      console.error('No active call');
-      return false;
-    }
-
-    try {
-      this.isAudioEnabled = !this.isAudioEnabled;
-      await this.callObject.setLocalAudio(this.isAudioEnabled);
-      console.log('Audio toggled:', this.isAudioEnabled);
-      return true;
-    } catch (error) {
-      console.error('Error toggling audio:', error);
-      return false;
-    }
-  }
-
-  async shareScreen(): Promise<boolean> {
-    if (!this.callObject) {
-      console.error('No active call');
-      return false;
-    }
-
-    try {
-      if (this.isScreenSharing) {
-        await this.callObject.stopScreenShare();
-        this.isScreenSharing = false;
-      } else {
-        await this.callObject.startScreenShare();
-        this.isScreenSharing = true;
+    this.callObject.on('error', (error: any) => {
+      console.error('WebRTC error:', error);
+      if (this.onError) {
+        this.onError(new Error(error.message || 'WebRTC error occurred'));
       }
-      console.log('Screen sharing toggled:', this.isScreenSharing);
-      return true;
-    } catch (error) {
-      console.error('Error toggling screen share:', error);
-      return false;
-    }
+    });
+
+    this.callObject.on('left-meeting', () => {
+      this.isConnected = false;
+      this.participants.clear();
+      if (this.onClose) {
+        this.onClose();
+      }
+    });
   }
 
-  getCallObject(): any {
-    return this.callObject;
-  }
-
-  isCallActive(): boolean {
-    return this.callObject !== null;
-  }
-
-  getParticipants(): any[] {
+  async joinRoom(roomUrl: string, options: { userName?: string; audioOff?: boolean; videoOff?: boolean } = {}) {
     if (!this.callObject) {
-      return [];
+      throw new Error('Call object not initialized');
     }
-    
-    const participantsObject = this.callObject.participants();
-    return Object.values(participantsObject);
+
+    try {
+      if (options.userName) {
+        this.callObject.setUserName(options.userName);
+      }
+
+      if (options.audioOff) {
+        this.callObject.setLocalAudio(false);
+      }
+
+      if (options.videoOff) {
+        this.callObject.setLocalVideo(false);
+      }
+
+      await this.callObject.join({ url: roomUrl });
+    } catch (error) {
+      console.error('Failed to join room:', error);
+      throw error;
+    }
+  }
+
+  async leaveRoom() {
+    if (this.callObject && this.isConnected) {
+      await this.callObject.leave();
+    }
+  }
+
+  toggleAudio() {
+    if (this.callObject) {
+      this.callObject.setLocalAudio(!this.callObject.localAudio());
+    }
+  }
+
+  toggleVideo() {
+    if (this.callObject) {
+      this.callObject.setLocalVideo(!this.callObject.localVideo());
+    }
+  }
+
+  getParticipants(): WebRTCParticipant[] {
+    return Array.from(this.participants.values());
+  }
+
+  destroy() {
+    if (this.callObject) {
+      this.callObject.destroy();
+      this.callObject = null;
+      this.isConnected = false;
+      this.participants.clear();
+    }
   }
 }
 
 export const webrtcService = new WebRTCService();
-

@@ -1,95 +1,80 @@
-import { prisma, createEmbedding, findSimilarEntries } from '../lib/prisma';
 
-/**
- * Example functions demonstrating how to use Prisma with Neon
- */
+import { prisma } from '../lib/prisma';
 
-// Create a new user
-export async function createUser(email: string, name: string) {
+// Example of basic Prisma operations with Neon
+export async function examplePrismaOperations() {
   try {
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name,
+    // Example: Get all users
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
       },
     });
-    return user;
-  } catch (error) {
-    console.error('Error creating user:', error);
-    throw error;
-  }
-}
 
-// Create a brain entry with vector embedding
-export async function createBrainEntry(userId: string, content: string, categoryId?: string) {
-  try {
-    // Generate embedding vector for the content
-    const embedding = await createEmbedding(content);
-    
-    const entry = await prisma.brainEntry.create({
+    console.log('Users:', users);
+
+    // Example: Create a new user
+    const newUser = await prisma.user.create({
       data: {
-        userId,
-        content,
-        categoryId,
-        embedding,
-        metadata: {
-          source: 'manual',
-          timestamp: new Date().toISOString(),
-        },
+        email: 'example@test.com',
+        name: 'Test User',
+        role: 'PATIENT',
       },
     });
-    
-    return entry;
-  } catch (error) {
-    console.error('Error creating brain entry:', error);
-    throw error;
-  }
-}
 
-// Find similar brain entries using vector similarity
-export async function searchSimilarContent(content: string, limit = 5) {
-  try {
-    // Generate embedding for the search query
-    const embedding = await createEmbedding(content);
-    
-    // Find similar entries using vector similarity
-    const similarEntries = await findSimilarEntries(embedding, limit);
-    
-    return similarEntries;
-  } catch (error) {
-    console.error('Error searching similar content:', error);
-    throw error;
-  }
-}
+    console.log('New user created:', newUser);
 
-// Example of a transaction with Neon
-export async function createUserWithCategory(email: string, name: string, categoryName: string) {
-  try {
-    const result = await prisma.$transaction(async (tx) => {
-      // Create user
-      const user = await tx.user.create({
-        data: {
-          email,
-          name,
-        },
-      });
-      
-      // Create category for the user
-      const category = await tx.category.create({
-        data: {
-          userId: user.id,
-          name: categoryName,
-          color: '#' + Math.floor(Math.random() * 16777215).toString(16), // Random color
-        },
-      });
-      
-      return { user, category };
+    // Example: Update a user
+    const updatedUser = await prisma.user.update({
+      where: { id: newUser.id },
+      data: { name: 'Updated Test User' },
     });
-    
-    return result;
+
+    console.log('Updated user:', updatedUser);
+
+    // Example: Delete a user
+    await prisma.user.delete({
+      where: { id: newUser.id },
+    });
+
+    console.log('User deleted');
+
+    return { success: true };
   } catch (error) {
-    console.error('Error in transaction:', error);
-    throw error;
+    console.error('Database operation failed:', error);
+    return { success: false, error };
   }
 }
 
+// Example of querying appointments with relations
+export async function getAppointmentsWithDetails() {
+  try {
+    const appointments = await prisma.appointment.findMany({
+      include: {
+        patient: {
+          include: {
+            user: true,
+          },
+        },
+        provider: {
+          include: {
+            user: true,
+          },
+        },
+      },
+      orderBy: {
+        scheduledAt: 'desc',
+      },
+      take: 10,
+    });
+
+    return appointments;
+  } catch (error) {
+    console.error('Failed to fetch appointments:', error);
+    return [];
+  }
+}

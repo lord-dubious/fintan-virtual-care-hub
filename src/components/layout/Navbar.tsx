@@ -1,18 +1,26 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, Calendar, Info, Phone, ChevronRight, LogIn, UserPlus } from "lucide-react";
-import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, Home, Calendar, Info, Phone, ChevronRight, LogIn, UserPlus, LogOut } from "lucide-react";
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from '../theme/ThemeProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/lib/auth/authProvider';
 
 const Navbar: React.FC = () => {
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, user, logout } = useAuth();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   // Mobile app-like bottom navigation and top bar
@@ -145,20 +153,37 @@ const Navbar: React.FC = () => {
           
           {/* Auth Buttons */}
           <div className="flex items-center space-x-3 border-r border-medical-border-light dark:border-medical-dark-border pr-4">
-            <Button 
-              variant="ghost" 
-              className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
-            >
-              <LogIn className="h-4 w-4 mr-2" />
-              Login
-            </Button>
-            <Button 
-              variant="outline" 
-              className="border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white font-medium transition-all duration-200"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Sign Up
-            </Button>
+            {!isAuthenticated ? (
+              <>
+                <Link to="/auth/login">
+                  <Button 
+                    variant="ghost" 
+                    className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
+                  >
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/auth/register">
+                  <Button 
+                    variant="outline" 
+                    className="border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white font-medium transition-all duration-200"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <Button 
+                variant="ghost" 
+                className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            )}
           </div>
           
           {/* CTA Button */}
@@ -202,10 +227,6 @@ const Navbar: React.FC = () => {
               onClick={toggleMenu}
             >
               About
-            </Link>
-            <Link 
-              to="/contact" 
-              className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent font-medium py-3 px-4 rounded-lg hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 transition-all" 
               onClick={toggleMenu}
             >
               Contact
@@ -214,22 +235,35 @@ const Navbar: React.FC = () => {
             <div className="border-t dark:border-gray-700 my-4"></div>
             
             <div className="flex flex-col space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white py-3"
-                onClick={toggleMenu}
-              >
-                <LogIn className="h-4 w-4 mr-2" />
-                Login
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full border-medical-secondary text-medical-secondary hover:bg-medical-secondary hover:text-white py-3"
-                onClick={toggleMenu}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Sign Up
-              </Button>
+              {!isAuthenticated ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white py-3"
+                    onClick={toggleMenu}
+                  >
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Login
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-medical-secondary text-medical-secondary hover:bg-medical-secondary hover:text-white py-3"
+                    onClick={toggleMenu}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Sign Up
+                  </Button>
+                </>
+              ) : (
+                <Button 
+                  variant="ghost" 
+                  className="w-full text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent py-3"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              )}
               <Link to="/booking">
                 <Button 
                   className="bg-medical-primary hover:bg-medical-primary/90 text-white w-full dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-3 font-semibold" 

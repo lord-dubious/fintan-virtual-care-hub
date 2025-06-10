@@ -24,7 +24,7 @@
   "dependencies": {
     "@daily-co/daily-js": "^0.80.0",
     "@hookform/resolvers": "^3.9.0",
-    "@neondatabase/serverless": "^1.0.0",
+    "@neondatabase/serverless": "^1.0.1",
     "@paystack/inline-js": "^2.13.0",
     "@prisma/adapter-neon": "^6.9.0",
     "@prisma/client": "^6.7.0",
@@ -65,7 +65,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "*",
     "embla-carousel-react": "^8.3.0",
-    "express": "^4.18.2",
+    "express": "^4.21.2",
     "input-otp": "^1.2.4",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.462.0",
@@ -94,7 +94,7 @@
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react-swc": "^3.5.0",
+    "@vitejs/plugin-react-swc": "^3.10.2",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
@@ -108,5 +108,6 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1"
-  }
+  },
+  "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
 }

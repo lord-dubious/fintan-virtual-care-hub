@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { ConsultationTypeStep } from './ConsultationTypeStep';
-import { DateTimeStep } from './DateTimeStep';
-import { PatientInfoStep } from './PatientInfoStep';
-import { PaymentStep } from './PaymentStep';
-import { AppointmentConfirmation } from './AppointmentConfirmation';
-import { BookingProgress } from './BookingProgress';
+import ConsultationTypeStep from './ConsultationTypeStep';
+import DateTimeStep from './DateTimeStep';
+import PatientInfoStep from './PatientInfoStep';
+import PaymentStep from './PaymentStep';
+import AppointmentConfirmation from './AppointmentConfirmation';
+import BookingProgress from './BookingProgress';
 import { appointmentService } from '@/lib/services/appointmentService';
 
 interface BookingData {

@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/lib/auth/authProvider';
-import { notificationService } from '@/lib/services/notificationService';
 
 interface Notification {
   id: string;
@@ -24,29 +23,23 @@ export const NotificationCenter: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch notifications when the component mounts or when the user changes
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-      fetchUnreadCount();
-
-      // Set up polling to check for new notifications every minute
-      const interval = setInterval(() => {
-        fetchUnreadCount();
-      }, 60000);
-
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-  // Fetch notifications from the server
+  // Mock fetch functions for now - these would be replaced with actual API calls
   const fetchNotifications = async () => {
-    if (!user) return;
-    
     setLoading(true);
     try {
-      const data = await notificationService.getUserNotifications(user.id);
-      setNotifications(data);
+      // Mock data - replace with actual API call
+      const mockNotifications: Notification[] = [
+        {
+          id: '1',
+          title: 'Appointment Reminder',
+          message: 'Your appointment is tomorrow at 2:00 PM',
+          type: 'reminder',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          link: '/appointments'
+        }
+      ];
+      setNotifications(mockNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -54,51 +47,51 @@ export const NotificationCenter: React.FC = () => {
     }
   };
 
-  // Fetch unread notification count
   const fetchUnreadCount = async () => {
-    if (!user) return;
-    
     try {
-      const count = await notificationService.getUnreadCount(user.id);
-      setUnreadCount(count);
+      // Mock count - replace with actual API call
+      setUnreadCount(1);
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
   };
 
-  // Mark a notification as read
   const markAsRead = async (notificationId: string) => {
     try {
-      await notificationService.markAsRead(notificationId);
-      
-      // Update the local state
+      // Mock API call - replace with actual implementation
       setNotifications(notifications.map(notification => 
         notification.id === notificationId 
           ? { ...notification, isRead: true } 
           : notification
       ));
-      
-      // Update the unread count
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
   };
 
-  // Mark all notifications as read
   const markAllAsRead = async () => {
-    if (!user) return;
-    
     try {
-      await notificationService.markAllAsRead(user.id);
-      
-      // Update the local state
+      // Mock API call - replace with actual implementation
       setNotifications(notifications.map(notification => ({ ...notification, isRead: true })));
       setUnreadCount(0);
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      fetchUnreadCount();
+
+      const interval = setInterval(() => {
+        fetchUnreadCount();
+      }, 60000);
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   // Handle notification click
   const handleNotificationClick = (notification: Notification) => {
@@ -189,4 +182,3 @@ export const NotificationCenter: React.FC = () => {
     </Popover>
   );
 };
-

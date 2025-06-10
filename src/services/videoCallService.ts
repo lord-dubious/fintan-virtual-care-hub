@@ -1,144 +1,73 @@
-import { PrismaClient, Consultation, ConsultationStatus } from '@prisma/client';
+import { Consultation, ConsultationStatus } from '@/types/prisma';
 import { webrtcService } from './webrtcService';
 
-const prisma = new PrismaClient();
-
-export interface VideoCallSession {
-  sessionId: string;
-  roomUrl: string;
-  isActive: boolean;
-  participants: string[];
-  createdAt: Date;
-}
-
 class VideoCallService {
-  private currentSession: VideoCallSession | null = null;
-  
-  async createSession(appointmentId: string): Promise<VideoCallSession> {
-    // Check if there's already a consultation for this appointment
-    const existingConsultation = await prisma.consultation.findUnique({
-      where: { appointmentId },
-    });
+  async startVideoCall(consultation: Consultation): Promise<Consultation> {
+    try {
+      console.log(`Starting video call for consultation ${consultation.id}`);
 
-    let consultation: Consultation;
+      // Mock implementation: Update consultation status to IN_PROGRESS
+      const updatedConsultation: Consultation = {
+        ...consultation,
+        status: ConsultationStatus.IN_PROGRESS,
+      };
 
-    if (existingConsultation) {
-      // Update existing consultation
-      consultation = await prisma.consultation.update({
-        where: { id: existingConsultation.id },
-        data: {
-          status: ConsultationStatus.IN_PROGRESS,
-          startTime: new Date(),
-        },
-      });
-    } else {
-      // Create a new consultation
-      const roomUrl = `https://virtualcare.daily.co/${appointmentId}`;
-      const sessionId = `session_${appointmentId}_${Date.now()}`;
-      
-      consultation = await prisma.consultation.create({
-        data: {
-          appointmentId,
-          sessionId,
-          roomUrl,
-          status: ConsultationStatus.IN_PROGRESS,
-          startTime: new Date(),
-        },
-      });
+      return updatedConsultation;
+    } catch (error) {
+      console.error('Failed to start video call:', error);
+      throw error;
     }
-
-    // Update appointment status
-    await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: 'IN_PROGRESS',
-      },
-    });
-
-    this.currentSession = {
-      sessionId: consultation.sessionId!,
-      roomUrl: consultation.roomUrl!,
-      isActive: true,
-      participants: [],
-      createdAt: consultation.createdAt,
-    };
-
-    console.log('Video call session created:', consultation.sessionId);
-    return this.currentSession;
   }
 
-  async joinSession(sessionId: string, roomUrl?: string): Promise<boolean> {
+  async endVideoCall(consultation: Consultation): Promise<Consultation> {
     try {
-      // Find the consultation by sessionId
-      const consultation = !roomUrl ? await prisma.consultation.findFirst({
-        where: { sessionId },
-      }) : null;
+      console.log(`Ending video call for consultation ${consultation.id}`);
 
-      const room = roomUrl || consultation?.roomUrl;
-      if (!room) {
-        throw new Error('No room URL available');
-      }
+      // Mock implementation: Update consultation status to COMPLETED
+      const updatedConsultation: Consultation = {
+        ...consultation,
+        status: ConsultationStatus.COMPLETED,
+      };
 
-      await webrtcService.initializeCall(room);
+      return updatedConsultation;
+    } catch (error) {
+      console.error('Failed to end video call:', error);
+      throw error;
+    }
+  }
+
+  async handleVideoRequest(consultation: Consultation): Promise<boolean> {
+    try {
+      console.log(`Handling video request for consultation ${consultation.id}`);
+      // Implement video request logic here
       return true;
     } catch (error) {
-      console.error('Failed to join session:', error);
+      console.error('Failed to handle video request:', error);
       return false;
     }
   }
 
-  async endSession(sessionId: string): Promise<void> {
-    await webrtcService.endCall();
-    
-    // Update consultation status
-    const consultation = await prisma.consultation.findFirst({
-      where: { sessionId },
-      include: { appointment: true },
-    });
-
-    if (consultation) {
-      // Update consultation
-      await prisma.consultation.update({
-        where: { id: consultation.id },
-        data: {
-          status: ConsultationStatus.COMPLETED,
-          endTime: new Date(),
-        },
-      });
-
-      // Update appointment status
-      await prisma.appointment.update({
-        where: { id: consultation.appointmentId },
-        data: {
-          status: 'COMPLETED',
-        },
-      });
+  async toggleVideo(enabled: boolean): Promise<boolean> {
+    try {
+      console.log(`Toggling video: ${enabled}`);
+      // Implement video toggle logic here
+      return webrtcService.toggleVideo(enabled);
+    } catch (error) {
+      console.error('Failed to toggle video:', error);
+      return false;
     }
-
-    this.currentSession = null;
-    console.log('Video call session ended:', sessionId);
   }
 
-  async toggleVideo(): Promise<boolean> {
-    return await webrtcService.toggleVideo();
-  }
-
-  async toggleAudio(): Promise<boolean> {
-    return await webrtcService.toggleAudio();
-  }
-
-  async shareScreen(): Promise<boolean> {
-    return await webrtcService.shareScreen();
-  }
-
-  getCallObject(): any {
-    return webrtcService.getCallObject();
-  }
-
-  getCurrentSession(): VideoCallSession | null {
-    return this.currentSession;
+  async toggleAudio(enabled: boolean): Promise<boolean> {
+    try {
+      console.log(`Toggling audio: ${enabled}`);
+      // Implement audio toggle logic here
+      return webrtcService.toggleAudio(enabled);
+    } catch (error) {
+      console.error('Failed to toggle audio:', error);
+      return false;
+    }
   }
 }
 
 export const videoCallService = new VideoCallService();
-

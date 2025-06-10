@@ -1,227 +1,84 @@
-
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useVideoCall } from '@/hooks/useVideoCall';
-import { audioCallService } from '@/services/audioCallService';
-import { notificationService } from '@/services/notificationService';
-import VideoCallInterface from '@/components/video/VideoCallInterface';
-import AudioCallInterface from '@/components/audio/AudioCallInterface';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Video, VideoOff, AlertCircle, Phone } from 'lucide-react';
+import AudioCallInterface from '@/components/audio/AudioCallInterface';
+
+interface ConsultationPageParams {
+  id?: string;
+}
 
 const ConsultationPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const { id } = useParams<ConsultationPageParams>();
   const navigate = useNavigate();
-  const sessionId = searchParams.get('session');
-  const appointmentId = searchParams.get('id');
-  const callType = searchParams.get('type') || 'video'; // 'video' or 'audio'
-  
-  const { currentSession: videoSession, isLoading: videoLoading, error: videoError, startCall: startVideoCall, endCall: endVideoCall, joinCall: joinVideoCall } = useVideoCall();
-  const [audioSession, setAudioSession] = useState(null);
-  const [audioLoading, setAudioLoading] = useState(false);
-  const [audioError, setAudioError] = useState(null);
-  
-  const [hasMediaPermission, setHasMediaPermission] = useState(false);
-  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [consultation, setConsultation] = useState<any>(null); // Replace 'any' with your Consultation type
 
   useEffect(() => {
-    checkMediaPermissions();
-  }, []);
-
-  const checkMediaPermissions = async () => {
-    try {
-      const constraints = callType === 'video' ? 
-        { video: true, audio: true } : 
-        { video: false, audio: true };
-        
-      await navigator.mediaDevices.getUserMedia(constraints);
-      setHasMediaPermission(true);
-    } catch (error) {
-      const message = callType === 'video' ? 
-        'Camera and microphone access required for video consultation' :
-        'Microphone access required for audio consultation';
-      setPermissionError(message);
-      console.error('Media permission denied:', error);
-    }
-  };
-
-  const handleStartVideoConsultation = async () => {
-    if (!hasMediaPermission) {
-      await checkMediaPermissions();
-      return;
-    }
-
-    try {
-      if (sessionId) {
-        await joinVideoCall(sessionId);
-      } else if (appointmentId) {
-        const session = await startVideoCall(appointmentId);
-        await notificationService.sendConsultationStartNotification(
-          appointmentId,
-          'patient@example.com',
-          session.sessionId
-        );
-      }
-    } catch (error) {
-      console.error('Failed to start video consultation:', error);
-    }
-  };
-
-  const handleStartAudioConsultation = async () => {
-    if (!hasMediaPermission) {
-      await checkMediaPermissions();
-      return;
-    }
-
-    setAudioLoading(true);
-    setAudioError(null);
-
-    try {
-      if (sessionId) {
-        const success = await audioCallService.joinSession(sessionId);
-        if (success) {
-          setAudioSession(audioCallService.getCurrentSession());
-        }
-      } else if (appointmentId) {
-        const session = await audioCallService.createSession(appointmentId);
-        const success = await audioCallService.joinSession(session.sessionId, session.roomUrl);
-        if (success) {
-          setAudioSession(session);
-          await notificationService.sendConsultationStartNotification(
-            appointmentId,
-            'patient@example.com',
-            session.sessionId
-          );
-        }
-      }
-    } catch (error) {
-      setAudioError(error.message);
-      console.error('Failed to start audio consultation:', error);
-    } finally {
-      setAudioLoading(false);
-    }
-  };
-
-  const handleEndConsultation = async () => {
-    if (callType === 'video') {
-      await endVideoCall();
+    if (id) {
+      fetchConsultation(id);
     } else {
-      if (audioSession) {
-        await audioCallService.endSession(audioSession.sessionId);
-        setAudioSession(null);
-      }
+      console.error('Consultation ID is missing');
+      navigate('/dashboard');
     }
-    navigate('/');
+  }, [id, navigate]);
+
+  const fetchConsultation = async (consultationId: string) => {
+    setLoading(true);
+    try {
+      // Mock API call - replace with actual implementation
+      const mockConsultation = {
+        id: consultationId,
+        patientId: 'patient123',
+        providerId: 'provider456',
+        status: 'SCHEDULED',
+        scheduledAt: new Date(),
+        notes: 'Patient is experiencing symptoms...',
+      };
+      setConsultation(mockConsultation);
+    } catch (error) {
+      console.error('Failed to fetch consultation:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!hasMediaPermission && permissionError) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
-              Media Permissions Required
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <VideoOff className="h-4 w-4" />
-              <AlertDescription>
-                {permissionError}
-              </AlertDescription>
-            </Alert>
-            <Button onClick={checkMediaPermissions} className="w-full">
-              {callType === 'video' ? (
-                <>
-                  <Video className="h-4 w-4 mr-2" />
-                  Grant Camera & Microphone Access
-                </>
-              ) : (
-                <>
-                  <Phone className="h-4 w-4 mr-2" />
-                  Grant Microphone Access
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="container mx-auto p-4">
+        <Alert>
+          <AlertDescription>Loading consultation...</AlertDescription>
+        </Alert>
       </div>
     );
   }
 
-  // Show video call interface
-  if (callType === 'video' && videoSession) {
+  if (!consultation) {
     return (
-      <VideoCallInterface 
-        session={videoSession} 
-        onEndCall={handleEndConsultation}
-      />
+      <div className="container mx-auto p-4">
+        <Alert>
+          <AlertDescription>Consultation not found.</AlertDescription>
+        </Alert>
+      </div>
     );
   }
-
-  // Show audio call interface
-  if (callType === 'audio' && audioSession) {
-    return (
-      <AudioCallInterface 
-        session={audioSession} 
-        onEndCall={handleEndConsultation}
-      />
-    );
-  }
-
-  const currentError = callType === 'video' ? videoError : audioError;
-  const currentLoading = callType === 'video' ? videoLoading : audioLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="container mx-auto p-4">
+      <Card>
         <CardHeader>
-          <CardTitle>
-            {callType === 'video' ? 'Video Consultation' : 'Audio Consultation'}
-          </CardTitle>
+          <CardTitle>Consultation Details</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {currentError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{currentError}</AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-medical-primary rounded-full flex items-center justify-center mx-auto">
-              {callType === 'video' ? (
-                <Video className="h-8 w-8 text-white" />
-              ) : (
-                <Phone className="h-8 w-8 text-white" />
-              )}
-            </div>
-            
-            <div>
-              <h3 className="font-semibold">
-                Ready to start your {callType} consultation?
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {callType === 'video' ? 
-                  'Make sure your camera and microphone are working properly.' :
-                  'Make sure your microphone is working properly.'
-                }
-              </p>
-            </div>
-            
-            <Button 
-              onClick={callType === 'video' ? handleStartVideoConsultation : handleStartAudioConsultation}
-              disabled={currentLoading || !hasMediaPermission}
-              className="w-full"
-            >
-              {currentLoading ? 'Connecting...' : 
-                callType === 'video' ? 'Start Video Consultation' : 'Start Audio Consultation'
-              }
-            </Button>
-          </div>
+        <CardContent>
+          <p>Consultation ID: {consultation.id}</p>
+          <p>Status: {consultation.status}</p>
+          <p>Scheduled At: {consultation.scheduledAt.toString()}</p>
+          <p>Notes: {consultation.notes}</p>
+
+          <AudioCallInterface />
+
+          <Button onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
         </CardContent>
       </Card>
     </div>

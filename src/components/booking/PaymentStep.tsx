@@ -51,12 +51,55 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
   const { toast } = useToast();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [cardDetails, setCardDetails] = useState({
-    name: '',
-    number: '',
-    expiry: '',
-    cvv: ''
-  });
+  // Secure Stripe Elements implementation
+  const [stripeElements, setStripeElements] = useState<any>(null);
+  const [cardElement, setCardElement] = useState<any>(null);
+
+  // Initialize Stripe Elements when Stripe payment method is selected
+  useEffect(() => {
+    if (bookingData.paymentMethod === 'stripe' && paymentConfig?.stripe?.enabled) {
+      const initializeStripe = async () => {
+        const stripe = (window as any).Stripe;
+        if (!stripe) {
+          console.error('Stripe.js not loaded');
+          return;
+        }
+
+        const elements = stripe.elements();
+        const card = elements.create('card', {
+          style: {
+            base: {
+              fontSize: '16px',
+              color: '#424770',
+              '::placeholder': {
+                color: '#aab7c4',
+              },
+            },
+          },
+        });
+
+        setStripeElements(elements);
+        setCardElement(card);
+
+        // Mount the card element
+        const cardContainer = document.getElementById('stripe-card-element');
+        if (cardContainer) {
+          card.mount('#stripe-card-element');
+        }
+      };
+
+      initializeStripe();
+    }
+
+    // Cleanup on unmount or payment method change
+    return () => {
+      if (cardElement) {
+        cardElement.unmount();
+        setCardElement(null);
+        setStripeElements(null);
+      }
+    };
+  }, [bookingData.paymentMethod, paymentConfig?.stripe?.enabled]);
 
   const consultationPrice = bookingData.consultationType === 'video' ? 85 : 65;
 
@@ -131,9 +174,10 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
 
       switch (bookingData.paymentMethod) {
         case 'stripe':
-          if (!cardDetails.name || !cardDetails.number || !cardDetails.expiry || !cardDetails.cvv) {
+          if (!cardElement) {
             toast({
-              title: "Please fill in all card details",
+              title: "Payment method not ready",
+              description: "Please wait for the payment form to load",
               variant: "destructive"
             });
             return;
@@ -145,9 +189,40 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
             amount: consultationPrice * 100 // Stripe expects cents
           });
 
-          // In a real implementation, you would use Stripe Elements here
-          // For now, we'll simulate the payment
-          await processPayment.mutateAsync(paymentData);
+          if (!stripeIntent.success || !stripeIntent.data?.clientSecret) {
+            throw new Error('Failed to create payment intent');
+          }
+
+          // Use Stripe.js to confirm payment securely
+          const stripe = (window as any).Stripe;
+          if (!stripe) {
+            throw new Error('Stripe.js not loaded');
+          }
+
+          const { error, paymentIntent } = await stripe.confirmCardPayment(
+            stripeIntent.data.clientSecret,
+            {
+              payment_method: {
+                card: cardElement,
+                billing_details: {
+                  name: bookingData.patientInfo?.name || 'Anonymous',
+                  email: bookingData.patientInfo?.email,
+                },
+              },
+            }
+          );
+
+          if (error) {
+            throw new Error(error.message);
+          }
+
+          if (paymentIntent.status === 'succeeded') {
+            // Confirm payment with backend
+            await processPayment.mutateAsync({
+              ...paymentData,
+              transactionId: paymentIntent.id,
+            });
+          }
           break;
 
         case 'paystack':
@@ -250,46 +325,20 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
           {bookingData.paymentMethod === 'stripe' && (
             <div className="mt-6 space-y-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div className="space-y-2">
-                <Label htmlFor="cardName">Name on Card</Label>
-                <Input
-                  id="cardName"
-                  placeholder="Full name as displayed on card"
-                  className="bg-white dark:bg-gray-700"
-                  value={cardDetails.name}
-                  onChange={(e) => setCardDetails(prev => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cardNumber">Card Number</Label>
-                <Input
-                  id="cardNumber"
-                  placeholder="1234 5678 9012 3456"
-                  className="bg-white dark:bg-gray-700"
-                  value={cardDetails.number}
-                  onChange={(e) => setCardDetails(prev => ({ ...prev, number: e.target.value }))}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="expiryDate">Expiry Date</Label>
-                  <Input
-                    id="expiryDate"
-                    placeholder="MM/YY"
-                    className="bg-white dark:bg-gray-700"
-                    value={cardDetails.expiry}
-                    onChange={(e) => setCardDetails(prev => ({ ...prev, expiry: e.target.value }))}
-                  />
+                <Label htmlFor="stripe-card-element">Card Details</Label>
+                <div
+                  id="stripe-card-element"
+                  className="p-3 border border-gray-300 rounded-md bg-white dark:bg-gray-700 min-h-[50px] flex items-center"
+                >
+                  {/* Stripe Elements will mount here */}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cvv">CVV</Label>
-                  <Input
-                    id="cvv"
-                    placeholder="123"
-                    className="bg-white dark:bg-gray-700"
-                    value={cardDetails.cvv}
-                    onChange={(e) => setCardDetails(prev => ({ ...prev, cvv: e.target.value }))}
-                  />
-                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Your card details are securely processed by Stripe and never stored on our servers.
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                <Shield className="w-4 h-4" />
+                <span>Secured by Stripe - PCI DSS Level 1 compliant</span>
               </div>
             </div>
           )}

@@ -1,10 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appointmentsApi, Appointment, AppointmentFilters, CreateAppointmentData, UpdateAppointmentData } from '@/api/appointments';
 import { useToast } from '@/hooks/use-toast';
+import { useMemo } from 'react';
 
 export const useAppointments = (filters?: AppointmentFilters) => {
+  const serializedFilters = useMemo(
+    () => (filters ? JSON.stringify(filters) : undefined),
+    [filters]
+  );
+
   return useQuery({
-    queryKey: ['appointments', filters],
+    queryKey: ['appointments', serializedFilters],
     queryFn: async () => {
       const response = await appointmentsApi.getAppointments(filters);
       if (!response.success) {
@@ -164,7 +170,7 @@ export const useJoinConsultation = () => {
     },
     onSuccess: (data) => {
       // Redirect to consultation page
-      window.open(`/consultation?session=${data.sessionId}&id=${data.sessionId}`, '_blank');
+      window.open(`/consultation?session=${data.sessionId}&id=${data.appointmentId}`, '_blank');
     },
     onError: (error: Error) => {
       toast({

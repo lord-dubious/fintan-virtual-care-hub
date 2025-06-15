@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAuth } from '@/lib/auth/authProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,7 @@ const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState('');
-  const { login, loading, error } = useAuth();
+  const { login, isLoggingIn, error } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -30,10 +30,12 @@ const LoginPage: React.FC = () => {
     }
 
     // Attempt login
-    const success = await login(email, password);
-    if (success) {
+    try {
+      await login({ email, password });
       // Redirect to the page they were trying to access or dashboard
       navigate(from, { replace: true });
+    } catch (error) {
+      // Error is handled by the hook and displayed via toast
     }
   };
 
@@ -86,8 +88,8 @@ const LoginPage: React.FC = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
+              <Button type="submit" className="w-full" disabled={isLoggingIn}>
+                {isLoggingIn ? (
                   <>
                     <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-b-transparent"></span>
                     Logging in...

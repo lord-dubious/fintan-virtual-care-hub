@@ -27,16 +27,18 @@ const sessionStorageMock = {
 global.sessionStorage = sessionStorageMock as any;
 
 // Mock window.location
-delete (window as any).location;
-window.location = {
-  href: 'http://localhost:3000',
-  pathname: '/',
-  search: '',
-  hash: '',
-  assign: jest.fn(),
-  replace: jest.fn(),
-  reload: jest.fn(),
-} as any;
+Object.defineProperty(window, 'location', {
+  configurable: true,
+  value: {
+    href: 'http://localhost:3000',
+    pathname: '/',
+    search: '',
+    hash: '',
+    assign: jest.fn(),
+    replace: jest.fn(),
+    reload: jest.fn(),
+  } as Location,
+});
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -91,3 +93,8 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn(),
 };
+
+// Reset global mocks between tests
+afterEach(() => {
+  jest.resetAllMocks();
+});

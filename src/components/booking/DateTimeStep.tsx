@@ -9,9 +9,10 @@ interface DateTimeStepProps {
     consultationType?: string;
   };
   updateBookingData: (data: { date?: Date | null; time?: string }) => void;
+  providerId?: string;
 }
 
-const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingData }) => {
+const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingData, providerId }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     bookingData.date ? new Date(bookingData.date) : undefined
   );
@@ -36,12 +37,13 @@ const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingD
         </p>
       </div>
       
-      <EnhancedBookingCalendar 
-        selectedDate={selectedDate} 
+      <EnhancedBookingCalendar
+        selectedDate={selectedDate}
         selectedTime={bookingData.time}
         onDateSelect={handleDateSelect}
         onTimeSelect={handleTimeSelect}
         consultationType={bookingData.consultationType || 'consultation'}
+        providerId={providerId}
       />
     </div>
   );

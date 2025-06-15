@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, Lock, User, CheckCircle, Apple } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useAuth } from '@/lib/auth/authProvider';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SimpleSignOnProps {
   onAuthenticated: (email: string) => void;
@@ -23,7 +23,7 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { login, signup, isLoading: authLoading, error: authError } = useAuth();
+  const { login, register, isLoggingIn, isRegistering, error } = useAuth();
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: '',
@@ -50,20 +50,12 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
     }
 
     try {
-      const success = await login(formData.email, formData.password);
-      if (success) {
-        onAuthenticated(formData.email);
-        toast({
-          title: "Welcome!",
-          description: "You've been signed in successfully",
-        });
-      } else {
-        toast({
-          title: "Sign In Failed",
-          description: authError || "Invalid email or password",
-          variant: "destructive"
-        });
-      }
+      await login({ email: formData.email, password: formData.password });
+      onAuthenticated(formData.email);
+      toast({
+        title: "Welcome!",
+        description: "You've been signed in successfully",
+      });
     } catch (error: any) {
       toast({
         title: "Sign In Failed",
@@ -85,21 +77,18 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 
     try {
       const fullName = `${formData.firstName} ${formData.lastName}`.trim();
-      const success = await signup(fullName, formData.email, formData.password, 'PATIENT');
+      await register({
+        fullName,
+        email: formData.email,
+        password: formData.password,
+        role: 'PATIENT',
+      });
 
-      if (success) {
-        onAuthenticated(formData.email);
-        toast({
-          title: "Account Created!",
-          description: "Welcome to Dr. Fintan's practice",
-        });
-      } else {
-        toast({
-          title: "Registration Failed",
-          description: authError || "Failed to create account",
-          variant: "destructive"
-        });
-      }
+      onAuthenticated(formData.email);
+      toast({
+        title: "Account Created!",
+        description: "Welcome to Dr. Fintan's practice",
+      });
     } catch (error: any) {
       toast({
         title: "Registration Failed",
@@ -280,10 +269,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 
               <Button
                 onClick={handleSignIn}
-                disabled={authLoading}
+                disabled={isLoggingIn}
                 className={`w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
               >
-                {authLoading ? "Signing in..." : "Sign In"}
+                {isLoggingIn ? "Signing in..." : "Sign In"}
               </Button>
             </CardContent>
           </Card>
@@ -359,10 +348,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 
               <Button
                 onClick={handleSignUp}
-                disabled={authLoading}
+                disabled={isRegistering}
                 className={`w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
               >
-                {authLoading ? "Creating account..." : "Create Account"}
+                {isRegistering ? "Creating account..." : "Create Account"}
               </Button>
             </CardContent>
           </Card>

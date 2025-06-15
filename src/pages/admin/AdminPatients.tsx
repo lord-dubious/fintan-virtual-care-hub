@@ -32,11 +32,47 @@ import {
 import { usePatients, usePatientMedicalHistory, usePatientAppointments } from '@/hooks/usePatients';
 import { PatientFilters } from '@/api/patients';
 
+// Type definitions for API data
+interface ApiPatient {
+  id: string;
+  user: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
+  appointments?: ApiAppointment[];
+}
+
+interface ApiAppointment {
+  id: string;
+  appointmentDate: string;
+  consultationType: 'VIDEO' | 'AUDIO' | string;
+  status: 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | string;
+}
+
+interface ApiMedicalRecord {
+  id: string;
+  date: string;
+  type: string;
+  notes: string;
+  diagnosis?: string;
+  prescription?: string;
+}
+
+interface PatientUI {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  lastVisit: string;
+  status: string;
+}
+
 // Transform API patient data to match UI expectations
-const transformPatient = (patient: any) => {
+const transformPatient = (patient: ApiPatient): PatientUI => {
   // Find the most recent appointment for last visit
   const lastAppointment = patient.appointments?.length > 0
-    ? patient.appointments.sort((a: any, b: any) =>
+    ? patient.appointments.sort((a, b) =>
         new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()
       )[0]
     : null;
@@ -53,7 +89,7 @@ const transformPatient = (patient: any) => {
   };
 };
 
-const PatientDetails = ({ patient }: { patient: any }) => {
+const PatientDetails = ({ patient }: { patient: PatientUI }) => {
   const { toast } = useToast();
 
   // Fetch real medical history and appointments
@@ -63,7 +99,7 @@ const PatientDetails = ({ patient }: { patient: any }) => {
   // Transform medical history for display
   const transformedHistory = useMemo(() => {
     if (!medicalHistory) return [];
-    return medicalHistory.map(record => ({
+    return medicalHistory.map((record: ApiMedicalRecord) => ({
       date: new Date(record.date).toISOString().split('T')[0],
       type: record.type,
       notes: record.notes
@@ -74,12 +110,12 @@ const PatientDetails = ({ patient }: { patient: any }) => {
   const summaryStats = useMemo(() => {
     const totalConsultations = appointments?.length || 0;
     const firstVisit = appointments?.length > 0
-      ? appointments.sort((a: any, b: any) =>
+      ? [...appointments].sort((a, b) =>
           new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime()
         )[0]
       : null;
     const lastVisit = appointments?.length > 0
-      ? appointments.sort((a: any, b: any) =>
+      ? [...appointments].sort((a, b) =>
           new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()
         )[0]
       : null;
@@ -227,7 +263,7 @@ const AdminPatients = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<PatientUI | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
   // Build filters for API
@@ -254,7 +290,7 @@ const AdminPatients = () => {
     setSearchTerm('');
   };
 
-  const handleViewPatient = (patient: any) => {
+  const handleViewPatient = (patient: PatientUI) => {
     setSelectedPatient(patient);
     setShowDetails(true);
   };
@@ -266,7 +302,7 @@ const AdminPatients = () => {
     });
   };
 
-  const PatientCard = ({ patient }: { patient: any }) => (
+  const PatientCard = ({ patient }: { patient: PatientUI }) => (
     <Card className="mb-3">
       <CardContent className="p-4">
         <div className="flex justify-between items-center">

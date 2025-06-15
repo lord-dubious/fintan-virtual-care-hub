@@ -26,6 +26,7 @@ interface BookingCalendarProps {
   onDateSelect: (date: Date | undefined) => void;
   onTimeSelect: (time: string) => void;
   className?: string;
+  providerId?: string;
 }
 
 const BookingCalendar: React.FC<BookingCalendarProps> = ({
@@ -33,14 +34,15 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
   selectedTime,
   onDateSelect,
   onTimeSelect,
-  className
+  className,
+  providerId: propProviderId
 }) => {
   const { toast } = useToast();
   const [showCalendarOptions, setShowCalendarOptions] = useState(false);
   const generateCalendarExport = useGenerateCalendarExport();
 
-  // For now, we'll use a default provider ID. In a real app, this would come from props or context
-  const providerId = "default-provider-id";
+  // Use provided provider ID or fall back to environment variable
+  const providerId = propProviderId || import.meta.env.VITE_DEFAULT_PROVIDER_ID || "default-provider-id";
 
   // Calculate date range for availability query
   const dateRange = useMemo(() => {
@@ -52,12 +54,26 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
   }, []);
 
   // Fetch availability data
-  const { data: availabilityData, isLoading, error } = useAvailability({
+  const { data: availabilityData, isLoading, error, refetch } = useAvailability({
     providerId,
     dateFrom: dateRange.dateFrom,
     dateTo: dateRange.dateTo,
     consultationType: 'VIDEO' // Default to video, could be made configurable
   });
+
+  // Show error message if availability fetch fails
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-red-600 dark:text-red-400 mb-4">
+          Failed to load availability. Please try again.
+        </p>
+        <Button onClick={() => refetch()} variant="outline">
+          Retry
+        </Button>
+      </div>
+    );
+  }
   
   // Transform API data to match UI expectations
   const bookingData = useMemo(() => {
@@ -95,7 +111,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
 
     try {
       switch (type) {
-        case 'google':
+        case 'google': {
           // Generate Google Calendar URL
           const startDateTime = new Date(selectedDate);
           const [time, period] = selectedTime.split(' ');
@@ -115,12 +131,14 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
             description: "Adding appointment to your Google Calendar..."
           });
           break;
+        }
 
         case 'apple':
-        case 'outlook':
+        case 'outlook': {
           // Generate and download ICS file
           await generateCalendarExport.mutateAsync(mockAppointmentId);
           break;
+        }
       }
     } catch (error) {
       toast({

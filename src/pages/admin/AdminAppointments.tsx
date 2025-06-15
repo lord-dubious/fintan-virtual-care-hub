@@ -39,8 +39,29 @@ import { format } from 'date-fns';
 import { useAppointments, useCancelAppointment, useRescheduleAppointment, useJoinConsultation } from '@/hooks/useAppointments';
 import { AppointmentFilters } from '@/api/appointments';
 
+// Type definitions for API data
+interface ApiAppointment {
+  id: string;
+  patient?: {
+    user?: {
+      name?: string;
+    };
+  };
+  appointmentDate: string;
+  consultationType: 'VIDEO' | 'AUDIO' | string;
+  status: 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | string;
+}
+
+interface AppointmentUI {
+  id: string;
+  patient: string;
+  date: string;
+  type: string;
+  status: string;
+}
+
 // Transform API appointment data to match UI expectations
-const transformAppointment = (appointment: any) => ({
+const transformAppointment = (appointment: ApiAppointment): AppointmentUI => ({
   id: appointment.id,
   patient: appointment.patient?.user?.name || 'Unknown Patient',
   date: appointment.appointmentDate,
@@ -139,7 +160,7 @@ const AdminAppointments = () => {
     return format(date, 'MMM d, yyyy h:mm a');
   };
 
-  const AppointmentCard = ({ appointment }: { appointment: any }) => (
+  const AppointmentCard = ({ appointment }: { appointment: AppointmentUI }) => (
     <Card className="mb-3">
       <CardContent className="p-4">
         <div className="flex justify-between items-start">

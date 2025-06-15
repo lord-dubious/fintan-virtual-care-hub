@@ -173,7 +173,7 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
       };
 
       switch (bookingData.paymentMethod) {
-        case 'stripe':
+        case 'stripe': {
           if (!cardElement) {
             toast({
               title: "Payment method not ready",
@@ -224,8 +224,9 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
             });
           }
           break;
+        }
 
-        case 'paystack':
+        case 'paystack': {
           if (!bookingData.patientInfo?.email) {
             toast({
               title: "Email required for Paystack",
@@ -240,11 +241,13 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
             email: bookingData.patientInfo.email
           });
           break;
+        }
 
         case 'paypal':
-        case 'flutterwave':
+        case 'flutterwave': {
           await processPayment.mutateAsync(paymentData);
           break;
+        }
 
         default:
           toast({

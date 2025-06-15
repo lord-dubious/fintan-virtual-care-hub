@@ -174,7 +174,7 @@ HSTS_MAX_AGE=31536000
 
 - **Security Team**: security@drfintan.com
 - **General Support**: support@drfintan.com
-- **Emergency Contact**: +1-XXX-XXX-XXXX (24/7 for critical security issues)
+- **Emergency Contact**: security-emergency@drfintan.com (24/7 for critical security issues)
 
 ## 📚 **Additional Resources**
 

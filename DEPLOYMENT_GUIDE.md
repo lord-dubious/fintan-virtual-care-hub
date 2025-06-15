@@ -29,11 +29,13 @@ Copy the example environment file and configure:
 cp .env.example .env
 ```
 
+⚠️ **SECURITY WARNING**: Never commit actual credentials to version control. Always use placeholder values in example files and configure real credentials only in your local/production environment files.
+
 **Required Environment Variables:**
 ```env
-# Database (Already configured)
-DATABASE_URL="postgresql://fintan_owner:npg_6WeQhvkUd7Eb@ep-still-dream-a8kckvx0-pooler.eastus2.azure.neon.tech/fintan?sslmode=require&pgbouncer=true&connect_timeout=10"
-DIRECT_URL="postgresql://fintan_owner:npg_6WeQhvkUd7Eb@ep-still-dream-a8kckvx0.eastus2.azure.neon.tech/fintan?sslmode=require&connect_timeout=10"
+# Database (Configure with your actual credentials)
+DATABASE_URL="postgresql://[USERNAME]:[PASSWORD]@[HOST]/[DATABASE]?sslmode=require&pgbouncer=true&connect_timeout=10"
+DIRECT_URL="postgresql://[USERNAME]:[PASSWORD]@[HOST]/[DATABASE]?sslmode=require&connect_timeout=10"
 
 # API Configuration
 VITE_API_URL=https://your-api-domain.com/api

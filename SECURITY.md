@@ -11,7 +11,7 @@ Dr. Fintan's Virtual Care Hub takes security seriously. This document outlines o
 - **Role-based Access Control**: Admin, Provider, and Patient roles with appropriate permissions
 - **Password Security**: Bcrypt hashing with configurable rounds (default: 12)
 - **Session Management**: Automatic token refresh and secure logout
-- **Multi-factor Authentication**: Ready for implementation (infrastructure in place)
+- **Multi-factor Authentication**: Infrastructure in place; not yet available for use. MFA is planned for a future release. No user or developer action is required at this stage, but the system is designed to support MFA once it is enabled. Further configuration and rollout instructions will be provided in a future update.
 
 ### **Data Protection**
 - **Input Validation**: Comprehensive validation using Zod schemas

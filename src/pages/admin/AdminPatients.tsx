@@ -72,7 +72,7 @@ interface PatientUI {
 const transformPatient = (patient: ApiPatient): PatientUI => {
   // Find the most recent appointment for last visit
   const lastAppointment = patient.appointments?.length > 0
-    ? patient.appointments.sort((a, b) =>
+    ? [...patient.appointments].sort((a, b) =>
         new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()
       )[0]
     : null;
@@ -170,7 +170,12 @@ const PatientDetails = ({ patient }: { patient: PatientUI }) => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Last Visit:</span>
-                <span>{new Date(patient.lastVisit).toLocaleDateString()}</span>
+                <span>
+                  {patient.lastVisit === 'Never'
+                    ? 'Never'
+                    : new Date(patient.lastVisit).toLocaleDateString()
+                  }
+                </span>
               </div>
             </div>
           </CardContent>

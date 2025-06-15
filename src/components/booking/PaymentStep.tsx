@@ -55,6 +55,9 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
   const [stripeElements, setStripeElements] = useState<any>(null);
   const [cardElement, setCardElement] = useState<any>(null);
 
+  // Fetch payment method configuration (must come before useEffect that uses it)
+  const { data: paymentConfig, isLoading: configLoading } = usePaymentMethodConfig();
+
   // Initialize Stripe Elements when Stripe payment method is selected
   useEffect(() => {
     if (bookingData.paymentMethod === 'stripe' && paymentConfig?.stripe?.enabled) {
@@ -102,9 +105,6 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
   }, [bookingData.paymentMethod, paymentConfig?.stripe?.enabled]);
 
   const consultationPrice = bookingData.consultationType === 'video' ? 85 : 65;
-
-  // Fetch payment method configuration
-  const { data: paymentConfig, isLoading: configLoading } = usePaymentMethodConfig();
 
   // Payment processing hooks
   const stripePaymentIntent = useStripePaymentIntent();

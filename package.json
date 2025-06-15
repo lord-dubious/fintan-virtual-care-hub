@@ -12,7 +12,15 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma generate && prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node --esm prisma/seed.ts"
+    "prisma:seed": "ts-node --esm prisma/seed.ts",
+    "server:install": "cd server && npm install",
+    "server:dev": "cd server && npm run dev",
+    "server:start": "cd server && npm start",
+    "server:build": "cd server && npm run build",
+    "full:install": "npm install && npm run server:install",
+    "full:dev": "concurrently \"npm run dev\" \"npm run server:dev\"",
+    "full:build": "npm run build && npm run server:build",
+    "deploy:setup": "npm run full:install && npm run prisma:generate && npm run prisma:deploy"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.80.0",
@@ -76,7 +84,9 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "axios": "^1.6.2",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, Lock, User, CheckCircle, Apple } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/lib/auth/authProvider';
 
 interface SimpleSignOnProps {
   onAuthenticated: (email: string) => void;
@@ -22,7 +23,7 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, signup, isLoading: authLoading, error: authError } = useAuth();
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: '',
@@ -48,17 +49,28 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    
-    // Simulate authentication
-    setTimeout(() => {
-      onAuthenticated(formData.email);
+    try {
+      const success = await login(formData.email, formData.password);
+      if (success) {
+        onAuthenticated(formData.email);
+        toast({
+          title: "Welcome!",
+          description: "You've been signed in successfully",
+        });
+      } else {
+        toast({
+          title: "Sign In Failed",
+          description: authError || "Invalid email or password",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
       toast({
-        title: "Welcome!",
-        description: "You've been signed in successfully",
+        title: "Sign In Failed",
+        description: error.message || "An error occurred during sign in",
+        variant: "destructive"
       });
-      setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleSignUp = async () => {
@@ -71,17 +83,30 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    
-    // Simulate registration
-    setTimeout(() => {
-      onAuthenticated(formData.email);
+    try {
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+      const success = await signup(fullName, formData.email, formData.password, 'PATIENT');
+
+      if (success) {
+        onAuthenticated(formData.email);
+        toast({
+          title: "Account Created!",
+          description: "Welcome to Dr. Fintan's practice",
+        });
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: authError || "Failed to create account",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
       toast({
-        title: "Account Created!",
-        description: "Welcome to Dr. Fintan's practice",
+        title: "Registration Failed",
+        description: error.message || "An error occurred during registration",
+        variant: "destructive"
       });
-      setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleSocialSignIn = async (provider: string) => {
@@ -255,10 +280,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 
               <Button
                 onClick={handleSignIn}
-                disabled={isLoading}
+                disabled={authLoading}
                 className={`w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                {authLoading ? "Signing in..." : "Sign In"}
               </Button>
             </CardContent>
           </Card>
@@ -334,10 +359,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 
               <Button
                 onClick={handleSignUp}
-                disabled={isLoading}
+                disabled={authLoading}
                 className={`w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
               >
-                {isLoading ? "Creating account..." : "Create Account"}
+                {authLoading ? "Creating account..." : "Create Account"}
               </Button>
             </CardContent>
           </Card>

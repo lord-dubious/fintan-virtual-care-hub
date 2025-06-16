@@ -94,8 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(response.error || 'Login failed');
         return false;
       }
-    } catch (error: any) {
-      const errorMessage = error.message || 'Login failed';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
       setError(errorMessage);
       console.error('Login failed:', error);
       return false;
@@ -149,8 +149,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(response.error || 'Registration failed');
         return false;
       }
-    } catch (error: any) {
-      const errorMessage = error.message || 'Registration failed';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
       setError(errorMessage);
       console.error('Signup failed:', error);
       return false;

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -54,6 +54,7 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
   // Secure Stripe Elements implementation
   const [stripeElements, setStripeElements] = useState<any>(null);
   const [cardElement, setCardElement] = useState<any>(null);
+  const stripeInstanceRef = useRef<any>(null);
 
   // Fetch payment method configuration (must come before useEffect that uses it)
   const { data: paymentConfig, isLoading: configLoading } = usePaymentMethodConfig();
@@ -67,6 +68,9 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
           console.error('Stripe.js not loaded');
           return;
         }
+
+        // Store the Stripe instance in ref for reuse
+        stripeInstanceRef.current = stripe;
 
         const elements = stripe.elements();
         const card = elements.create('card', {
@@ -193,10 +197,10 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
             throw new Error('Failed to create payment intent');
           }
 
-          // Use Stripe.js to confirm payment securely
-          const stripe = (window as any)?.Stripe;
+          // Use persisted Stripe instance to confirm payment securely
+          const stripe = stripeInstanceRef.current;
           if (!stripe) {
-            throw new Error('Stripe.js not loaded');
+            throw new Error('Stripe.js not loaded or not initialized');
           }
 
           const { error, paymentIntent } = await stripe.confirmCardPayment(

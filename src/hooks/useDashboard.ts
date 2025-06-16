@@ -2,8 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { dashboardApi, DashboardData, DashboardStats, AppointmentSummary } from '@/api/dashboard';
 
 export const useDashboardData = (dateRange?: { from: Date; to: Date }) => {
+  // Serialize dateRange to create stable query key
+  const rangeKey = dateRange
+    ? [dateRange.from.toISOString(), dateRange.to.toISOString()]
+    : 'all';
+
   return useQuery({
-    queryKey: ['dashboard', 'data', dateRange],
+    queryKey: ['dashboard', 'data', rangeKey],
     queryFn: async () => {
       const response = await dashboardApi.getDashboardData(dateRange);
       if (!response.success) {
@@ -17,8 +22,13 @@ export const useDashboardData = (dateRange?: { from: Date; to: Date }) => {
 };
 
 export const useDashboardStats = (dateRange?: { from: Date; to: Date }) => {
+  // Serialize dateRange to create stable query key
+  const rangeKey = dateRange
+    ? [dateRange.from.toISOString(), dateRange.to.toISOString()]
+    : 'all';
+
   return useQuery({
-    queryKey: ['dashboard', 'stats', dateRange],
+    queryKey: ['dashboard', 'stats', rangeKey],
     queryFn: async () => {
       const response = await dashboardApi.getDashboardStats(dateRange);
       if (!response.success) {

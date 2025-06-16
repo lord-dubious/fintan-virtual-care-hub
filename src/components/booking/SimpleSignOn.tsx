@@ -56,10 +56,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
         title: "Welcome!",
         description: "You've been signed in successfully",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Sign In Failed",
-        description: error.message || "An error occurred during sign in",
+        description: error instanceof Error ? error.message : "An error occurred during sign in",
         variant: "destructive"
       });
     }
@@ -89,10 +89,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
         title: "Account Created!",
         description: "Welcome to Dr. Fintan's practice",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Registration Failed",
-        description: error.message || "An error occurred during registration",
+        description: error instanceof Error ? error.message : "An error occurred during registration",
         variant: "destructive"
       });
     }

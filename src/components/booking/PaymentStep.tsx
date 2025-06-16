@@ -194,7 +194,7 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
           }
 
           // Use Stripe.js to confirm payment securely
-          const stripe = (window as any).Stripe;
+          const stripe = (window as any)?.Stripe;
           if (!stripe) {
             throw new Error('Stripe.js not loaded');
           }
@@ -260,10 +260,10 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
       // If we reach here, payment was successful
       onSubmit();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Payment failed",
-        description: error.message || "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive"
       });
     } finally {

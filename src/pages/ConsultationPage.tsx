@@ -81,8 +81,8 @@ const ConsultationPage: React.FC = () => {
         const session = await startVideoCall(appointmentId);
 
         // Start the consultation in the backend
-        if (consultation?.id) {
-          await startConsultation.mutateAsync(consultation.id);
+        if (consultationData?.id) {
+          await startConsultation.mutateAsync(consultationData.id);
         }
 
         await notificationService.sendConsultationStartNotification(
@@ -130,8 +130,8 @@ const ConsultationPage: React.FC = () => {
           setAudioSession(session);
 
           // Start the consultation in the backend
-          if (consultation?.id) {
-            await startConsultation.mutateAsync(consultation.id);
+          if (consultationData?.id) {
+            await startConsultation.mutateAsync(consultationData.id);
           }
 
           await notificationService.sendConsultationStartNotification(

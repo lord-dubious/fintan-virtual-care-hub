@@ -200,7 +200,7 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
           // Use persisted Stripe instance to confirm payment securely
           const stripe = stripeInstanceRef.current;
           if (!stripe) {
-            throw new Error('Stripe.js not loaded or not initialized');
+            throw new Error('Stripe not initialised – this should not happen');
           }
 
           const { error, paymentIntent } = await stripe.confirmCardPayment(

@@ -7,7 +7,7 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0",
-    port: 10000,
+    port: parseInt(process.env.VITE_PORT || process.env.PORT || '10000', 10),
   },
   plugins: [
     react(),
@@ -19,4 +19,12 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    exclude: ['@prisma/client']
+  },
+  build: {
+    rollupOptions: {
+      external: ['@prisma/client']
+    }
+  }
 }));

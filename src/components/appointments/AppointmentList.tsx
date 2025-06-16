@@ -143,7 +143,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isProvi
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
               <CardTitle className="text-lg">
-                {isProvider ? appointment.patient.user.name : appointment.provider.user.name}
+                {isProvider ? appointment.patient?.user.name || 'Unknown Patient' : appointment.provider?.user.name || 'Unknown Provider'}
               </CardTitle>
               {getStatusBadge(appointment.status)}
             </div>

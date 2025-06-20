@@ -105,8 +105,8 @@ This is a **complete, fully functional healthcare platform** with real backend i
 
    This starts:
    - Frontend: http://localhost:5173
-   - Backend API: http://localhost:3001
-   - Health Check: http://localhost:3001/health
+   - Backend API: http://localhost:3000
+   - Health Check: http://localhost:3000/health
 
 ### **Production Deployment**
 See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for complete deployment instructions.

@@ -7,10 +7,32 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
+node_modules/
 node_modules
-dist
-dist-ssr
+
+# Build outputs
+dist/
+dist-ssr/
+dist-server/
+build/
 *.local
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+
+# TaskMaster AI files
+.taskmaster/
+.kilocode/
+.cursor/
+.roo/
+.roomodes
+.windsurfrules
 
 # Editor directories and files
 .vscode/*
@@ -22,5 +44,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.env
-node_modules
+
+# Development files
+dev-debug.log
+validate-config.js
+
+# OS specific files
+Thumbs.db

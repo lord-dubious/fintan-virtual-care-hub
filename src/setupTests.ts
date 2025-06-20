@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 
 // Mock environment variables
-process.env.VITE_API_URL = 'http://localhost:3001/api';
+process.env.VITE_API_URL = 'http://localhost:3000/api';
 process.env.VITE_DAILY_DOMAIN = 'test.daily.co';
 process.env.VITE_STRIPE_PUBLISHABLE_KEY = 'pk_test_123';
 process.env.VITE_ENABLE_VIDEO_CALLS = 'true';

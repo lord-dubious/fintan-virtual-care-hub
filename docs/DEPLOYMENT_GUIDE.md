@@ -108,8 +108,8 @@ npm run full:dev
 
 This starts:
 - Frontend: http://localhost:5173
-- Backend API: http://localhost:3001
-- API Health Check: http://localhost:3001/health
+- Backend API: http://localhost:3000
+- API Health Check: http://localhost:3000/health
 
 ### **4.2 Test Core Features**
 1. **Authentication**: Register/login with real accounts

@@ -10,21 +10,36 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Video, VideoOff, AlertCircle, Phone } from 'lucide-react';
+import {
+  useConsultationByAppointment,
+  useJoinConsultation,
+  useStartConsultation,
+  useEndConsultation
+} from '@/hooks/useConsultations';
+import { useToast } from '@/hooks/use-toast';
 
 const ConsultationPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
   const sessionId = searchParams.get('session');
   const appointmentId = searchParams.get('id');
   const callType = searchParams.get('type') || 'video'; // 'video' or 'audio'
-  
+
   const { currentSession: videoSession, isLoading: videoLoading, error: videoError, startCall: startVideoCall, endCall: endVideoCall, joinCall: joinVideoCall } = useVideoCall();
   const [audioSession, setAudioSession] = useState(null);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioError, setAudioError] = useState(null);
-  
+
   const [hasMediaPermission, setHasMediaPermission] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
+
+  // Consultation API hooks
+  const { data: consultation, isLoading: consultationLoading } = useConsultationByAppointment(appointmentId || '');
+  const joinConsultation = useJoinConsultation();
+  const startConsultation = useStartConsultation();
+  const endConsultation = useEndConsultation();
 
   useEffect(() => {
     checkMediaPermissions();
@@ -54,18 +69,35 @@ const ConsultationPage: React.FC = () => {
     }
 
     try {
+      let consultationData;
+
       if (sessionId) {
-        await joinVideoCall(sessionId);
+        // Join existing consultation
+        consultationData = await joinConsultation.mutateAsync(appointmentId || sessionId);
+        await joinVideoCall(consultationData.sessionId);
       } else if (appointmentId) {
+        // Start new consultation
+        consultationData = await joinConsultation.mutateAsync(appointmentId);
         const session = await startVideoCall(appointmentId);
+
+        // Start the consultation in the backend
+        if (consultationData?.id) {
+          await startConsultation.mutateAsync(consultationData.id);
+        }
+
         await notificationService.sendConsultationStartNotification(
           appointmentId,
           'patient@example.com',
           session.sessionId
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to start video consultation:', error);
+      toast({
+        title: "Failed to start consultation",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
     }
   };
 
@@ -79,16 +111,29 @@ const ConsultationPage: React.FC = () => {
     setAudioError(null);
 
     try {
+      let consultationData;
+
       if (sessionId) {
-        const success = await audioCallService.joinSession(sessionId);
+        // Join existing consultation
+        consultationData = await joinConsultation.mutateAsync(appointmentId || sessionId);
+        const success = await audioCallService.joinSession(consultationData.sessionId);
         if (success) {
           setAudioSession(audioCallService.getCurrentSession());
         }
       } else if (appointmentId) {
+        // Start new consultation
+        consultationData = await joinConsultation.mutateAsync(appointmentId);
         const session = await audioCallService.createSession(appointmentId);
         const success = await audioCallService.joinSession(session.sessionId, session.roomUrl);
+
         if (success) {
           setAudioSession(session);
+
+          // Start the consultation in the backend
+          if (consultationData?.id) {
+            await startConsultation.mutateAsync(consultationData.id);
+          }
+
           await notificationService.sendConsultationStartNotification(
             appointmentId,
             'patient@example.com',
@@ -96,24 +141,50 @@ const ConsultationPage: React.FC = () => {
           );
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       setAudioError(error.message);
       console.error('Failed to start audio consultation:', error);
+      toast({
+        title: "Failed to start consultation",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
     } finally {
       setAudioLoading(false);
     }
   };
 
   const handleEndConsultation = async () => {
-    if (callType === 'video') {
-      await endVideoCall();
-    } else {
-      if (audioSession) {
-        await audioCallService.endSession(audioSession.sessionId);
-        setAudioSession(null);
+    try {
+      // End the consultation in the backend
+      if (consultation?.id) {
+        await endConsultation.mutateAsync({
+          consultationId: consultation.id,
+          notes: 'Consultation completed successfully'
+        });
       }
+
+      // End the media session
+      if (callType === 'video') {
+        await endVideoCall();
+      } else {
+        if (audioSession) {
+          await audioCallService.endSession(audioSession.sessionId);
+          setAudioSession(null);
+        }
+      }
+
+      toast({
+        title: "Consultation ended",
+        description: "Thank you for using our consultation service",
+      });
+
+      navigate('/');
+    } catch (error: any) {
+      console.error('Failed to end consultation properly:', error);
+      // Still navigate away even if backend call fails
+      navigate('/');
     }
-    navigate('/');
   };
 
   if (!hasMediaPermission && permissionError) {

@@ -5,14 +5,45 @@ import { Link, useLocation } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from '../theme/ThemeProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { AuthModals } from '../auth/AuthModals.tsx';
+import { PatientOnboarding } from '../onboarding/PatientOnboarding.tsx';
 
 const Navbar: React.FC = () => {
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isSignupOpen, setIsSignupOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [newUserData, setNewUserData] = useState({ email: '', name: '' });
   const location = useLocation();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleLoginOpen = () => {
+    setIsLoginOpen(true);
+    setIsMenuOpen(false);
+  };
+
+  const handleSignupOpen = () => {
+    setIsSignupOpen(true);
+    setIsMenuOpen(false);
+  };
+
+  const handleSwitchToSignup = () => {
+    setIsLoginOpen(false);
+    setIsSignupOpen(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setIsSignupOpen(false);
+    setIsLoginOpen(true);
+  };
+
+  const handleSignupSuccess = (email: string, name: string) => {
+    setNewUserData({ email, name });
+    setIsOnboardingOpen(true);
   };
 
   // Mobile app-like bottom navigation and top bar
@@ -145,15 +176,17 @@ const Navbar: React.FC = () => {
           
           {/* Auth Buttons */}
           <div className="flex items-center space-x-3 border-r border-medical-border-light dark:border-medical-dark-border pr-4">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
+              onClick={handleLoginOpen}
               className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
             >
               <LogIn className="h-4 w-4 mr-2" />
               Login
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
+              onClick={handleSignupOpen}
               className="border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white font-medium transition-all duration-200"
             >
               <UserPlus className="h-4 w-4 mr-2" />
@@ -214,18 +247,18 @@ const Navbar: React.FC = () => {
             <div className="border-t dark:border-gray-700 my-4"></div>
             
             <div className="flex flex-col space-y-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white py-3"
-                onClick={toggleMenu}
+                onClick={handleLoginOpen}
               >
                 <LogIn className="h-4 w-4 mr-2" />
                 Login
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full border-medical-secondary text-medical-secondary hover:bg-medical-secondary hover:text-white py-3"
-                onClick={toggleMenu}
+                onClick={handleSignupOpen}
               >
                 <UserPlus className="h-4 w-4 mr-2" />
                 Sign Up
@@ -243,6 +276,25 @@ const Navbar: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Auth Modals */}
+      <AuthModals
+        isLoginOpen={isLoginOpen}
+        isSignupOpen={isSignupOpen}
+        onLoginClose={() => setIsLoginOpen(false)}
+        onSignupClose={() => setIsSignupOpen(false)}
+        onSwitchToSignup={handleSwitchToSignup}
+        onSwitchToLogin={handleSwitchToLogin}
+        onSignupSuccess={handleSignupSuccess}
+      />
+
+      {/* Patient Onboarding Modal */}
+      <PatientOnboarding
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        userEmail={newUserData.email}
+        userName={newUserData.name}
+      />
     </nav>
   );
 };

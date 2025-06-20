@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { authService } from '@/services/authService';
+import { useAuth } from '@/hooks/useAuth';
 import { Navigate, Link } from 'react-router-dom';
 import {
   Calendar,
@@ -58,7 +58,7 @@ interface HealthRecord {
 
 const PatientDashboard: React.FC = () => {
   const isMobile = useIsMobile();
-  const user = authService.getCurrentUser();
+  const { user, isAuthenticated } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
@@ -132,7 +132,7 @@ const PatientDashboard: React.FC = () => {
     setHealthRecords(mockHealthRecords);
   }, []);
 
-  if (!authService.isAuthenticated()) {
+  if (!isAuthenticated) {
     return <Navigate to="/booking" replace />;
   }
 

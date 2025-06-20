@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './authProvider';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -11,11 +11,11 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   children, 
   allowedRoles = ['PATIENT', 'PROVIDER', 'ADMIN'] 
 }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
 
   // If still loading, show a loading indicator
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -24,7 +24,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   }
 
   // If not authenticated, redirect to login
-  if (!isAuthenticated()) {
+  if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 

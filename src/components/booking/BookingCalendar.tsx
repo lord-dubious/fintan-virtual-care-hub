@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { format, addDays, isPast, isSameDay, parseISO } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
-import { 
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -12,6 +12,7 @@ import { CalendarIcon, Clock, Calendar as CalendarPlus, ArrowRight } from "lucid
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAvailability, useGenerateCalendarExport } from "@/hooks/useCalendar";
 
 interface BookingDate {
   date: string;
@@ -25,6 +26,7 @@ interface BookingCalendarProps {
   onDateSelect: (date: Date | undefined) => void;
   onTimeSelect: (time: string) => void;
   className?: string;
+  providerId?: string;
 }
 
 const BookingCalendar: React.FC<BookingCalendarProps> = ({
@@ -32,74 +34,57 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
   selectedTime,
   onDateSelect,
   onTimeSelect,
-  className
+  className,
+  providerId: propProviderId
 }) => {
   const { toast } = useToast();
-  const [bookingData, setBookingData] = useState<BookingDate[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showCalendarOptions, setShowCalendarOptions] = useState(false);
-  
-  useEffect(() => {
-    const fetchAvailability = async () => {
-      setIsLoading(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const mockData: BookingDate[] = [];
-        const today = new Date();
-        
-        for (let i = 0; i < 30; i++) {
-          const date = addDays(today, i);
-          
-          if (date.getDay() === 0) continue;
-          
-          const availableTimes = [];
-          const bookedTimes = [];
-          
-          if (date.getDay() >= 1 && date.getDay() <= 5) {
-            availableTimes.push(
-              "09:00 AM", 
-              "10:00 AM", 
-              "11:00 AM", 
-              "01:00 PM", 
-              "02:00 PM", 
-              "03:00 PM",
-              "04:00 PM"
-            );
-            
-            const randomBooked = Math.floor(Math.random() * 3);
-            for (let j = 0; j < randomBooked; j++) {
-              const randomIndex = Math.floor(Math.random() * availableTimes.length);
-              bookedTimes.push(availableTimes[randomIndex]);
-              availableTimes.splice(randomIndex, 1);
-            }
-          } else if (date.getDay() === 6) {
-            availableTimes.push("09:00 AM", "10:00 AM", "11:00 AM");
-            
-            if (Math.random() > 0.5) {
-              const randomIndex = Math.floor(Math.random() * availableTimes.length);
-              bookedTimes.push(availableTimes[randomIndex]);
-              availableTimes.splice(randomIndex, 1);
-            }
-          }
-          
-          mockData.push({
-            date: format(date, 'yyyy-MM-dd'),
-            availableTimes,
-            bookedTimes
-          });
-        }
-        
-        setBookingData(mockData);
-      } catch (error) {
-        console.error("Error fetching availability:", error);
-      } finally {
-        setIsLoading(false);
-      }
+  const generateCalendarExport = useGenerateCalendarExport();
+
+  // Use provided provider ID or fall back to environment variable
+  const providerId = propProviderId || import.meta.env.VITE_DEFAULT_PROVIDER_ID || "default-provider-id";
+
+  // Calculate date range for availability query
+  const dateRange = useMemo(() => {
+    const today = new Date();
+    return {
+      dateFrom: today,
+      dateTo: addDays(today, 30)
     };
-    
-    fetchAvailability();
   }, []);
+
+  // Fetch availability data
+  const { data: availabilityData, isLoading, error, refetch } = useAvailability({
+    providerId,
+    dateFrom: dateRange.dateFrom,
+    dateTo: dateRange.dateTo,
+    consultationType: 'VIDEO' // Default to video, could be made configurable
+  });
+
+  // Show error message if availability fetch fails
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-red-600 dark:text-red-400 mb-4">
+          Failed to load availability. Please try again.
+        </p>
+        <Button onClick={() => refetch()} variant="outline">
+          Retry
+        </Button>
+      </div>
+    );
+  }
+  
+  // Transform API data to match UI expectations
+  const bookingData = useMemo(() => {
+    if (!availabilityData) return [];
+
+    return availabilityData.map(dayAvailability => ({
+      date: dayAvailability.date,
+      availableTimes: dayAvailability.availableTimes,
+      bookedTimes: dayAvailability.bookedTimes
+    }));
+  }, [availabilityData]);
 
   const getAvailableTimesForDate = (date: Date | undefined) => {
     if (!date) return [];
@@ -112,7 +97,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
   
   const availableTimes = selectedDate ? getAvailableTimesForDate(selectedDate) : [];
 
-  const handleAddToCalendar = (type: 'google' | 'apple' | 'outlook') => {
+  const handleAddToCalendar = async (type: 'google' | 'apple' | 'outlook') => {
     if (!selectedDate || !selectedTime) {
       toast({
         title: "Please select a date and time first",
@@ -121,27 +106,48 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
       return;
     }
 
-    // In a real implementation, these would generate actual calendar links
-    switch (type) {
-      case 'google':
-        toast({
-          title: "Adding to Google Calendar",
-          description: "Opening Google Calendar in a new tab..."
-        });
-        break;
-      case 'apple':
-        toast({
-          title: "Adding to Apple Calendar",
-          description: "Downloading .ics file..."
-        });
-        break;
-      case 'outlook':
-        toast({
-          title: "Adding to Outlook",
-          description: "Opening Outlook calendar in a new tab..."
-        });
-        break;
+    // For now, we'll use a mock appointment ID. In a real app, this would be the actual appointment ID
+    const mockAppointmentId = "temp-appointment-id";
+
+    try {
+      switch (type) {
+        case 'google': {
+          // Generate Google Calendar URL
+          const startDateTime = new Date(selectedDate);
+          const [time, period] = selectedTime.split(' ');
+          const [hours, minutes] = time.split(':');
+          let hour24 = parseInt(hours);
+          if (period === 'PM' && hour24 !== 12) hour24 += 12;
+          if (period === 'AM' && hour24 === 12) hour24 = 0;
+
+          startDateTime.setHours(hour24, parseInt(minutes), 0, 0);
+          const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1 hour later
+
+          const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Dr.%20Fintan%20Consultation&dates=${startDateTime.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}/${endDateTime.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}&details=Virtual%20consultation%20with%20Dr.%20Fintan`;
+
+          window.open(googleUrl, '_blank');
+          toast({
+            title: "Opening Google Calendar",
+            description: "Adding appointment to your Google Calendar..."
+          });
+          break;
+        }
+
+        case 'apple':
+        case 'outlook': {
+          // Generate and download ICS file
+          await generateCalendarExport.mutateAsync(mockAppointmentId);
+          break;
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to add to calendar",
+        description: "Please try again or add the appointment manually.",
+        variant: "destructive"
+      });
     }
+
     setShowCalendarOptions(false);
   };
 

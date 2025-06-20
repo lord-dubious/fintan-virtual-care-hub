@@ -15,6 +15,7 @@ interface EnhancedBookingCalendarProps {
   onDateSelect: (date: Date | undefined) => void;
   onTimeSelect: (time: string) => void;
   consultationType: string;
+  providerId?: string;
 }
 
 interface TimeSlot {
@@ -37,7 +38,8 @@ const EnhancedBookingCalendar: React.FC<EnhancedBookingCalendarProps> = ({
   selectedTime,
   onDateSelect,
   onTimeSelect,
-  consultationType
+  consultationType,
+  providerId
 }) => {
   const { toast } = useToast();
   const [availableSlots, setAvailableSlots] = useState<Record<string, TimeSlot[]>>({});

@@ -37,7 +37,7 @@ export const NotificationCenter: React.FC = () => {
 
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user]); // fetchNotifications and fetchUnreadCount are stable functions
 
   // Fetch notifications from the server
   const fetchNotifications = async () => {

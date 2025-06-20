@@ -19,12 +19,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  optimizeDeps: {
-    exclude: ['@prisma/client']
-  },
-  build: {
-    rollupOptions: {
-      external: ['@prisma/client']
-    }
-  }
 }));

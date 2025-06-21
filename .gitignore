@@ -51,3 +51,8 @@ validate-config.js
 
 # OS specific files
 Thumbs.db
+
+# Added by Task Master AI
+# Dependency directories
+.vscode
+# OS specific

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
+import { usePatientDashboard, usePatientMedicalRecords, usePatientAppointments } from '@/hooks/usePatients';
+import { useAppointments } from '@/hooks/useAppointments';
 import { Navigate, Link } from 'react-router-dom';
 import {
   Calendar,
@@ -22,7 +23,8 @@ import {
   Activity,
   Heart,
   TrendingUp,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -59,81 +61,70 @@ interface HealthRecord {
 const PatientDashboard: React.FC = () => {
   const isMobile = useIsMobile();
   const { user, isAuthenticated } = useAuth();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
-
-  useEffect(() => {
-    // Load mock data
-    const mockAppointments: Appointment[] = [
-      {
-        id: '1',
-        date: new Date(2024, 5, 15),
-        time: '10:00 AM',
-        type: 'video',
-        status: 'scheduled',
-        doctor: 'Dr. Fintan Ekochin',
-        notes: 'Follow-up consultation for ongoing treatment'
-      },
-      {
-        id: '2',
-        date: new Date(2024, 5, 8),
-        time: '2:00 PM',
-        type: 'audio',
-        status: 'completed',
-        doctor: 'Dr. Fintan Ekochin',
-        notes: 'Initial consultation completed successfully'
-      }
-    ];
-
-    const mockPrescriptions: Prescription[] = [
-      {
-        id: '1',
-        medication: 'Omega-3 Fish Oil',
-        dosage: '1000mg',
-        frequency: 'Twice daily',
-        startDate: new Date(2024, 4, 1),
-        endDate: new Date(2024, 7, 1),
-        status: 'active',
-        instructions: 'Take with meals to improve absorption'
-      },
-      {
-        id: '2',
-        medication: 'Vitamin D3',
-        dosage: '2000 IU',
-        frequency: 'Once daily',
-        startDate: new Date(2024, 4, 1),
-        endDate: new Date(2024, 10, 1),
-        status: 'active',
-        instructions: 'Take in the morning with breakfast'
-      }
-    ];
-
-    const mockHealthRecords: HealthRecord[] = [
-      {
-        id: '1',
-        date: new Date(2024, 5, 8),
-        type: 'consultation',
-        title: 'Initial Consultation',
-        content: 'Comprehensive health assessment completed. Discussed lifestyle factors and natural treatment options.',
-      },
-      {
-        id: '2',
-        date: new Date(2024, 5, 1),
-        type: 'lab_result',
-        title: 'Blood Work Results',
-        content: 'Vitamin D levels: 25 ng/ml (slightly low). B12 levels: Normal. Recommended supplementation.',
-      }
-    ];
-
-    setAppointments(mockAppointments);
-    setPrescriptions(mockPrescriptions);
-    setHealthRecords(mockHealthRecords);
-  }, []);
+  
+  // Get data from real API
+  const { data: patientData, isLoading: isLoadingPatient } = usePatientDashboard();
+  const { data: patientAppointments, isLoading: isLoadingAppointments } = useAppointments({ status: 'all' });
+  const { data: medicalRecords, isLoading: isLoadingRecords } = usePatientMedicalRecords();
+  
+  // Map API data to component state
+  const appointments = React.useMemo(() => {
+    if (!patientAppointments) return [];
+    return patientAppointments.map(apt => ({
+      id: apt.id,
+      date: new Date(apt.scheduledAt),
+      time: format(new Date(apt.scheduledAt), 'h:mm a'),
+      type: apt.consultationType.toLowerCase() as 'video' | 'audio',
+      status: apt.status.toLowerCase() as 'scheduled' | 'completed' | 'cancelled',
+      doctor: apt.providerName || 'Dr. Fintan Ekochin',
+      notes: apt.reason
+    }));
+  }, [patientAppointments]);
+  
+  const prescriptions = React.useMemo(() => {
+    if (!medicalRecords) return [];
+    return medicalRecords
+      .filter(record => record.type === 'prescription')
+      .map(prescription => ({
+        id: prescription.id,
+        medication: prescription.title || 'Prescription',
+        dosage: prescription.prescription?.dosage || '',
+        frequency: prescription.prescription?.frequency || '',
+        startDate: new Date(prescription.date),
+        endDate: new Date(prescription.prescription?.endDate || Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: prescription.prescription?.status || 'active',
+        instructions: prescription.prescription?.instructions || prescription.notes || ''
+      }));
+  }, [medicalRecords]);
+  
+  const healthRecords = React.useMemo(() => {
+    if (!medicalRecords) return [];
+    return medicalRecords.map(record => ({
+      id: record.id,
+      date: new Date(record.date),
+      type: record.type as 'consultation' | 'lab_result' | 'prescription' | 'note',
+      title: record.title || 'Medical Record',
+      content: record.notes,
+      attachments: record.attachments
+    }));
+  }, [medicalRecords]);
 
   if (!isAuthenticated) {
     return <Navigate to="/booking" replace />;
+  }
+
+  // Loading state
+  const isLoading = isLoadingPatient || isLoadingAppointments || isLoadingRecords;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   const upcomingAppointments = appointments.filter(apt => apt.status === 'scheduled');

@@ -237,3 +237,45 @@ export const useReactivatePatient = () => {
     },
   });
 };
+
+export const usePatientDashboard = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useQuery({
+    queryKey: ['patient', 'dashboard'],
+    queryFn: async () => {
+      const response = await patientsApi.getCurrentPatientProfile();
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch patient dashboard data');
+      }
+      return response.data!;
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to load dashboard",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const usePatientMedicalRecords = (patientId?: string) => {
+  return useQuery({
+    queryKey: ['patient', patientId || 'current', 'medical-records'],
+    queryFn: async () => {
+      const response = patientId 
+        ? await patientsApi.getMedicalRecords(patientId)
+        : await patientsApi.getMedicalRecords('current');
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch patient medical records');
+      }
+      return response.data!;
+    },
+    enabled: true, // Can fetch for current patient without ID
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};

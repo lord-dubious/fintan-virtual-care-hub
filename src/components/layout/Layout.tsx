@@ -8,6 +8,12 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, isAuthenticated, logout } = useAuth();
+  
+  // Create a handler for logout button click
+  const handleLogout = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    logout();
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -47,7 +53,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center space-x-4">
               <span className="hidden md:inline">{user?.name}</span>
               <button 
-                onClick={logout}
+                onClick={handleLogout}
                 className="px-3 py-1 bg-primary-foreground text-primary rounded-md hover:bg-primary-foreground/90"
               >
                 Logout

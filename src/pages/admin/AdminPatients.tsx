@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import {
   Table,
@@ -29,26 +28,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { usePatients, usePatientMedicalHistory, usePatientAppointments } from '@/hooks/usePatients';
-import { PatientFilters } from '@/api/patients';
-
-// Type definitions for API data
-interface ApiPatient {
-  id: string;
-  user: {
-    name?: string;
-    email?: string;
-    phone?: string;
-  };
-  appointments?: ApiAppointment[];
-}
-
-interface ApiAppointment {
-  id: string;
-  appointmentDate: string;
-  consultationType: 'VIDEO' | 'AUDIO' | string;
-  status: 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | string;
-}
+import { useAdminUsers } from '@/hooks/useAdmin';
+import { usePatientMedicalHistory, usePatientAppointments } from '@/hooks/usePatients';
+import { PatientFilters, Patient } from '@/api/patients';
+import { User } from '@/api/admin';
 
 interface ApiMedicalRecord {
   id: string;
@@ -64,30 +47,18 @@ interface PatientUI {
   name: string;
   email: string;
   phone: string;
-  lastVisit: string;
   status: string;
+  createdAt: string;
 }
 
-// Transform API patient data to match UI expectations
-const transformPatient = (patient: ApiPatient): PatientUI => {
-  // Find the most recent appointment for last visit
-  const lastAppointment = patient.appointments?.length > 0
-    ? [...patient.appointments].sort((a, b) =>
-        new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()
-      )[0]
-    : null;
-
-  return {
-    id: patient.id,
-    name: patient.user.name || 'Unknown Patient',
-    email: patient.user.email || '',
-    phone: patient.user.phone || '',
-    lastVisit: lastAppointment
-      ? new Date(lastAppointment.appointmentDate).toISOString().split('T')[0]
-      : 'Never',
-    status: 'Active' // You can add status logic based on your business rules
-  };
-};
+const transformPatient = (user: User): PatientUI => ({
+  id: user.id,
+  name: user.name || 'Unknown Patient',
+  email: user.email || '',
+  phone: '',
+  status: user.isActive ? 'Active' : 'Inactive',
+  createdAt: new Date(user.createdAt).toLocaleDateString(),
+});
 
 const PatientDetails = ({ patient }: { patient: PatientUI }) => {
   const { toast } = useToast();
@@ -171,10 +142,7 @@ const PatientDetails = ({ patient }: { patient: PatientUI }) => {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Last Visit:</span>
                 <span>
-                  {patient.lastVisit === 'Never'
-                    ? 'Never'
-                    : new Date(patient.lastVisit).toLocaleDateString()
-                  }
+                  {patient.createdAt}
                 </span>
               </div>
             </div>
@@ -271,25 +239,14 @@ const AdminPatients = () => {
   const [selectedPatient, setSelectedPatient] = useState<PatientUI | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Build filters for API
-  const filters = useMemo((): PatientFilters => {
-    const apiFilters: PatientFilters = {};
-
-    if (searchTerm) {
-      apiFilters.search = searchTerm;
-    }
-
-    return apiFilters;
-  }, [searchTerm]);
-
-  // Fetch patients with filters
-  const { data: patients, isLoading, error } = usePatients(filters);
+  // Fetch users with role 'PATIENT'
+  const { data: usersData, isLoading, error } = useAdminUsers({ role: 'PATIENT', search: searchTerm });
 
   // Transform patients for UI
   const transformedPatients = useMemo(() => {
-    if (!patients) return [];
-    return patients.map(transformPatient);
-  }, [patients]);
+    if (!usersData?.users) return [];
+    return usersData.users.map(transformPatient);
+  }, [usersData]);
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -438,10 +395,7 @@ const AdminPatients = () => {
                       <TableCell>{patient.email}</TableCell>
                       <TableCell>{patient.phone}</TableCell>
                       <TableCell>
-                        {patient.lastVisit === 'Never'
-                          ? 'Never'
-                          : new Date(patient.lastVisit).toLocaleDateString()
-                        }
+                        {patient.createdAt}
                       </TableCell>
                       <TableCell>
                         <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium

@@ -79,11 +79,22 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
   const bookingData = useMemo(() => {
     if (!availabilityData) return [];
 
-    return availabilityData.map(dayAvailability => ({
-      date: dayAvailability.date,
-      availableTimes: dayAvailability.availableTimes,
-      bookedTimes: dayAvailability.bookedTimes
-    }));
+    return availabilityData.map(dayAvailability => {
+      // Extract available and booked times from the timeSlots array
+      const availableTimes = dayAvailability.timeSlots
+        .filter(slot => slot.isAvailable)
+        .map(slot => slot.startTime);
+      
+      const bookedTimes = dayAvailability.timeSlots
+        .filter(slot => !slot.isAvailable)
+        .map(slot => slot.startTime);
+      
+      return {
+        date: dayAvailability.date,
+        availableTimes,
+        bookedTimes
+      };
+    });
   }, [availabilityData]);
 
   const getAvailableTimesForDate = (date: Date | undefined) => {

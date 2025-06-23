@@ -30,14 +30,14 @@ export const usePaymentByAppointment = (appointmentId: string) => {
   });
 };
 
-export const useCreatePaymentIntent = () => {
+export const useCreateCheckoutSession = () => {
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (data: CreatePaymentData) => {
-      const response = await paymentsApi.createPaymentIntent(data);
+      const response = await paymentsApi.createCheckoutSession(data);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to create payment intent');
+        throw new Error(response.error || 'Failed to create checkout session');
       }
       return response.data!;
     },
@@ -51,62 +51,80 @@ export const useCreatePaymentIntent = () => {
   });
 };
 
-export const useProcessPayment = () => {
-  const queryClient = useQueryClient();
+// New hooks required by PaymentStep.tsx
+export const useStripePaymentIntent = () => {
   const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (data: CreatePaymentData) => {
-      const response = await paymentsApi.processPayment(data);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to process payment');
+  const createCheckout = useCreateCheckoutSession();
+  
+  return {
+    ...createCheckout,
+    createPaymentIntent: async (data: CreatePaymentData) => {
+      if (data.paymentMethod !== 'STRIPE') {
+        throw new Error('Payment method must be STRIPE for this operation');
       }
-      return response.data!;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      
-      toast({
-        title: "Payment Successful",
-        description: "Your appointment has been confirmed and payment processed.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Payment Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+      return await createCheckout.mutateAsync(data);
+    }
+  };
 };
 
-export const useConfirmPayment = () => {
+export const usePaystackPayment = () => {
+  const { toast } = useToast();
+  const createCheckout = useCreateCheckoutSession();
+  
+  return {
+    ...createCheckout,
+    initializePayment: async (data: CreatePaymentData) => {
+      if (data.paymentMethod !== 'PAYSTACK') {
+        throw new Error('Payment method must be PAYSTACK for this operation');
+      }
+      const result = await createCheckout.mutateAsync(data);
+      if ('authorizationUrl' in result) {
+        return result;
+      }
+      throw new Error('Invalid response from payment server');
+    }
+  };
+};
+
+export const useProcessPayment = (provider: 'STRIPE' | 'PAYSTACK' | 'PAYPAL' | 'FLUTTERWAVE') => {
+  const stripePayment = useStripePaymentIntent();
+  const paystackPayment = usePaystackPayment();
+  const createCheckout = useCreateCheckoutSession();
+  
+  // Return the appropriate payment processor based on provider
+  switch (provider) {
+    case 'STRIPE':
+      return stripePayment;
+    case 'PAYSTACK':
+      return paystackPayment;
+    default:
+      return createCheckout;
+  }
+};
+
+export const useVerifyPayment = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ paymentId, transactionId }: { paymentId: string; transactionId: string }) => {
-      const response = await paymentsApi.confirmPayment(paymentId, transactionId);
+    mutationFn: async ({ provider, reference }: { provider: string; reference: string }) => {
+      const response = await paymentsApi.verifyPayment(provider, reference);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to confirm payment');
+        throw new Error(response.error || 'Failed to verify payment');
       }
       return response.data!;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      
       toast({
-        title: "Payment Confirmed",
-        description: "Your payment has been confirmed successfully.",
+        title: "Payment Verified",
+        description: "Your payment has been successfully verified.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Payment Confirmation Failed",
+        title: "Payment Verification Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -158,116 +176,15 @@ export const usePaymentMethodConfig = () => {
   });
 };
 
-// Stripe specific hooks
-export const useStripePaymentIntent = () => {
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async ({ appointmentId, amount }: { appointmentId: string; amount: number }) => {
-      const response = await paymentsApi.stripe.createPaymentIntent(appointmentId, amount);
+export const usePaymentHistory = (filters?: any) => {
+  return useQuery({
+    queryKey: ['payments', 'history', filters],
+    queryFn: async () => {
+      const response = await paymentsApi.getPaymentHistory(filters);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to create Stripe payment intent');
+        throw new Error(response.error || 'Failed to fetch payment history');
       }
       return response.data!;
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Stripe Setup Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-};
-
-export const useConfirmStripePayment = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (paymentIntentId: string) => {
-      const response = await paymentsApi.stripe.confirmPayment(paymentIntentId);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to confirm Stripe payment');
-      }
-      return response.data!;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      
-      toast({
-        title: "Payment Successful",
-        description: "Your Stripe payment has been processed successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Stripe Payment Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-};
-
-// Paystack specific hooks
-export const usePaystackPayment = () => {
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async ({ appointmentId, amount, email }: { 
-      appointmentId: string; 
-      amount: number; 
-      email: string; 
-    }) => {
-      const response = await paymentsApi.paystack.initializePayment(appointmentId, amount, email);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to initialize Paystack payment');
-      }
-      return response.data!;
-    },
-    onSuccess: (data) => {
-      // Redirect to Paystack payment page
-      window.location.href = data.authorizationUrl;
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Paystack Setup Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-};
-
-export const useVerifyPaystackPayment = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (reference: string) => {
-      const response = await paymentsApi.paystack.verifyPayment(reference);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to verify Paystack payment');
-      }
-      return response.data!;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      
-      toast({
-        title: "Payment Verified",
-        description: "Your Paystack payment has been verified successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Payment Verification Failed",
-        description: error.message,
-        variant: "destructive",
-      });
     },
   });
 };

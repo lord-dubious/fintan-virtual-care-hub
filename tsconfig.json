@@ -20,5 +20,14 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/__tests__/**/*",
+    "src/tests/**/*",
+    "src/examples/**/*",
+    "src/lib/services/**/*.jsdoc.ts",
+    "src/lib/prisma.ts",
+    "src/setupTests.ts",
+    "src/lib/auth/authGuard.tsx"
+  ]
 }

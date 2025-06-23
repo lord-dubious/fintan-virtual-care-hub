@@ -1,4 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import { API_CONFIG, TOKEN_STORAGE_KEY, USER_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY, API_ENDPOINTS } from './config';
+import { tokenManager } from './tokenManager';
 
 // API Response types
 export interface ApiResponse<T = any> {
@@ -8,26 +10,17 @@ export interface ApiResponse<T = any> {
   message?: string;
 }
 
-// API Client configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-
 class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
-    this.client = axios.create({
-      baseURL: API_BASE_URL,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    this.client = axios.create(API_CONFIG);
 
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('auth_token');
-        if (token) {
+        const token = tokenManager.getAuthToken();
+        if (token && !tokenManager.isTokenExpired(token)) {
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -37,18 +30,51 @@ class ApiClient {
       }
     );
 
-    // Response interceptor for error handling
+    // Response interceptor for error handling and token refresh
     this.client.interceptors.response.use(
       (response: AxiosResponse) => {
         return response;
       },
       async (error: AxiosError) => {
+        const originalRequest = error.config as any;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            // Try to refresh the token
+            const refreshToken = tokenManager.getRefreshToken();
+            if (refreshToken) {
+              const response = await axios.post(`${API_CONFIG.baseURL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`, {
+                refreshToken
+              });
+
+              const { token, refreshToken: newRefreshToken } = response.data.data;
+
+              // Update stored tokens
+              tokenManager.setAuthToken(token);
+              if (newRefreshToken) {
+                tokenManager.setRefreshToken(newRefreshToken);
+              }
+
+              // Retry the original request with new token
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return this.client(originalRequest);
+            }
+          } catch (refreshError) {
+            // Refresh failed, clear auth data and redirect
+            tokenManager.clearAuthData();
+            window.location.href = '/auth/login';
+            return Promise.reject(refreshError);
+          }
+        }
+
         if (error.response?.status === 401) {
-          // Token expired or invalid
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('current_user');
+          // Token refresh failed or no refresh token
+          tokenManager.clearAuthData();
           window.location.href = '/auth/login';
         }
+
         return Promise.reject(error);
       }
     );

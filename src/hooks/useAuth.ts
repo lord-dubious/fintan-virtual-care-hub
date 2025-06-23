@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi, User, LoginCredentials, RegisterData, AuthResponse } from '@/api/auth';
 import { useToast } from '@/hooks/use-toast';
+import { tokenManager } from '@/api/tokenManager';
+import { useNavigate } from 'react-router-dom';
 
 export const useAuth = () => {
   const queryClient = useQueryClient();
@@ -10,9 +12,9 @@ export const useAuth = () => {
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['auth', 'user'],
     queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return null;
-      
+      const token = tokenManager.getAuthToken();
+      if (!token || tokenManager.isTokenExpired(token)) return null;
+
       const response = await authApi.getProfile();
       if (response.success) {
         return response.data;
@@ -33,16 +35,16 @@ export const useAuth = () => {
       return response.data!;
     },
     onSuccess: (data) => {
-      // Store tokens
-      localStorage.setItem('auth_token', data.token);
-      if (data.refreshToken) {
-        localStorage.setItem('refresh_token', data.refreshToken);
-      }
-      localStorage.setItem('current_user', JSON.stringify(data.user));
-      
+      // Store auth data using token manager
+      tokenManager.setAuthData({
+        token: data.token,
+        refreshToken: data.refreshToken,
+        user: data.user
+      });
+
       // Update query cache
       queryClient.setQueryData(['auth', 'user'], data.user);
-      
+
       toast({
         title: "Welcome back!",
         description: "You've been signed in successfully.",
@@ -67,16 +69,16 @@ export const useAuth = () => {
       return response.data!;
     },
     onSuccess: (data) => {
-      // Store tokens
-      localStorage.setItem('auth_token', data.token);
-      if (data.refreshToken) {
-        localStorage.setItem('refresh_token', data.refreshToken);
-      }
-      localStorage.setItem('current_user', JSON.stringify(data.user));
-      
+      // Store auth data using token manager
+      tokenManager.setAuthData({
+        token: data.token,
+        refreshToken: data.refreshToken,
+        user: data.user
+      });
+
       // Update query cache
       queryClient.setQueryData(['auth', 'user'], data.user);
-      
+
       toast({
         title: "Account Created!",
         description: "Welcome to Dr. Fintan's practice.",
@@ -97,24 +99,20 @@ export const useAuth = () => {
       await authApi.logout();
     },
     onSuccess: () => {
-      // Clear storage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('current_user');
-      
+      // Clear auth data using token manager
+      tokenManager.clearAuthData();
+
       // Clear query cache
       queryClient.clear();
-      
+
       toast({
         title: "Logged Out",
         description: "You've been signed out successfully.",
       });
     },
     onError: () => {
-      // Clear storage even if API call fails
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('current_user');
+      // Clear auth data even if API call fails
+      tokenManager.clearAuthData();
       queryClient.clear();
     },
   });
@@ -130,8 +128,8 @@ export const useAuth = () => {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['auth', 'user'], data);
-      localStorage.setItem('current_user', JSON.stringify(data));
-      
+      tokenManager.setUserData(data);
+
       toast({
         title: "Profile Updated",
         description: "Your profile has been updated successfully.",
@@ -175,19 +173,83 @@ export const useAuth = () => {
     isLoading,
     error,
     isAuthenticated: !!user,
-    
+
     // Actions
     login: loginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
     logout: logoutMutation.mutate,
     updateProfile: updateProfileMutation.mutateAsync,
     changePassword: changePasswordMutation.mutateAsync,
-    
+
     // Loading states
     isLoggingIn: loginMutation.isPending,
     isRegistering: registerMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
     isUpdatingProfile: updateProfileMutation.isPending,
     isChangingPassword: changePasswordMutation.isPending,
+
+    // Role-based access
+    hasRole: (role: string) => user?.role === role,
+    hasAnyRole: (roles: string[]) => user?.role ? roles.includes(user.role) : false,
+    isPatient: user?.role === 'PATIENT',
+    isProvider: user?.role === 'PROVIDER',
+    isAdmin: user?.role === 'ADMIN',
   };
+};
+
+// Role-based access control hooks
+export const useHasRole = (requiredRole: string) => {
+  const { user } = useAuth();
+  return user?.role === requiredRole;
+};
+
+export const useHasAnyRole = (requiredRoles: string[]) => {
+  const { user } = useAuth();
+  return user?.role ? requiredRoles.includes(user.role) : false;
+};
+
+export const useIsPatient = () => useHasRole('PATIENT');
+export const useIsProvider = () => useHasRole('PROVIDER');
+export const useIsAdmin = () => useHasRole('ADMIN');
+
+export const useRequestPasswordReset = () => {
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (email: string) => authApi.requestPasswordReset(email),
+    onSuccess: (response) => {
+      toast({
+        title: "Password Reset Email Sent",
+        description: response.data?.message || "If an account with that email exists, a password reset link has been sent.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Request Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useConfirmPasswordReset = () => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: ({ password, token }: { password: string; token: string }) => authApi.confirmPasswordReset(password, token),
+    onSuccess: (response) => {
+      toast({
+        title: "Password Reset Successful",
+        description: response.data?.message || "Your password has been changed successfully. Please log in.",
+      });
+      navigate('/login');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Reset Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 };

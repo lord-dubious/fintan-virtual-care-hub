@@ -1,4 +1,5 @@
 import { apiClient, ApiResponse } from './client';
+import { API_ENDPOINTS } from './config';
 
 // Consultation types
 export interface Consultation {
@@ -73,24 +74,29 @@ export interface JoinConsultationResponse {
 
 // Consultations API
 export const consultationsApi = {
-  // Get consultation by ID
+  // Get consultation details by its ID
   async getConsultation(id: string): Promise<ApiResponse<Consultation>> {
-    return apiClient.get<Consultation>(`/consultations/${id}`);
+    return apiClient.get<Consultation>(`${API_ENDPOINTS.CONSULTATIONS.BASE}/${id}`);
   },
 
-  // Get consultation by appointment ID
+  // Get consultation details by the appointment ID
   async getConsultationByAppointment(appointmentId: string): Promise<ApiResponse<Consultation>> {
-    return apiClient.get<Consultation>(`/consultations/appointment/${appointmentId}`);
+    return apiClient.get<Consultation>(`${API_ENDPOINTS.CONSULTATIONS.BASE}/appointment/${appointmentId}`);
+  },
+
+  // Creates the consultation room and gets the join token
+  async joinConsultation(appointmentId: string): Promise<ApiResponse<JoinConsultationResponse>> {
+    return apiClient.post<JoinConsultationResponse>(API_ENDPOINTS.CONSULTATIONS.JOIN_ROOM(appointmentId));
+  },
+
+  // Update consultation notes
+  async updateNotes(consultationId: string, notes: string): Promise<ApiResponse<Consultation>> {
+    return apiClient.put<Consultation>(API_ENDPOINTS.CONSULTATIONS.NOTES(consultationId), { notes });
   },
 
   // Create a new consultation
   async createConsultation(data: CreateConsultationData): Promise<ApiResponse<Consultation>> {
     return apiClient.post<Consultation>(`/consultations/create/${data.appointmentId}`, data);
-  },
-
-  // Join a consultation (get room URL and token)
-  async joinConsultation(appointmentId: string): Promise<ApiResponse<JoinConsultationResponse>> {
-    return apiClient.post<JoinConsultationResponse>(`/consultations/join/${appointmentId}`);
   },
 
   // Start a consultation

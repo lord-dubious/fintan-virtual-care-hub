@@ -1,4 +1,5 @@
 import { apiClient, ApiResponse } from './client';
+import { API_ENDPOINTS } from './config';
 
 // Dashboard types
 export interface DashboardStats {
@@ -76,7 +77,7 @@ export const dashboardApi = {
       to: dateRange.to.toISOString()
     } : undefined;
     
-    return apiClient.get<DashboardData>('/dashboard', params);
+    return apiClient.get<DashboardData>(`${API_ENDPOINTS.ADMIN.STATISTICS}/dashboard`, params);
   },
 
   // Get dashboard statistics
@@ -86,22 +87,22 @@ export const dashboardApi = {
       to: dateRange.to.toISOString()
     } : undefined;
     
-    return apiClient.get<DashboardStats>('/dashboard/stats', params);
+    return apiClient.get<DashboardStats>(`${API_ENDPOINTS.ADMIN.STATISTICS}/stats`, params);
   },
 
   // Get upcoming appointments
   async getUpcomingAppointments(limit: number = 5): Promise<ApiResponse<AppointmentSummary[]>> {
-    return apiClient.get<AppointmentSummary[]>('/dashboard/appointments/upcoming', { limit });
+    return apiClient.get<AppointmentSummary[]>(`${API_ENDPOINTS.APPOINTMENTS.BY_PATIENT}`, { limit, status: 'scheduled' });
   },
 
   // Get recent activity
   async getRecentActivity(limit: number = 10): Promise<ApiResponse<ActivityItem[]>> {
-    return apiClient.get<ActivityItem[]>('/dashboard/activity/recent', { limit });
+    return apiClient.get<ActivityItem[]>(`${API_ENDPOINTS.ADMIN.STATISTICS}/activity/recent`, { limit });
   },
 
   // Get chart data
   async getChartData(period: 'week' | 'month' | 'quarter' | 'year' = 'month'): Promise<ApiResponse<ChartData>> {
-    return apiClient.get<ChartData>('/dashboard/charts', { period });
+    return apiClient.get<ChartData>(`${API_ENDPOINTS.ADMIN.STATISTICS}/charts`, { period });
   },
 
   // Get revenue analytics
@@ -116,7 +117,7 @@ export const dashboardApi = {
       to: dateRange.to.toISOString()
     } : undefined;
     
-    return apiClient.get('/dashboard/analytics/revenue', params);
+    return apiClient.get(`${API_ENDPOINTS.ADMIN.STATISTICS}/analytics/revenue`, params);
   },
 
   // Get appointment analytics
@@ -133,7 +134,7 @@ export const dashboardApi = {
       to: dateRange.to.toISOString()
     } : undefined;
     
-    return apiClient.get('/dashboard/analytics/appointments', params);
+    return apiClient.get(`${API_ENDPOINTS.ADMIN.STATISTICS}/analytics/appointments`, params);
   },
 
   // Get patient analytics
@@ -150,7 +151,18 @@ export const dashboardApi = {
       to: dateRange.to.toISOString()
     } : undefined;
     
-    return apiClient.get('/dashboard/analytics/patients', params);
+    return apiClient.get(`${API_ENDPOINTS.ADMIN.STATISTICS}/analytics/patients`, params);
+  },
+
+  // Get patient dashboard data
+  async getPatientDashboard(): Promise<ApiResponse<{
+    upcomingAppointments: AppointmentSummary[];
+    pastAppointments: AppointmentSummary[];
+    medicalRecords: any[];
+    prescriptions: any[];
+    healthMetrics: any;
+  }>> {
+    return apiClient.get(`${API_ENDPOINTS.PATIENTS.BASE}/dashboard`);
   },
 };
 

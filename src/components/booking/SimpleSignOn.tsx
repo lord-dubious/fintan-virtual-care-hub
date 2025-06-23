@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,9 +75,9 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
     }
 
     try {
-      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+      const name = `${formData.firstName} ${formData.lastName}`.trim();
       await register({
-        fullName,
+        name,
         email: formData.email,
         password: formData.password,
         role: 'PATIENT',

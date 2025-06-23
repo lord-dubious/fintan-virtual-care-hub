@@ -1,4 +1,5 @@
 import { apiClient, ApiResponse } from './client';
+import { API_ENDPOINTS } from './config';
 
 // Patient types
 export interface Patient {
@@ -129,42 +130,42 @@ export const patientsApi = {
     page: number;
     totalPages: number;
   }>> {
-    return apiClient.get('/patients', filters);
+    return apiClient.get(API_ENDPOINTS.PATIENTS.BASE, filters);
   },
 
   // Get patient by ID
   async getPatient(id: string): Promise<ApiResponse<Patient>> {
-    return apiClient.get<Patient>(`/patients/${id}`);
+    return apiClient.get<Patient>(API_ENDPOINTS.PATIENTS.PROFILE(id));
   },
 
   // Create new patient
   async createPatient(data: CreatePatientData): Promise<ApiResponse<Patient>> {
-    return apiClient.post<Patient>('/patients', data);
+    return apiClient.post<Patient>(API_ENDPOINTS.PATIENTS.BASE, data);
   },
 
   // Update patient
   async updatePatient(id: string, data: UpdatePatientData): Promise<ApiResponse<Patient>> {
-    return apiClient.put<Patient>(`/patients/${id}`, data);
+    return apiClient.put<Patient>(API_ENDPOINTS.PATIENTS.PROFILE(id), data);
   },
 
   // Deactivate patient
   async deactivatePatient(id: string): Promise<ApiResponse<Patient>> {
-    return apiClient.put<Patient>(`/patients/${id}/deactivate`);
+    return apiClient.put<Patient>(`${API_ENDPOINTS.PATIENTS.BASE}/${id}/deactivate`);
   },
 
   // Reactivate patient
   async reactivatePatient(id: string): Promise<ApiResponse<Patient>> {
-    return apiClient.put<Patient>(`/patients/${id}/reactivate`);
+    return apiClient.put<Patient>(`${API_ENDPOINTS.PATIENTS.BASE}/${id}/reactivate`);
   },
 
   // Get patient medical history
   async getPatientMedicalHistory(patientId: string): Promise<ApiResponse<MedicalRecord[]>> {
-    return apiClient.get<MedicalRecord[]>(`/patients/${patientId}/medical-history`);
+    return apiClient.get<MedicalRecord[]>(`${API_ENDPOINTS.PATIENTS.BASE}/${patientId}/medical-history`);
   },
 
   // Add medical record
   async addMedicalRecord(patientId: string, record: AddMedicalRecordData): Promise<ApiResponse<MedicalRecord>> {
-    return apiClient.post<MedicalRecord>(`/patients/${patientId}/medical-records`, {
+    return apiClient.post<MedicalRecord>(API_ENDPOINTS.PATIENTS.MEDICAL_RECORDS(patientId), {
       ...record,
       date: record.date.toISOString()
     });
@@ -172,22 +173,32 @@ export const patientsApi = {
 
   // Get patient appointments
   async getPatientAppointments(patientId: string): Promise<ApiResponse<any[]>> {
-    return apiClient.get<any[]>(`/patients/${patientId}/appointments`);
+    return apiClient.get<any[]>(API_ENDPOINTS.PATIENTS.APPOINTMENTS(patientId));
   },
 
   // Search patients
   async searchPatients(query: string): Promise<ApiResponse<Patient[]>> {
-    return apiClient.get<Patient[]>('/patients/search', { query });
+    return apiClient.get<Patient[]>(`${API_ENDPOINTS.PATIENTS.BASE}/search`, { query });
   },
 
   // Get patient statistics
   async getPatientStats(): Promise<ApiResponse<PatientStats>> {
-    return apiClient.get<PatientStats>('/patients/stats');
+    return apiClient.get<PatientStats>(`${API_ENDPOINTS.PATIENTS.BASE}/stats`);
   },
 
   // Get recent patients
   async getRecentPatients(limit?: number): Promise<ApiResponse<Patient[]>> {
-    return apiClient.get<Patient[]>('/patients/recent', { limit });
+    return apiClient.get<Patient[]>(`${API_ENDPOINTS.PATIENTS.BASE}/recent`, { limit });
+  },
+
+  // Get current patient profile (for dashboard)
+  async getCurrentPatientProfile(): Promise<ApiResponse<Patient>> {
+    return apiClient.get<Patient>(`${API_ENDPOINTS.PATIENTS.BASE}/profile`);
+  },
+
+  // Get merged medical records
+  async getMedicalRecords(patientId: string): Promise<ApiResponse<MedicalRecord[]>> {
+    return apiClient.get<MedicalRecord[]>(API_ENDPOINTS.PATIENTS.MEDICAL_RECORDS(patientId));
   },
 };
 

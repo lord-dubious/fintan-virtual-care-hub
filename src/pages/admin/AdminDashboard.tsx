@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Users, Activity, Clock } from 'lucide-react';
+import { Calendar, Users, Activity, Clock, DollarSign } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useDashboardStats, useUpcomingAppointments } from '@/hooks/useDashboard';
+import { useAdminStatistics, useAdminAppointments } from '@/hooks/useAdmin';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 
 interface StatCardProps {
   title: string;
@@ -46,46 +46,46 @@ const AppointmentItem = ({ patient, time, type }: { patient: string; time: strin
 const AdminDashboard = () => {
   const isMobile = useIsMobile();
 
-  // Fetch real data
-  const { data: dashboardStats, isLoading: statsLoading, error: statsError } = useDashboardStats();
-  const { data: upcomingAppointments, isLoading: appointmentsLoading, error: appointmentsError } = useUpcomingAppointments(4);
+  // Fetch real data from admin hooks
+  const { data: adminStats, isLoading: statsLoading, error: statsError } = useAdminStatistics();
+  const { data: appointmentsData, isLoading: appointmentsLoading, error: appointmentsError } = useAdminAppointments({ limit: 4 });
 
   // Transform API data to match UI expectations
   const stats = React.useMemo(() => {
-    if (!dashboardStats) return [];
+    if (!adminStats) return [];
 
     return [
       {
         title: "Total Appointments",
-        value: dashboardStats.totalAppointments.toString(),
-        description: `${dashboardStats.appointmentGrowth > 0 ? '+' : ''}${dashboardStats.appointmentGrowth.toFixed(1)}% from last month`,
+        value: adminStats.totalAppointments.toString(),
+        description: 'All-time appointments',
         icon: <Calendar className="h-4 w-4 text-muted-foreground" />
       },
       {
         title: "New Patients",
-        value: dashboardStats.newPatients.toString(),
-        description: `${dashboardStats.patientGrowth > 0 ? '+' : ''}${dashboardStats.patientGrowth.toFixed(1)}% from last month`,
+        value: adminStats.totalPatients.toString(),
+        description: 'Total registered patients',
         icon: <Users className="h-4 w-4 text-muted-foreground" />
       },
       {
-        title: "Consultation Hours",
-        value: dashboardStats.consultationHours.toFixed(1),
-        description: `${dashboardStats.hoursGrowth > 0 ? '+' : ''}${dashboardStats.hoursGrowth.toFixed(1)}% from last week`,
-        icon: <Activity className="h-4 w-4 text-muted-foreground" />
+        title: "Total Revenue",
+        value: `$${adminStats.totalRevenue.toLocaleString()}`,
+        description: 'All-time revenue',
+        icon: <DollarSign className="h-4 w-4 text-muted-foreground" />
       }
     ];
-  }, [dashboardStats]);
+  }, [adminStats]);
 
   // Transform appointments data to match UI expectations
   const formattedAppointments = React.useMemo(() => {
-    if (!upcomingAppointments) return [];
+    if (!appointmentsData?.appointments) return [];
 
-    return upcomingAppointments.map(appointment => ({
-      patient: appointment.patient,
-      time: appointment.time,
-      type: appointment.type === 'Video' ? 'Video Consultation' : 'Audio Consultation'
+    return appointmentsData.appointments.map(appointment => ({
+      patient: appointment.patient?.name || 'Unknown Patient',
+      time: format(new Date(appointment.scheduledAt), 'p'),
+      type: `${appointment.consultationType.charAt(0).toUpperCase() + appointment.consultationType.slice(1).toLowerCase()} Consultation`
     }));
-  }, [upcomingAppointments]);
+  }, [appointmentsData]);
 
   return (
     <div className="space-y-6">

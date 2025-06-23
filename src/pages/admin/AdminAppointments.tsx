@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import {
   Table,
@@ -36,7 +35,8 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { format } from 'date-fns';
-import { useAppointments, useCancelAppointment, useRescheduleAppointment, useJoinConsultation } from '@/hooks/useAppointments';
+import { useAdminAppointments } from '@/hooks/useAdmin';
+import { useCancelAppointment, useJoinConsultation } from '@/hooks/useAppointments';
 import { AppointmentFilters } from '@/api/appointments';
 
 // Type definitions for API data
@@ -81,7 +81,6 @@ const AdminAppointments = () => {
 
   // Mutations
   const cancelAppointment = useCancelAppointment();
-  const rescheduleAppointment = useRescheduleAppointment();
   const joinConsultation = useJoinConsultation();
 
   // Build filters for API
@@ -106,13 +105,13 @@ const AdminAppointments = () => {
   }, [searchTerm, selectedDate]);
 
   // Fetch appointments with filters
-  const { data: appointments, isLoading, error } = useAppointments(filters);
+  const { data: appointmentsData, isLoading, error } = useAdminAppointments(filters);
 
   // Transform appointments for UI
   const transformedAppointments = useMemo(() => {
-    if (!appointments) return [];
-    return appointments.map(transformAppointment);
-  }, [appointments]);
+    if (!appointmentsData?.appointments) return [];
+    return appointmentsData.appointments.map(transformAppointment);
+  }, [appointmentsData]);
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -193,9 +192,6 @@ const AdminAppointments = () => {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => handleActionClick("View", appointment.id)}>
                 View Details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleActionClick("Reschedule", appointment.id)}>
-                Reschedule
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleActionClick("Cancel", appointment.id)}>
                 Cancel
@@ -354,14 +350,6 @@ const AdminAppointments = () => {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleActionClick("View", appointment.id)}>
                             View Details
-                          </DropdownMenuItem>
-                          {appointment.status === 'Confirmed' && (
-                            <DropdownMenuItem onClick={() => handleActionClick("Join", appointment.id)}>
-                              Join Consultation
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => handleActionClick("Reschedule", appointment.id)}>
-                            Reschedule
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleActionClick("Cancel", appointment.id)}>
                             Cancel

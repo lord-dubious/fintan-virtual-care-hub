@@ -1,4 +1,5 @@
 import { apiClient, ApiResponse } from './client';
+import { API_ENDPOINTS } from './config';
 
 // Appointment types
 export interface Appointment {
@@ -50,6 +51,8 @@ export interface AppointmentFilters {
   providerId?: string;
   dateFrom?: string;
   dateTo?: string;
+  startDate?: Date | string;
+  endDate?: Date | string;
   page?: number;
   limit?: number;
 }
@@ -98,49 +101,54 @@ export const appointmentsApi = {
     page: number;
     totalPages: number;
   }>> {
-    return apiClient.get('/appointments', filters);
+    return apiClient.get(API_ENDPOINTS.APPOINTMENTS.BASE, filters);
   },
 
   // Get appointment by ID
   async getAppointment(id: string): Promise<ApiResponse<Appointment>> {
-    return apiClient.get<Appointment>(`/appointments/${id}`);
+    return apiClient.get<Appointment>(`${API_ENDPOINTS.APPOINTMENTS.BASE}/${id}`);
   },
 
   // Create new appointment
   async createAppointment(data: CreateAppointmentData): Promise<ApiResponse<Appointment>> {
-    return apiClient.post<Appointment>('/appointments', data);
+    return apiClient.post<Appointment>(API_ENDPOINTS.APPOINTMENTS.BASE, data);
   },
 
   // Update appointment
   async updateAppointment(id: string, data: UpdateAppointmentData): Promise<ApiResponse<Appointment>> {
-    return apiClient.put<Appointment>(`/appointments/${id}`, data);
+    return apiClient.put<Appointment>(`${API_ENDPOINTS.APPOINTMENTS.BASE}/${id}`, data);
+  },
+
+  // Update appointment status
+  async updateAppointmentStatus(id: string, status: Appointment['status'], notes?: string): Promise<ApiResponse<Appointment>> {
+    return apiClient.put<Appointment>(API_ENDPOINTS.APPOINTMENTS.STATUS(id), { status, notes });
   },
 
   // Cancel appointment
   async cancelAppointment(id: string, reason?: string): Promise<ApiResponse<Appointment>> {
-    return apiClient.put<Appointment>(`/appointments/${id}/cancel`, { reason });
+    return apiClient.put<Appointment>(API_ENDPOINTS.APPOINTMENTS.CANCEL(id), { reason });
   },
 
   // Reschedule appointment
   async rescheduleAppointment(id: string, newDate: Date): Promise<ApiResponse<Appointment>> {
-    return apiClient.put<Appointment>(`/appointments/${id}/reschedule`, {
+    return apiClient.put<Appointment>(`${API_ENDPOINTS.APPOINTMENTS.BASE}/${id}/reschedule`, {
       scheduledAt: newDate.toISOString()
     });
   },
 
   // Confirm appointment
   async confirmAppointment(id: string): Promise<ApiResponse<Appointment>> {
-    return apiClient.put<Appointment>(`/appointments/${id}/confirm`);
+    return apiClient.put<Appointment>(`${API_ENDPOINTS.APPOINTMENTS.BASE}/${id}/confirm`);
   },
 
   // Mark as no-show
   async markNoShow(id: string): Promise<ApiResponse<Appointment>> {
-    return apiClient.put<Appointment>(`/appointments/${id}/no-show`);
+    return apiClient.put<Appointment>(`${API_ENDPOINTS.APPOINTMENTS.BASE}/${id}/no-show`);
   },
 
   // Join consultation
   async joinConsultation(appointmentId: string): Promise<ApiResponse<JoinConsultationResponse>> {
-    return apiClient.post<JoinConsultationResponse>(`/appointments/${appointmentId}/join`);
+    return apiClient.post<JoinConsultationResponse>(`${API_ENDPOINTS.APPOINTMENTS.BASE}/${appointmentId}/join`);
   },
 
   // Get appointment statistics
@@ -149,17 +157,17 @@ export const appointmentsApi = {
     dateTo?: string;
     providerId?: string;
   }): Promise<ApiResponse<AppointmentStats>> {
-    return apiClient.get<AppointmentStats>('/appointments/stats', filters);
+    return apiClient.get<AppointmentStats>(`${API_ENDPOINTS.APPOINTMENTS.BASE}/stats`, filters);
   },
 
   // Get upcoming appointments
   async getUpcomingAppointments(limit?: number): Promise<ApiResponse<Appointment[]>> {
-    return apiClient.get<Appointment[]>('/appointments/upcoming', { limit });
+    return apiClient.get<Appointment[]>(`${API_ENDPOINTS.APPOINTMENTS.BASE}/upcoming`, { limit });
   },
 
   // Get past appointments
   async getPastAppointments(limit?: number): Promise<ApiResponse<Appointment[]>> {
-    return apiClient.get<Appointment[]>('/appointments/past', { limit });
+    return apiClient.get<Appointment[]>(`${API_ENDPOINTS.APPOINTMENTS.BASE}/past`, { limit });
   },
 
   // Search appointments
@@ -167,7 +175,81 @@ export const appointmentsApi = {
     appointments: Appointment[];
     total: number;
   }>> {
-    return apiClient.get('/appointments/search', { query, ...filters });
+    return apiClient.get(`${API_ENDPOINTS.APPOINTMENTS.BASE}/search`, { query, ...filters });
+  },
+
+  // Get appointments by patient with enhanced date filtering
+  async getAppointmentsByPatient(patientId: string, filters?: Omit<AppointmentFilters, 'patientId'>): Promise<ApiResponse<{
+    appointments: Appointment[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>> {
+    const queryParams = { ...filters, patientId };
+    
+    // Convert Date objects to ISO strings for the API
+    if (filters?.startDate instanceof Date) {
+      queryParams.dateFrom = filters.startDate.toISOString();
+      delete queryParams.startDate;
+    } else if (filters?.startDate) {
+      queryParams.dateFrom = String(filters.startDate);
+      delete queryParams.startDate;
+    }
+    
+    if (filters?.endDate instanceof Date) {
+      queryParams.dateTo = filters.endDate.toISOString();
+      delete queryParams.endDate;
+    } else if (filters?.endDate) {
+      queryParams.dateTo = String(filters.endDate);
+      delete queryParams.endDate;
+    }
+    
+    return apiClient.get(API_ENDPOINTS.APPOINTMENTS.BY_PATIENT, queryParams);
+  },
+
+  // Get appointments by provider with enhanced date filtering
+  async getAppointmentsByProvider(providerId: string, filters?: Omit<AppointmentFilters, 'providerId'>): Promise<ApiResponse<{
+    appointments: Appointment[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>> {
+    const queryParams = { ...filters, providerId };
+    
+    // Convert Date objects to ISO strings for the API
+    if (filters?.startDate instanceof Date) {
+      queryParams.dateFrom = filters.startDate.toISOString();
+      delete queryParams.startDate;
+    } else if (filters?.startDate) {
+      queryParams.dateFrom = String(filters.startDate);
+      delete queryParams.startDate;
+    }
+    
+    if (filters?.endDate instanceof Date) {
+      queryParams.dateTo = filters.endDate.toISOString();
+      delete queryParams.endDate;
+    } else if (filters?.endDate) {
+      queryParams.dateTo = String(filters.endDate);
+      delete queryParams.endDate;
+    }
+    
+    return apiClient.get(API_ENDPOINTS.APPOINTMENTS.BY_PROVIDER, queryParams);
+  },
+
+  // Get appointments for calendar view (optimized for calendar integration)
+  async getAppointmentsForCalendar(
+    providerId: string, 
+    startDate: Date, 
+    endDate: Date, 
+    options?: { includePatientDetails?: boolean, status?: Appointment['status'][] }
+  ): Promise<ApiResponse<Appointment[]>> {
+    return apiClient.get<Appointment[]>(`${API_ENDPOINTS.APPOINTMENTS.BASE}/calendar`, {
+      providerId,
+      dateFrom: startDate.toISOString(),
+      dateTo: endDate.toISOString(),
+      includePatientDetails: options?.includePatientDetails === undefined ? true : options.includePatientDetails,
+      status: options?.status ? options.status.join(',') : undefined
+    });
   },
 };
 

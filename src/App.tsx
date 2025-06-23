@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import { ThemeProvider } from './components/theme/ThemeProvider';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 import AboutPage from './pages/AboutPage';
 import ServicesPage from './pages/ServicesPage';
@@ -24,7 +25,11 @@ import OfflinePage from './pages/OfflinePage';
 import AdminLayout from './components/admin/AdminLayout';
 import LoginPage from './pages/auth/login';
 import RegisterPage from './pages/auth/register';
+import ForgotPasswordPage from './pages/auth/ForgotPassword';
+import ResetPasswordPage from './pages/auth/ResetPassword';
 import PatientDashboard from './pages/PatientDashboard';
+import PaymentPage from './pages/PaymentPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 
 const queryClient = new QueryClient();
 
@@ -60,15 +65,43 @@ const App = () => {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/services" element={<ServicesPage />} />
                 <Route path="/booking" element={<BookingPage />} />
-                <Route path="/booking/confirmation" element={<BookingConfirmation />} />
-                <Route path="/consultation" element={<ConsultationPage />} />
+                <Route path="/booking/confirmation" element={
+                  <ProtectedRoute>
+                    <BookingConfirmation />
+                  </ProtectedRoute>
+                } />
+                <Route path="/consultation/:appointmentId" element={
+                  <ProtectedRoute>
+                    <ConsultationPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/faq" element={<FaqPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/auth/login" element={<LoginPage />} />
                 <Route path="/auth/register" element={<RegisterPage />} />
-                <Route path="/dashboard" element={<PatientDashboard />} />
+                <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/auth/reset-password/:token" element={<ResetPasswordPage />} />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute requiredRole="PATIENT">
+                    <PatientDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/payment/:appointmentId" element={
+                  <ProtectedRoute>
+                    <PaymentPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/payment/success" element={
+                  <ProtectedRoute>
+                    <PaymentSuccessPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<AdminLayout />}>
+                <Route path="/admin" element={
+                  <ProtectedRoute requiredRole="ADMIN">
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<Navigate to="/admin/dashboard" replace />} />
                   <Route path="dashboard" element={<AdminDashboard />} />
                   <Route path="appointments" element={<AdminAppointments />} />

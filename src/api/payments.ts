@@ -1,47 +1,11 @@
 import { apiClient, ApiResponse } from './client';
 import { API_ENDPOINTS } from './config';
+import { PaymentSchema, CreatePaymentSchema, PaymentIntentSchema } from '@/lib/validation/schemas';
+import type { Payment, CreatePaymentData } from '@/lib/validation/schemas';
+import { PaymentStatus, PaymentMethod } from '@/lib/types/enums';
 
-// Payment types
-export interface Payment {
-  id: string;
-  appointmentId: string;
-  amount: number;
-  currency: string;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REFUNDED';
-  paymentMethod: 'STRIPE' | 'PAYSTACK' | 'PAYPAL' | 'FLUTTERWAVE';
-  transactionId?: string;
-  paymentIntentId?: string;
-  refundId?: string;
-  refundAmount?: number;
-  refundReason?: string;
-  metadata?: any;
-  createdAt: string;
-  updatedAt: string;
-  appointment?: {
-    id: string;
-    scheduledAt: string;
-    consultationType: 'VIDEO' | 'AUDIO';
-    patient: {
-      user: {
-        name: string;
-        email: string;
-      };
-    };
-    provider: {
-      user: {
-        name: string;
-      };
-    };
-  };
-}
-
-export interface CreatePaymentData {
-  appointmentId: string;
-  amount: number;
-  currency?: string;
-  paymentMethod: 'STRIPE' | 'PAYSTACK' | 'PAYPAL' | 'FLUTTERWAVE';
-  metadata?: any;
-}
+// Use types from validation schemas for consistency
+export type { Payment, CreatePaymentData } from '@/lib/validation/schemas';
 
 export interface PaymentMethodConfig {
   stripe: {
@@ -67,11 +31,17 @@ export interface PaymentMethodConfig {
 }
 
 export interface PaymentIntent {
-  id: string;
+  id: string; // Stripe payment intent id
   clientSecret: string;
   amount: number;
   currency: string;
   status: string;
+}
+
+// Server response when creating a payment intent – includes DB record and Stripe clientSecret
+export interface CreatePaymentIntentResponse {
+  payment: Payment;
+  clientSecret: string;
 }
 
 export interface RefundData {
@@ -90,6 +60,16 @@ export const paymentsApi = {
   // Get payment by appointment ID
   async getPaymentByAppointment(appointmentId: string): Promise<ApiResponse<Payment>> {
     return apiClient.get<Payment>(`${API_ENDPOINTS.PAYMENTS.BASE}/appointment/${appointmentId}`);
+  },
+
+  // Create payment intent (Stripe)
+  async createPaymentIntent(data: CreatePaymentData): Promise<ApiResponse<CreatePaymentIntentResponse>> {
+    return apiClient.post(API_ENDPOINTS.PAYMENTS.INTENT, data);
+  },
+
+  // Confirm payment (update DB after Stripe success)
+  async confirmPayment(paymentId: string, paymentMethodId?: string): Promise<ApiResponse<Payment>> {
+    return apiClient.post(API_ENDPOINTS.PAYMENTS.CONFIRM, { paymentId, paymentMethodId });
   },
 
   // Create a checkout session for a payment provider
@@ -113,7 +93,7 @@ export const paymentsApi = {
   },
 
   // Get payment history
-  async getPaymentHistory(filters?: any): Promise<ApiResponse<{
+  async getPaymentHistory(filters?: { status?: string; dateFrom?: string; dateTo?: string; userId?: string }): Promise<ApiResponse<{
     payments: Payment[];
     total: number;
     page: number;

@@ -1,22 +1,42 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi, User, LoginCredentials, RegisterData, AuthResponse } from '@/api/auth';
 import { useToast } from '@/hooks/use-toast';
-import { tokenManager } from '@/api/tokenManager';
+import { tokenManager } from '@/api/cookieTokenManager';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 export const useAuth = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Get current user
+  // Initialize CSRF token on mount
+  useEffect(() => {
+    const initializeAuth = async () => {
+      // Try to migrate from localStorage if needed
+      await tokenManager.migrateFromLocalStorage();
+
+      // Initialize CSRF token for cookie-based auth
+      await tokenManager.initializeCSRFToken();
+    };
+
+    initializeAuth();
+  }, []);
+
+  // Get current user (works with both cookie and token auth)
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['auth', 'user'],
     queryFn: async () => {
-      const token = tokenManager.getAuthToken();
-      if (!token || tokenManager.isTokenExpired(token)) return null;
+      // For cookie-based auth, we don't check token expiry locally
+      // The server will handle token validation
+      const cachedUser = tokenManager.getUserData();
+      if (cachedUser) {
+        return cachedUser;
+      }
 
+      // Try to get profile from server
       const response = await authApi.getProfile();
       if (response.success) {
+        tokenManager.setUserData(response.data);
         return response.data;
       }
       return null;
@@ -35,11 +55,10 @@ export const useAuth = () => {
       return response.data!;
     },
     onSuccess: (data) => {
-      // Store auth data using token manager
+      // Store auth data using cookie-based token manager
       tokenManager.setAuthData({
-        token: data.token,
-        refreshToken: data.refreshToken,
-        user: data.user
+        user: data.user,
+        csrfToken: data.csrfToken || '', // CSRF token from cookie-based auth
       });
 
       // Update query cache
@@ -69,11 +88,10 @@ export const useAuth = () => {
       return response.data!;
     },
     onSuccess: (data) => {
-      // Store auth data using token manager
+      // Store auth data using cookie-based token manager
       tokenManager.setAuthData({
-        token: data.token,
-        refreshToken: data.refreshToken,
-        user: data.user
+        user: data.user,
+        csrfToken: data.csrfToken || '', // CSRF token from cookie-based auth
       });
 
       // Update query cache

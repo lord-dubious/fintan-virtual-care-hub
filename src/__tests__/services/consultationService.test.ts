@@ -27,7 +27,7 @@ vi.mock('@prisma/client', () => {
 global.fetch = vi.fn();
 
 describe('consultationService', () => {
-  let mockPrisma: any;
+  let mockPrisma: typeof PrismaClient.prototype;
   
   beforeEach(() => {
     // Reset mocks before each test
@@ -37,7 +37,7 @@ describe('consultationService', () => {
     mockPrisma = new PrismaClient();
     
     // Mock fetch response
-    (global.fetch as any).mockResolvedValue({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       json: () => Promise.resolve({ url: 'https://example.daily.co/room123', token: 'test-token' })
     });
   });
@@ -163,7 +163,7 @@ describe('consultationService', () => {
       });
       
       // Verify the request body
-      const requestBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody.properties.start_video_off).toBe(true); // For AUDIO call
     });
 
@@ -210,7 +210,7 @@ describe('consultationService', () => {
       });
       
       // Verify the request body
-      const requestBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody.properties.room_name).toBe('room123');
       expect(requestBody.properties.is_owner).toBe(false); // Patient is not owner
     });
@@ -233,7 +233,7 @@ describe('consultationService', () => {
       await consultationService.generateRoomToken('consultation-123', 'provider-user-id');
       
       // Verify the request body
-      const requestBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody.properties.is_owner).toBe(true); // Provider is owner
     });
 

@@ -1,6 +1,17 @@
 import { apiClient, ApiResponse } from './client';
 import { API_ENDPOINTS } from './config';
 
+// Additional types
+interface PatientAppointment {
+  id: string;
+  date: string;
+  time: string;
+  type: string;
+  status: string;
+  providerId: string;
+  providerName: string;
+}
+
 // Patient types
 export interface Patient {
   id: string;
@@ -30,7 +41,7 @@ export interface Patient {
     address?: string;
     avatar?: string;
   };
-  appointments?: any[];
+  appointments?: PatientAppointment[];
   medicalRecords?: MedicalRecord[];
 }
 
@@ -172,8 +183,8 @@ export const patientsApi = {
   },
 
   // Get patient appointments
-  async getPatientAppointments(patientId: string): Promise<ApiResponse<any[]>> {
-    return apiClient.get<any[]>(API_ENDPOINTS.PATIENTS.APPOINTMENTS(patientId));
+  async getPatientAppointments(patientId: string): Promise<ApiResponse<PatientAppointment[]>> {
+    return apiClient.get<PatientAppointment[]>(API_ENDPOINTS.PATIENTS.APPOINTMENTS(patientId));
   },
 
   // Search patients

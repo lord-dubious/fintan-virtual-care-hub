@@ -1,40 +1,60 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense, lazy } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import { ThemeProvider } from './components/theme/ThemeProvider';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import AuthMigration from './components/auth/AuthMigration';
 
-import AboutPage from './pages/AboutPage';
-import ServicesPage from './pages/ServicesPage';
-import BookingPage from './pages/BookingPage';
-import FaqPage from './pages/FaqPage';
-import ContactPage from './pages/ContactPage';
-import BookingConfirmation from './pages/BookingConfirmation';
-import ConsultationPage from './pages/ConsultationPage';
-import AdminLogin from './pages/admin/AdminLogin';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminAppointments from './pages/admin/AdminAppointments';
-import AdminPatients from './pages/admin/AdminPatients';
-import AdminSettings from './pages/admin/AdminSettings';
-import OfflinePage from './pages/OfflinePage';
-import AdminLayout from './components/admin/AdminLayout';
-import LoginPage from './pages/auth/login';
-import RegisterPage from './pages/auth/register';
-import ForgotPasswordPage from './pages/auth/ForgotPassword';
-import ResetPasswordPage from './pages/auth/ResetPassword';
-import PatientDashboard from './pages/PatientDashboard';
-import PaymentPage from './pages/PaymentPage';
-import PaymentSuccessPage from './pages/PaymentSuccessPage';
+// Lazy load heavy pages to reduce initial bundle size
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const ServicesPage = lazy(() => import('./pages/ServicesPage'));
+const BookingPage = lazy(() => import('./pages/BookingPage'));
+const FaqPage = lazy(() => import('./pages/FaqPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const BookingConfirmation = lazy(() => import('./pages/BookingConfirmation'));
+const ConsultationPage = lazy(() => import('./pages/ConsultationPage'));
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminAppointments = lazy(() => import('./pages/admin/AdminAppointments'));
+const AdminPatients = lazy(() => import('./pages/admin/AdminPatients'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const OfflinePage = lazy(() => import('./pages/OfflinePage'));
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
+const LoginPage = lazy(() => import('./pages/auth/login'));
+const RegisterPage = lazy(() => import('./pages/auth/register'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPassword'));
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPassword'));
+const PatientDashboard = lazy(() => import('./pages/PatientDashboard'));
+const DoctorDashboard = lazy(() => import('./pages/DoctorDashboard'));
+const PaymentPage = lazy(() => import('./pages/PaymentPage'));
+const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
+const SocialAuthDemo = lazy(() => import('./pages/SocialAuthDemo'));
+import DebugAuth from './pages/DebugAuth';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 2 * 60 * 1000, // 2 minutes - reduce refetch on focus
+      retry: (failureCount, error: unknown) => {
+        // Don't retry on 4xx errors
+        if (error?.response?.status >= 400 && error?.response?.status < 500) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 const App = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showMigration, setShowMigration] = useState(true);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -54,13 +74,22 @@ const App = () => {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="fintan-theme">
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="light" storageKey="fintan-theme">
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              {showMigration && (
+                <AuthMigration onMigrationComplete={() => setShowMigration(false)} />
+              )}
+              <BrowserRouter>
+                <Suspense fallback={
+                  <div className="min-h-screen flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                }>
+                  <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/services" element={<ServicesPage />} />
@@ -81,9 +110,16 @@ const App = () => {
                 <Route path="/auth/register" element={<RegisterPage />} />
                 <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/auth/reset-password/:token" element={<ResetPasswordPage />} />
+                <Route path="/auth/social-demo" element={<SocialAuthDemo />} />
+                <Route path="/debug-auth" element={<DebugAuth />} />
                 <Route path="/dashboard" element={
                   <ProtectedRoute requiredRole="PATIENT">
                     <PatientDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/doctor/dashboard" element={
+                  <ProtectedRoute requiredRole="DOCTOR">
+                    <DoctorDashboard />
                   </ProtectedRoute>
                 } />
                 <Route path="/payment/:appointmentId" element={
@@ -110,11 +146,13 @@ const App = () => {
                 </Route>
                 <Route path="/offline" element={<OfflinePage />} />
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
           </TooltipProvider>
         </ThemeProvider>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

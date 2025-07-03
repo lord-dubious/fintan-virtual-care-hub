@@ -6,8 +6,14 @@ import {
   getProfile,
   forgotPassword,
   resetPassword,
-  refreshToken
+  refreshToken,
+  setCookies,
+  getCSRFToken
 } from '@/controllers/authController';
+import {
+  authenticateWithSocial,
+  getSocialProviderConfig
+} from '@/controllers/socialAuthController';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
 import { schemas } from '@/middleware/validation';
@@ -80,6 +86,48 @@ router.get(
   '/me',
   authenticateToken,
   getProfile
+);
+
+/**
+ * @route   POST /api/auth/social
+ * @desc    Authenticate with social provider
+ * @access  Public
+ */
+router.post(
+  '/social',
+  rateLimiters.auth,
+  authenticateWithSocial
+);
+
+/**
+ * @route   GET /api/auth/social/config/:provider
+ * @desc    Get social provider configuration
+ * @access  Public
+ */
+router.get(
+  '/social/config/:provider',
+  getSocialProviderConfig
+);
+
+/**
+ * @route   POST /api/auth/set-cookies
+ * @desc    Set authentication cookies (for migrating from localStorage)
+ * @access  Private
+ */
+router.post(
+  '/set-cookies',
+  authenticateToken,
+  setCookies
+);
+
+/**
+ * @route   GET /api/auth/csrf-token
+ * @desc    Get CSRF token for cookie-based authentication
+ * @access  Public
+ */
+router.get(
+  '/csrf-token',
+  getCSRFToken
 );
 
 export default router;

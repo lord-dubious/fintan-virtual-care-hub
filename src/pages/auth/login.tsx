@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Shield } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -44,10 +44,18 @@ const LoginPage: React.FC = () => {
       <div className="w-full max-w-md p-4">
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+            <div className="flex items-center justify-center mb-4">
+              <Shield className="h-8 w-8 text-blue-600 mr-2" />
+              <CardTitle className="text-2xl font-bold text-center text-blue-600">Staff Login</CardTitle>
+            </div>
             <CardDescription className="text-center">
-              Enter your email and password to access your account
+              Staff access to Dr. Fintan Virtual Care Hub
             </CardDescription>
+            <div className="bg-blue-50 p-3 rounded-lg mt-4">
+              <p className="text-sm text-blue-700 text-center">
+                <strong>For Patients:</strong> Use the "Login" button on the homepage for patient access
+              </p>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">

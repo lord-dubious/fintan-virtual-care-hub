@@ -16,7 +16,7 @@ declare global {
 }
 
 /**
- * Middleware to authenticate JWT tokens
+ * Middleware to authenticate JWT tokens (supports both cookies and headers)
  */
 export const authenticateToken = async (
   req: AuthenticatedRequest,
@@ -24,13 +24,20 @@ export const authenticateToken = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    // Try to get token from Authorization header first (Bearer token)
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    let token = authHeader && authHeader.split(' ')[1];
+
+    // If no header token, try to get from HTTP-only cookie
+    if (!token) {
+      token = req.cookies.access_token;
+    }
 
     if (!token) {
       res.status(401).json({
         success: false,
         error: 'Access token required',
+        code: 'TOKEN_MISSING',
       });
       return;
     }

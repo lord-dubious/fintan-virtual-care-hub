@@ -18,7 +18,7 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
-  role          String    @default("PATIENT")
+  role          Role    @default(PATIENT)
   phone         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -68,6 +68,10 @@ model VerificationToken {
 model Patient {
   id        String   @id @default(cuid())
   userId    String   @unique
+  firstName  String?
+  lastName   String?
+  dateOfBirth DateTime?
+  phone      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -80,6 +84,7 @@ model Provider {
   userId         String   @unique
   specialization String?
   bio            String?  @db.Text
+  avatarUrl      String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -93,14 +98,15 @@ model Appointment {
   patientId       String
   appointmentDate DateTime
   reason          String?  @db.Text
-  status          String   @default("SCHEDULED")
-  consultationType String   @default("VIDEO") // VIDEO or AUDIO
+  status          AppointmentStatus   @default(SCHEDULED)
+  consultationType ConsultationType @default(VIDEO) // VIDEO or AUDIO
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   provider     Provider      @relation(fields: [providerId], references: [id], onDelete: Cascade)
   patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   consultation Consultation?
+  payment      Payment?
 }
 
 model Consultation {
@@ -129,4 +135,49 @@ model Notification {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------- Enums ----------------
+enum Role {
+  PATIENT
+  PROVIDER
+  DOCTOR
+  ADMIN
+}
+
+enum ConsultationType {
+  VIDEO
+  AUDIO
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+// ---------------- Payment Model ----------------
+model Payment {
+  id            String        @id @default(cuid())
+  appointmentId String        @unique
+  amount        Int
+  currency      String        @default("USD")
+  provider      String
+  status        PaymentStatus @default(PENDING)
+  reference     String?
+  receiptUrl    String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  appointment   Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 }

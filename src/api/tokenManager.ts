@@ -13,7 +13,12 @@ export interface UserData {
   role: string;
   firstName?: string;
   lastName?: string;
-  [key: string]: any;
+  [key: string]: unknown;
+}
+
+export interface JwtPayload {
+  exp?: number;
+  [key: string]: unknown;
 }
 
 // Token storage utilities
@@ -143,12 +148,18 @@ export const tokenManager = {
   },
 
   // Decode JWT token (basic decode without verification)
-  decodeToken(token?: string): any {
+  decodeToken(token?: string): JwtPayload | null {
     try {
       const tokenToUse = token || this.getAuthToken();
-      if (!tokenToUse) return null;
+      if (!tokenToUse || typeof tokenToUse !== 'string') return null;
 
-      const base64Url = tokenToUse.split('.')[1];
+      // Check if token has the correct JWT format (3 parts separated by dots)
+      const parts = tokenToUse.split('.');
+      if (parts.length !== 3) return null;
+
+      const base64Url = parts[1];
+      if (!base64Url) return null;
+
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(
         atob(base64)
@@ -157,7 +168,7 @@ export const tokenManager = {
           .join('')
       );
 
-      return JSON.parse(jsonPayload);
+      return JSON.parse(jsonPayload) as JwtPayload;
     } catch (error) {
       console.error('Failed to decode token:', error);
       return null;

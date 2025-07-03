@@ -1,6 +1,23 @@
 import { apiClient, ApiResponse } from './client';
 import { API_ENDPOINTS } from './config';
 
+// Additional types for dashboard
+interface MedicalRecord {
+  id: string;
+  date: string;
+  type: string;
+  description: string;
+}
+
+interface Prescription {
+  id: string;
+  medication: string;
+  dosage: string;
+  frequency: string;
+  startDate: string;
+  endDate?: string;
+}
+
 // Dashboard types
 export interface DashboardStats {
   totalPatients: number;
@@ -36,7 +53,7 @@ export interface ActivityItem {
   title: string;
   description: string;
   timestamp: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ChartDataPoint {
@@ -158,9 +175,9 @@ export const dashboardApi = {
   async getPatientDashboard(): Promise<ApiResponse<{
     upcomingAppointments: AppointmentSummary[];
     pastAppointments: AppointmentSummary[];
-    medicalRecords: any[];
-    prescriptions: any[];
-    healthMetrics: any;
+    medicalRecords: MedicalRecord[];
+    prescriptions: Prescription[];
+    healthMetrics: Record<string, unknown>;
   }>> {
     return apiClient.get(`${API_ENDPOINTS.PATIENTS.BASE}/dashboard`);
   },

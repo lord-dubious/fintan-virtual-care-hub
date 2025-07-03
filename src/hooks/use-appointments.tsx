@@ -19,7 +19,7 @@ export const useAppointments = () => {
     queryFn: appointmentService.getUpcoming,
   });
 
-  const appointmentById = (id: string) => useQuery({
+  const useAppointmentById = (id: string) => useQuery({
     queryKey: ['appointments', id],
     queryFn: () => appointmentService.getById(id),
     enabled: !!id,
@@ -53,7 +53,7 @@ export const useAppointments = () => {
   return {
     appointments,
     upcomingAppointments,
-    appointmentById,
+    useAppointmentById,
     createAppointment,
     updateAppointment,
     deleteAppointment

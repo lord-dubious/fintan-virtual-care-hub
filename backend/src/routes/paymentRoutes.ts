@@ -4,7 +4,13 @@ import {
   confirmPayment,
   getPayment,
   getPayments,
-  handleStripeWebhook
+  handleStripeWebhook,
+  createCheckoutSession,
+  verifyPayment,
+  refundPayment,
+  getPaymentConfig,
+  getPaymentHistory,
+  getInvoices
 } from '@/controllers/paymentController';
 import { authenticateToken, authorizeRoles } from '@/middleware/auth';
 
@@ -32,6 +38,74 @@ router.post(
   authenticateToken,
   authorizeRoles('PATIENT'),
   confirmPayment
+);
+
+/**
+ * @route   POST /api/payments/create-checkout-session
+ * @desc    Create checkout session for payment
+ * @access  Private (Patient only)
+ */
+router.post(
+  '/create-checkout-session',
+  authenticateToken,
+  authorizeRoles('PATIENT'),
+  createCheckoutSession
+);
+
+/**
+ * @route   GET /api/payments/verify/:provider/:reference
+ * @desc    Verify payment with provider
+ * @access  Private
+ */
+router.get(
+  '/verify/:provider/:reference',
+  authenticateToken,
+  verifyPayment
+);
+
+/**
+ * @route   POST /api/payments/:id/refund
+ * @desc    Refund payment
+ * @access  Private (Admin, Provider)
+ */
+router.post(
+  '/:id/refund',
+  authenticateToken,
+  authorizeRoles('ADMIN', 'PROVIDER'),
+  refundPayment
+);
+
+/**
+ * @route   GET /api/payments/config
+ * @desc    Get payment configuration
+ * @access  Private
+ */
+router.get(
+  '/config',
+  authenticateToken,
+  getPaymentConfig
+);
+
+/**
+ * @route   GET /api/payments/history
+ * @desc    Get payment history
+ * @access  Private
+ */
+router.get(
+  '/history',
+  authenticateToken,
+  getPaymentHistory
+);
+
+/**
+ * @route   GET /api/payments/invoices
+ * @desc    Get invoices
+ * @access  Private
+ */
+router.get(
+  '/invoices',
+  authenticateToken,
+  getInvoices
 );
 
 /**

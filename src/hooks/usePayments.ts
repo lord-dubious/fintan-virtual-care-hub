@@ -2,7 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentsApi, Payment, CreatePaymentData } from '@/api/payments';
 import { useToast } from '@/hooks/use-toast';
 
-export const usePayment = (id: string) => {
+export const usePayment = (id: string, options?: {
+  refetchInterval?: number | false;
+  refetchIntervalInBackground?: boolean;
+}) => {
   return useQuery({
     queryKey: ['payments', id],
     queryFn: async () => {
@@ -13,6 +16,7 @@ export const usePayment = (id: string) => {
       return response.data!;
     },
     enabled: !!id,
+    ...options,
   });
 };
 
@@ -54,16 +58,30 @@ export const useCreateCheckoutSession = () => {
 // New hooks required by PaymentStep.tsx
 export const useStripePaymentIntent = () => {
   const { toast } = useToast();
-  const createCheckout = useCreateCheckoutSession();
-  
-  return {
-    ...createCheckout,
-    createPaymentIntent: async (data: CreatePaymentData) => {
+
+  const mutation = useMutation({
+    mutationFn: async (data: CreatePaymentData) => {
       if (data.paymentMethod !== 'STRIPE') {
         throw new Error('Payment method must be STRIPE for this operation');
       }
-      return await createCheckout.mutateAsync(data);
-    }
+      const response = await paymentsApi.createPaymentIntent(data);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create payment intent');
+      }
+      return response.data!;
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Payment Intent Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  return {
+    ...mutation,
+    createPaymentIntent: (data: CreatePaymentData) => mutation.mutateAsync(data),
   };
 };
 

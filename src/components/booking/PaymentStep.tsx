@@ -105,7 +105,7 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
         setStripeElements(null);
       }
     };
-  }, [bookingData.paymentMethod, paymentConfig?.stripe?.enabled]);
+  }, [bookingData.paymentMethod, paymentConfig?.stripe?.enabled, cardElement]);
 
   const consultationPrice = bookingData.consultationType === 'video' ? 85 : 65;
 

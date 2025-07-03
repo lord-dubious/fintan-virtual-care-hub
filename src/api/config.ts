@@ -2,7 +2,7 @@
 // This file centralizes all API-related configuration
 
 // Backend API Base URL
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL + '/api' : null) || 'http://50.118.225.14:3000/api';
 
 // Environment detection
 export const isDevelopment = import.meta.env.DEV;
@@ -15,6 +15,7 @@ export const API_CONFIG = {
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Enable cookies for secure token storage
 } as const;
 
 // Mock API Configuration
@@ -40,6 +41,8 @@ export const API_ENDPOINTS = {
     VERIFY_EMAIL: '/auth/verify-email',
     RESEND_VERIFICATION: '/auth/resend-verification',
     VERIFY_TOKEN: '/auth/verify-token',
+    SOCIAL: '/auth/social',
+    SOCIAL_CONFIG: (provider: string) => `/auth/social/config/${provider}`,
   },
   
   // Appointments
@@ -70,6 +73,8 @@ export const API_ENDPOINTS = {
   // Payments
   PAYMENTS: {
     BASE: '/payments',
+    INTENT: '/payments/intent',
+    CONFIRM: '/payments/confirm',
     CREATE_CHECKOUT: '/payments/create-checkout-session',
     CREATE_SESSION: '/payments/create-checkout-session',
     VERIFY: (provider: string, reference: string) => `/payments/verify/${provider}/${reference}`,

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { prisma } from '@/config/database';
 import { config } from '@/config';
 import logger, { loggers } from '@/config/logger';
@@ -16,6 +17,23 @@ import {
   generateRefreshTokenExpiration
 } from '@/utils/tokens';
 import { emailService } from '@/services/emailService';
+
+// Cookie configuration
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: config.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  path: '/',
+};
+
+const ACCESS_TOKEN_COOKIE = 'access_token';
+const REFRESH_TOKEN_COOKIE = 'refresh_token';
+const CSRF_TOKEN_COOKIE = 'csrf_token';
+
+// CSRF token generation
+const generateCSRFToken = (): string => {
+  return crypto.randomBytes(32).toString('hex');
+};
 
 /**
  * Register new user
@@ -82,6 +100,28 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // Send welcome email
     await emailService.sendWelcomeEmail(user.email!, user.name!);
 
+    // Generate CSRF token
+    const csrfToken = generateCSRFToken();
+
+    // Set HTTP-only cookies
+    res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshTokenValue, {
+      ...COOKIE_OPTIONS,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Set CSRF token (not httpOnly so frontend can read it)
+    res.cookie(CSRF_TOKEN_COOKIE, csrfToken, {
+      secure: config.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      path: '/',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
     // Log successful registration
     loggers.auth.register(user.id, user.email!, user.role);
 
@@ -89,8 +129,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       success: true,
       data: {
         user,
-        token: accessToken,
-        refreshToken: refreshTokenValue,
+        csrfToken, // Send CSRF token in response for initial setup
       },
       message: 'User registered successfully',
     });
@@ -111,6 +150,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
+    logger.info(`🔐 Login attempt for: ${email}`);
+
     // Find user by email
     const user = await prisma.user.findUnique({
       where: { email },
@@ -119,6 +160,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: true,
         name: true,
         role: true,
+        image: true,
+        profilePicture: true,
         password: true,
         createdAt: true,
         updatedAt: true,
@@ -126,6 +169,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!user) {
+      logger.warn(`❌ Login failed - user not found: ${email}`);
       loggers.auth.login('unknown', email, false, req.ip);
       res.status(401).json({
         success: false,
@@ -134,10 +178,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    logger.info(`👤 User found: ${user.name} (${user.role})`);
+
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password!);
 
     if (!isPasswordValid) {
+      logger.warn(`❌ Login failed - invalid password for: ${email}`);
       loggers.auth.login(user.id, email, false, req.ip);
       res.status(401).json({
         success: false,
@@ -145,6 +192,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
+
+    logger.info(`✅ Password verified for: ${email}`);
 
     // Generate access token
     const accessToken = generateAccessToken({
@@ -166,6 +215,28 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
+    // Generate CSRF token
+    const csrfToken = generateCSRFToken();
+
+    // Set HTTP-only cookies
+    res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshTokenValue, {
+      ...COOKIE_OPTIONS,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Set CSRF token (not httpOnly so frontend can read it)
+    res.cookie(CSRF_TOKEN_COOKIE, csrfToken, {
+      secure: config.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      path: '/',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
 
@@ -176,8 +247,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       success: true,
       data: {
         user: userWithoutPassword,
-        token: accessToken,
-        refreshToken: refreshTokenValue,
+        csrfToken, // Send CSRF token in response for initial setup
       },
       message: 'Login successful',
     });
@@ -196,7 +266,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
  */
 export const logout = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    // Clear HTTP-only cookies
+    res.clearCookie(ACCESS_TOKEN_COOKIE, COOKIE_OPTIONS);
+    res.clearCookie(REFRESH_TOKEN_COOKIE, COOKIE_OPTIONS);
+    res.clearCookie(CSRF_TOKEN_COOKIE, {
+      secure: config.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      path: '/',
+    });
+
+    // Invalidate refresh token in database if user is authenticated
     if (req.user) {
+      await prisma.refreshToken.deleteMany({
+        where: { userId: req.user.id },
+      });
       loggers.auth.logout(req.user.id);
     }
 
@@ -471,6 +554,88 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     res.status(500).json({
       success: false,
       error: 'Failed to refresh token',
+    });
+  }
+};
+
+/**
+ * Set authentication cookies
+ * POST /api/auth/set-cookies
+ */
+export const setCookies = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { token, refreshToken } = req.body;
+
+    if (!token || !refreshToken) {
+      res.status(400).json({
+        success: false,
+        error: 'Token and refresh token are required',
+      });
+      return;
+    }
+
+    // Generate CSRF token
+    const csrfToken = generateCSRFToken();
+
+    // Set HTTP-only cookies
+    res.cookie(ACCESS_TOKEN_COOKIE, token, {
+      ...COOKIE_OPTIONS,
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Set CSRF token
+    res.cookie(CSRF_TOKEN_COOKIE, csrfToken, {
+      secure: config.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      path: '/',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    res.json({
+      success: true,
+      data: { csrfToken },
+      message: 'Cookies set successfully',
+    });
+  } catch (error) {
+    logger.error('Set cookies error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to set cookies',
+    });
+  }
+};
+
+/**
+ * Get CSRF token
+ * GET /api/auth/csrf-token
+ */
+export const getCSRFToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const csrfToken = generateCSRFToken();
+
+    // Set CSRF token cookie
+    res.cookie(CSRF_TOKEN_COOKIE, csrfToken, {
+      secure: config.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      path: '/',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    res.json({
+      success: true,
+      data: { csrfToken },
+      message: 'CSRF token generated',
+    });
+  } catch (error) {
+    logger.error('CSRF token error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate CSRF token',
     });
   }
 };

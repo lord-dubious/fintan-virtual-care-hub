@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, Calendar, Info, Phone, ChevronRight, LogIn, UserPlus } from "lucide-react";
-import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, Home, Calendar, Info, Phone, ChevronRight, LogIn, UserPlus, User, LogOut } from "lucide-react";
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from '../theme/ThemeProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
 import { AuthModals } from '../auth/AuthModals.tsx';
 import { PatientOnboarding } from '../onboarding/PatientOnboarding.tsx';
+import ProfilePicture from '@/components/ui/ProfilePicture';
 
 const Navbar: React.FC = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
@@ -44,6 +48,24 @@ const Navbar: React.FC = () => {
   const handleSignupSuccess = (email: string, name: string) => {
     setNewUserData({ email, name });
     setIsOnboardingOpen(true);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsMenuOpen(false);
+  };
+
+  const handleProfileClick = () => {
+    if (user?.role === 'PATIENT') {
+      navigate('/dashboard');
+    } else if (user?.role === 'ADMIN') {
+      navigate('/admin/dashboard');
+    } else if (user?.role === 'DOCTOR') {
+      navigate('/doctor/dashboard');
+    } else {
+      navigate('/dashboard'); // Default to patient dashboard
+    }
+    setIsMenuOpen(false);
   };
 
   // Mobile app-like bottom navigation and top bar
@@ -173,26 +195,58 @@ const Navbar: React.FC = () => {
         {/* Auth & Action Buttons */}
         <div className="hidden lg:flex items-center space-x-4">
           <ThemeToggle />
-          
-          {/* Auth Buttons */}
-          <div className="flex items-center space-x-3 border-r border-medical-border-light dark:border-medical-dark-border pr-4">
-            <Button
-              variant="ghost"
-              onClick={handleLoginOpen}
-              className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
-            >
-              <LogIn className="h-4 w-4 mr-2" />
-              Login
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleSignupOpen}
-              className="border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white font-medium transition-all duration-200"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Sign Up
-            </Button>
-          </div>
+
+          {isAuthenticated ? (
+            /* Authenticated User Menu */
+            <div className="flex items-center space-x-3 border-r border-medical-border-light dark:border-medical-dark-border pr-4">
+              <div className="flex items-center space-x-3">
+                <ProfilePicture
+                  user={user}
+                  size="sm"
+                  className="cursor-pointer hover:ring-2 hover:ring-medical-primary dark:hover:ring-medical-accent transition-all"
+                />
+                <span className="text-medical-neutral-600 dark:text-medical-dark-text-primary font-medium">
+                  {user?.name}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                onClick={handleProfileClick}
+                className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Dashboard
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="border-medical-neutral-300 text-medical-neutral-600 hover:bg-medical-neutral-100 hover:text-medical-neutral-800 dark:border-medical-dark-border dark:text-medical-dark-text-primary dark:hover:bg-medical-dark-surface/50 font-medium transition-all duration-200"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          ) : (
+            /* Auth Buttons for Non-Authenticated Users */
+            <div className="flex items-center space-x-3 border-r border-medical-border-light dark:border-medical-dark-border pr-4">
+              <Button
+                variant="ghost"
+                onClick={handleLoginOpen}
+                className="text-medical-neutral-600 hover:text-medical-primary dark:text-medical-dark-text-primary dark:hover:text-medical-accent hover:bg-medical-bg-light dark:hover:bg-medical-dark-surface/50 font-medium"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Login
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSignupOpen}
+                className="border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white font-medium transition-all duration-200"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Sign Up
+              </Button>
+            </div>
+          )}
           
           {/* CTA Button */}
           <Link to="/booking">
@@ -247,25 +301,67 @@ const Navbar: React.FC = () => {
             <div className="border-t dark:border-gray-700 my-4"></div>
             
             <div className="flex flex-col space-y-3">
-              <Button
-                variant="outline"
-                className="w-full border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white py-3"
-                onClick={handleLoginOpen}
-              >
-                <LogIn className="h-4 w-4 mr-2" />
-                Login
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full border-medical-secondary text-medical-secondary hover:bg-medical-secondary hover:text-white py-3"
-                onClick={handleSignupOpen}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Sign Up
-              </Button>
+              {isAuthenticated ? (
+                /* Authenticated Mobile Menu */
+                <>
+                  <div className="text-center py-4 border-b border-medical-border-light dark:border-medical-dark-border mb-3">
+                    <div className="flex flex-col items-center space-y-3">
+                      <ProfilePicture
+                        user={user}
+                        size="lg"
+                        className="cursor-pointer hover:ring-2 hover:ring-medical-primary dark:hover:ring-medical-accent transition-all"
+                      />
+                      <div>
+                        <p className="text-medical-neutral-600 dark:text-medical-dark-text-primary font-medium">
+                          {user?.name}
+                        </p>
+                        <p className="text-sm text-medical-neutral-400 dark:text-medical-dark-text-secondary">
+                          {user?.role}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white py-3"
+                    onClick={handleProfileClick}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full border-medical-neutral-300 text-medical-neutral-600 hover:bg-medical-neutral-100 hover:text-medical-neutral-800 py-3"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                /* Non-Authenticated Mobile Menu */
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full border-medical-primary text-medical-primary hover:bg-medical-primary hover:text-white dark:border-medical-accent dark:text-medical-accent dark:hover:bg-medical-accent dark:hover:text-white py-3"
+                    onClick={handleLoginOpen}
+                  >
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Login
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full border-medical-secondary text-medical-secondary hover:bg-medical-secondary hover:text-white py-3"
+                    onClick={handleSignupOpen}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Sign Up
+                  </Button>
+                </>
+              )}
               <Link to="/booking">
-                <Button 
-                  className="bg-medical-primary hover:bg-medical-primary/90 text-white w-full dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-3 font-semibold" 
+                <Button
+                  className="bg-medical-primary hover:bg-medical-primary/90 text-white w-full dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-3 font-semibold"
                   onClick={toggleMenu}
                 >
                   <Calendar className="h-4 w-4 mr-2" />

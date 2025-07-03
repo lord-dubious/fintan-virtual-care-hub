@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import BookingProgress from '@/components/booking/BookingProgress';
 import BookingNavigation from '@/components/booking/BookingNavigation';
@@ -11,6 +11,7 @@ import PaymentStep from '@/components/booking/PaymentStep';
 import SimpleSignOn from '@/components/booking/SimpleSignOn';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface BookingData {
   consultationType: 'video' | 'audio' | '';
@@ -33,9 +34,12 @@ export interface BookingData {
 const BookingPage: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0); // Start with auth step
-  const totalSteps = 5; // Updated to include auth step
-  
+  const { isAuthenticated, user, isLoading } = useAuth();
+
+  // Determine initial step based on authentication status
+  const [currentStep, setCurrentStep] = useState(0);
+  const totalSteps = (isAuthenticated || bookingData.isAuthenticated) ? 4 : 5; // Dynamic based on auth state
+
   const [bookingData, setBookingData] = useState<BookingData>({
     consultationType: '',
     selectedDate: null,
@@ -54,12 +58,51 @@ const BookingPage: React.FC = () => {
     userEmail: ''
   });
 
+  // Update booking data when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setBookingData(prev => ({
+        ...prev,
+        isAuthenticated: true,
+        userEmail: user.email,
+        patientInfo: {
+          ...prev.patientInfo,
+          email: user.email,
+          firstName: user.name?.split(' ')[0] || '',
+          lastName: user.name?.split(' ').slice(1).join(' ') || ''
+        }
+      }));
+
+      // Skip authentication step if user is already logged in
+      if (currentStep === 0) {
+        setCurrentStep(1);
+      }
+    } else if (!isLoading) {
+      // Reset to auth step if not authenticated
+      setBookingData(prev => ({
+        ...prev,
+        isAuthenticated: false,
+        userEmail: '',
+        patientInfo: {
+          ...prev.patientInfo,
+          email: '',
+          firstName: '',
+          lastName: ''
+        }
+      }));
+      setCurrentStep(0);
+    }
+  }, [isAuthenticated, user, isLoading, currentStep]);
+
   // Get provider ID from environment or use default
   const providerId = import.meta.env.VITE_DEFAULT_PROVIDER_ID || "default-provider-id";
 
-  const stepTitles = ['Sign In', 'Type', 'Date & Time', 'Your Info', 'Payment'];
+  // Dynamic step titles based on authentication state
+  const stepTitles = (isAuthenticated || bookingData.isAuthenticated)
+    ? ['Type', 'Date & Time', 'Your Info', 'Payment']
+    : ['Sign In', 'Type', 'Date & Time', 'Your Info', 'Payment'];
 
-  const updateBookingData = (field: keyof BookingData, value: any) => {
+  const updateBookingData = (field: keyof BookingData, value: unknown) => {
     setBookingData(prev => ({
       ...prev,
       [field]: value
@@ -74,9 +117,10 @@ const BookingPage: React.FC = () => {
         return bookingData.consultationType !== '';
       case 2:
         return bookingData.selectedDate !== null && bookingData.selectedTime !== '';
-      case 3:
+      case 3: {
         const { firstName, lastName, email, phone, reason } = bookingData.patientInfo;
         return Boolean(firstName && lastName && email && phone && reason);
+      }
       case 4:
         return bookingData.paymentMethod !== '';
       default:
@@ -108,33 +152,42 @@ const BookingPage: React.FC = () => {
     });
   };
 
+  // Helper functions for rendering individual steps
+  const renderStep1 = () => (
+    <ConsultationTypeStep
+      bookingData={{
+        consultationType: bookingData.consultationType
+      }}
+      updateBookingData={(data) => updateBookingData('consultationType', data.consultationType)}
+    />
+  );
+
   const renderStep = () => {
     switch (currentStep) {
       case 0:
-        return (
-          <SimpleSignOn
-            onAuthenticated={(email: string) => {
-              updateBookingData('isAuthenticated', true);
-              updateBookingData('userEmail', email);
-              // Auto-populate email in patient info
-              updateBookingData('patientInfo', { 
-                ...bookingData.patientInfo, 
-                email 
-              });
-            }}
-            isAuthenticated={bookingData.isAuthenticated}
-            userEmail={bookingData.userEmail}
-          />
-        );
+        // Only show authentication step if user is not globally authenticated
+        if (!isAuthenticated && !bookingData.isAuthenticated) {
+          return (
+            <SimpleSignOn
+              onAuthenticated={(email: string) => {
+                updateBookingData('isAuthenticated', true);
+                updateBookingData('userEmail', email);
+                // Auto-populate email in patient info
+                updateBookingData('patientInfo', {
+                  ...bookingData.patientInfo,
+                  email
+                });
+              }}
+              isAuthenticated={bookingData.isAuthenticated || isAuthenticated}
+              userEmail={bookingData.userEmail || user?.email || ''}
+            />
+          );
+        } else {
+          // User is already authenticated, show next step
+          return renderStep1();
+        }
       case 1:
-        return (
-          <ConsultationTypeStep
-            bookingData={{
-              consultationType: bookingData.consultationType
-            }}
-            updateBookingData={(data) => updateBookingData('consultationType', data.consultationType)}
-          />
-        );
+        return renderStep1();
       case 2:
         return (
           <DateTimeStep
@@ -162,7 +215,7 @@ const BookingPage: React.FC = () => {
               reasonAudio: bookingData.patientInfo.reasonAudio
             }}
             updateBookingData={(data) => {
-              const updates: any = {};
+              const updates: Record<string, unknown> = {};
               if (data.patientName !== undefined) {
                 const [firstName, ...lastNameParts] = data.patientName.split(' ');
                 updates.firstName = firstName || '';

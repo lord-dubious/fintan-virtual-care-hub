@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,12 +37,12 @@ export const NotificationCenter: React.FC = () => {
 
       return () => clearInterval(interval);
     }
-  }, [user]); // fetchNotifications and fetchUnreadCount are stable functions
+  }, [user, fetchNotifications, fetchUnreadCount]);
 
   // Fetch notifications from the server
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const data = await notificationService.getUserNotifications(user.id);
@@ -52,19 +52,19 @@ export const NotificationCenter: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   // Fetch unread notification count
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     if (!user) return;
-    
+
     try {
       const count = await notificationService.getUnreadCount(user.id);
       setUnreadCount(count);
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
-  };
+  }, [user]);
 
   // Mark a notification as read
   const markAsRead = async (notificationId: string) => {

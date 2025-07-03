@@ -326,7 +326,7 @@ export const getAllProviders = async (req: AuthenticatedRequest, res: Response):
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    let where: any = {};
+    const where: any = {};
 
     if (status) {
       where.approvalStatus = status;

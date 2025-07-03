@@ -1,9 +1,9 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError, AxiosRequestConfig } from 'axios';
 import { API_CONFIG, TOKEN_STORAGE_KEY, USER_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY, API_ENDPOINTS } from './config';
-import { tokenManager } from './tokenManager';
+import { tokenManager } from './cookieTokenManager';
 
 // API Response types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -12,17 +12,27 @@ export interface ApiResponse<T = any> {
 
 class ApiClient {
   private client: AxiosInstance;
+  private refreshPromise: Promise<string | null> | null = null; // Single-flight refresh
 
   constructor() {
-    this.client = axios.create(API_CONFIG);
+    this.client = axios.create({
+      ...API_CONFIG,
+      withCredentials: true, // Include cookies in requests
+    });
 
-    // Request interceptor to add auth token
+    // Request interceptor to add CSRF token for cookie-based auth
     this.client.interceptors.request.use(
       (config) => {
-        const token = tokenManager.getAuthToken();
-        if (token && !tokenManager.isTokenExpired(token)) {
+        // Add CSRF token for cookie-based authentication
+        const authHeaders = tokenManager.getAuthHeaders();
+        Object.assign(config.headers, authHeaders);
+
+        // Fallback: try to add Bearer token if available (for backward compatibility)
+        const token = tokenManager.getAuthToken?.();
+        if (token && !tokenManager.isTokenExpired?.(token)) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+
         return config;
       },
       (error) => {
@@ -36,32 +46,27 @@ class ApiClient {
         return response;
       },
       async (error: AxiosError) => {
-        const originalRequest = error.config as any;
+        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
           try {
-            // Try to refresh the token
-            const refreshToken = tokenManager.getRefreshToken();
-            if (refreshToken) {
-              const response = await axios.post(`${API_CONFIG.baseURL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`, {
-                refreshToken
-              });
+            // Use single-flight refresh to prevent concurrent refresh requests
+            if (!this.refreshPromise) {
+              this.refreshPromise = this.refreshToken();
+            }
 
-              const { token, refreshToken: newRefreshToken } = response.data.data;
+            const newToken = await this.refreshPromise;
+            this.refreshPromise = null; // Clear the promise after completion
 
-              // Update stored tokens
-              tokenManager.setAuthToken(token);
-              if (newRefreshToken) {
-                tokenManager.setRefreshToken(newRefreshToken);
-              }
-
+            if (newToken) {
               // Retry the original request with new token
-              originalRequest.headers.Authorization = `Bearer ${token}`;
+              originalRequest.headers = { ...(originalRequest.headers ?? {}), Authorization: `Bearer ${newToken}` };
               return this.client(originalRequest);
             }
           } catch (refreshError) {
+            this.refreshPromise = null; // Clear the promise on error
             // Refresh failed, clear auth data and redirect
             tokenManager.clearAuthData();
             window.location.href = '/auth/login';
@@ -80,8 +85,58 @@ class ApiClient {
     );
   }
 
+  // Single-flight token refresh method (now works with cookies)
+  private async refreshToken(): Promise<string | null> {
+    try {
+      // For cookie-based auth, the refresh token is in HTTP-only cookie
+      // The backend will automatically use it
+      const response = await axios.post(
+        `${API_CONFIG.baseURL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
+        {}, // Empty body for cookie-based refresh
+        {
+          withCredentials: true, // Include cookies
+          headers: tokenManager.getAuthHeaders() // Include CSRF token
+        }
+      );
+
+      if (response.data.success) {
+        // With cookie-based auth, tokens are automatically set in cookies
+        // We just need to update the CSRF token if provided
+        if (response.data.data.csrfToken) {
+          tokenManager.setAuthData({
+            user: response.data.data.user,
+            csrfToken: response.data.data.csrfToken
+          });
+        }
+        return 'cookie-token'; // Return placeholder since token is in HTTP-only cookie
+      }
+
+      throw new Error('Token refresh failed');
+    } catch (error) {
+      // Fallback to localStorage-based refresh for backward compatibility
+      const refreshToken = tokenManager.getRefreshToken?.();
+      if (refreshToken) {
+        const response = await axios.post(`${API_CONFIG.baseURL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`, {
+          refreshToken
+        });
+
+        const { token, refreshToken: newRefreshToken } = response.data.data;
+
+        // Update stored tokens (legacy method)
+        tokenManager.setAuthToken?.(token);
+        if (newRefreshToken) {
+          tokenManager.setRefreshToken?.(newRefreshToken);
+        }
+
+        return token;
+      }
+
+      throw error;
+    }
+  }
+
   // Generic GET request
-  async get<T>(url: string, params?: any): Promise<ApiResponse<T>> {
+  async get<T>(url: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
     try {
       const response = await this.client.get(url, { params });
       return response.data;
@@ -91,7 +146,7 @@ class ApiClient {
   }
 
   // Generic POST request
-  async post<T>(url: string, data?: any): Promise<ApiResponse<T>> {
+  async post<T>(url: string, data?: unknown): Promise<ApiResponse<T>> {
     try {
       const response = await this.client.post(url, data);
       return response.data;
@@ -100,8 +155,22 @@ class ApiClient {
     }
   }
 
+  // POST request with FormData (for file uploads)
+  async postFormData<T>(url: string, formData: FormData): Promise<ApiResponse<T>> {
+    try {
+      const response = await this.client.post(url, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
   // Generic PUT request
-  async put<T>(url: string, data?: any): Promise<ApiResponse<T>> {
+  async put<T>(url: string, data?: unknown): Promise<ApiResponse<T>> {
     try {
       const response = await this.client.put(url, data);
       return response.data;
@@ -121,7 +190,7 @@ class ApiClient {
   }
 
   // Generic PATCH request
-  async patch<T>(url: string, data?: any): Promise<ApiResponse<T>> {
+  async patch<T>(url: string, data?: unknown): Promise<ApiResponse<T>> {
     try {
       const response = await this.client.patch(url, data);
       return response.data;
@@ -131,14 +200,14 @@ class ApiClient {
   }
 
   // Error handler
-  private handleError(error: any): ApiResponse {
-    if (error.response) {
+  private handleError(error: unknown): ApiResponse<never> {
+    if (axios.isAxiosError(error) && error.response) {
       // Server responded with error status
       return {
         success: false,
         error: error.response.data?.message || error.response.data?.error || 'Server error',
       };
-    } else if (error.request) {
+    } else if (axios.isAxiosError(error) && error.request) {
       // Request was made but no response received
       return {
         success: false,
@@ -148,7 +217,7 @@ class ApiClient {
       // Something else happened
       return {
         success: false,
-        error: error.message || 'An unexpected error occurred',
+        error: (error instanceof Error ? error.message : 'An unexpected error occurred'),
       };
     }
   }

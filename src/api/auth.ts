@@ -1,35 +1,10 @@
 import { apiClient, ApiResponse } from './client';
 import { API_ENDPOINTS, REFRESH_TOKEN_STORAGE_KEY } from './config';
+import { LoginSchema, RegisterSchema, UserSchema } from '@/lib/validation/schemas';
+import type { LoginData, RegisterData, User } from '@/lib/validation/schemas';
 
-// User types
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'PATIENT' | 'PROVIDER' | 'ADMIN';
-  avatar?: string;
-  phone?: string;
-  dateOfBirth?: string;
-  address?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface RegisterData {
-  email: string;
-  password: string;
-  name: string;
-  role?: 'PATIENT' | 'PROVIDER';
-  phone?: string;
-  dateOfBirth?: string;
-  address?: string;
-  additionalInfo?: any;
-}
+// Use types from validation schemas for consistency and validation
+export type { User, LoginData as LoginCredentials, RegisterData } from '@/lib/validation/schemas';
 
 export interface AuthResponse {
   user: User;
@@ -55,12 +30,16 @@ export interface ConfirmResetPasswordData {
 export const authApi = {
   // Login
   async login(credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> {
-    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
+    // Validate input data
+    const validatedCredentials = LoginSchema.parse(credentials);
+    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, validatedCredentials);
   },
 
   // Register
   async register(data: RegisterData): Promise<ApiResponse<AuthResponse>> {
-    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, data);
+    // Validate input data
+    const validatedData = RegisterSchema.parse(data);
+    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, validatedData);
   },
 
   // Logout
@@ -112,7 +91,7 @@ export const authApi = {
   },
 
   // Verify token
-  async verifyToken(token: string): Promise<ApiResponse<{ valid: boolean; user?: any }>> {
+  async verifyToken(token: string): Promise<ApiResponse<{ valid: boolean; user?: User }>> {
     return apiClient.get(`${API_ENDPOINTS.AUTH.VERIFY_TOKEN}?token=${token}`);
   },
 

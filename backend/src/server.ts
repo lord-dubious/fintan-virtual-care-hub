@@ -44,7 +44,18 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: config.frontend.corsOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Check if the origin is in our allowed list
+    if (config.frontend.corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    logger.warn(`🚫 CORS blocked origin: ${origin}`);
+    return callback(new Error('Not allowed by CORS'), false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -55,18 +66,46 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request logging
-if (config.server.isDevelopment) {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined', {
-    stream: {
-      write: (message: string) => {
-        requestLogger.info(message.trim());
-      },
-    },
-  }));
-}
+// Static file serving for uploads
+app.use('/uploads', express.static('uploads'));
+
+// Custom request logging with debug info
+app.use((req, res, next) => {
+  const start = Date.now();
+  const timestamp = new Date().toISOString().substring(11, 19); // HH:MM:SS
+
+  // Log incoming request with useful debug info
+  if (req.path !== '/health') { // Skip health check spam
+    logger.info(`📥 [${timestamp}] ${req.method} ${req.path}`, {
+      origin: req.get('Origin') || 'no-origin',
+      contentType: req.get('Content-Type') || 'none',
+      auth: req.get('Authorization') ? 'Bearer ***' : 'none',
+      ip: req.ip
+    });
+  }
+
+  // Log response when finished
+  res.on('finish', () => {
+    if (req.path !== '/health') { // Skip health check spam
+      const duration = Date.now() - start;
+      const statusEmoji = res.statusCode >= 400 ? '❌' : res.statusCode >= 300 ? '⚠️' : '✅';
+
+      logger.info(`📤 [${timestamp}] ${statusEmoji} ${req.method} ${req.path} → ${res.statusCode} (${duration}ms)`);
+
+      // Log errors with more detail
+      if (res.statusCode >= 400) {
+        logger.error(`🔍 Error details for ${req.method} ${req.path}:`, {
+          status: res.statusCode,
+          duration: `${duration}ms`,
+          origin: req.get('Origin'),
+          userAgent: req.get('User-Agent')?.substring(0, 100)
+        });
+      }
+    }
+  });
+
+  next();
+});
 
 // Rate limiting
 app.use('/api', rateLimiters.api);
@@ -102,6 +141,7 @@ app.get('/health', async (req, res) => {
 // Import routes
 import authRoutes from '@/routes/authRoutes';
 import userRoutes from '@/routes/userRoutes';
+// import profileRoutes from './routes/profileRoutes';
 import appointmentRoutes from '@/routes/appointmentRoutes';
 import consultationRoutes from '@/routes/consultationRoutes';
 import paymentRoutes from '@/routes/paymentRoutes';
@@ -112,6 +152,7 @@ import schedulingRoutes from '@/routes/schedulingRoutes';
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+// app.use('/api/profile', profileRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/consultations', consultationRoutes);
 app.use('/api/payments', rateLimiters.api, paymentRoutes);
@@ -185,7 +226,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Start server
-server = app.listen(config.server.port, async () => {
+server = app.listen(config.server.port, '0.0.0.0', async () => {
   logger.info(`🚀 Dr. Fintan Virtual Care Hub Backend API Server started`);
   logger.info(`📍 Environment: ${config.server.nodeEnv}`);
   logger.info(`🌐 Server running on port ${config.server.port}`);

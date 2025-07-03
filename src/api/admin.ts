@@ -21,7 +21,7 @@ export interface SystemStats {
 }
 
 export interface AdminSettings {
-  [key: string]: any;
+  [key: string]: string | number | boolean | null;
 }
 
 export const adminApi = {
@@ -41,7 +41,7 @@ export const adminApi = {
   },
 
   // Fetch all appointments
-  async getAppointments(filters?: any): Promise<ApiResponse<{ appointments: Appointment[], total: number }>> {
+  async getAppointments(filters?: { status?: string; dateFrom?: string; dateTo?: string; search?: string }): Promise<ApiResponse<{ appointments: Appointment[], total: number }>> {
     return apiClient.get(API_ENDPOINTS.ADMIN.APPOINTMENTS, filters);
   },
 

@@ -69,7 +69,7 @@ export const calendarService = {
       const timeSlots: TimeSlot[] = [];
       const slotDuration = 30; // minutes
       
-      let currentTime = new Date(startDate);
+      const currentTime = new Date(startDate);
       while (currentTime < endDate) {
         const slotStart = new Date(currentTime);
         const slotEnd = new Date(currentTime);

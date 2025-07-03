@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Mail, Lock, User, CheckCircle, Apple } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
+import { useSocialAuth } from '@/hooks/useSocialAuth';
 
 interface SimpleSignOnProps {
   onAuthenticated: (email: string) => void;
@@ -22,14 +23,29 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { login, register, isLoggingIn, isRegistering, error } = useAuth();
-  const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const { login, register, isLoggingIn, isRegistering, error, isAuthenticated: globalIsAuthenticated, user } = useAuth();
+  const {
+    authenticateWithGoogle,
+    authenticateWithApple,
+    authenticateWithMicrosoft,
+    isLoading: socialIsLoading,
+    loadingProvider,
+    getConfiguredProviders
+  } = useSocialAuth();
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     firstName: '',
     lastName: ''
   });
+
+  // Check if user is already authenticated globally
+  useEffect(() => {
+    if (globalIsAuthenticated && user && !isAuthenticated) {
+      onAuthenticated(user.email);
+    }
+  }, [globalIsAuthenticated, user, isAuthenticated, onAuthenticated]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -98,21 +114,40 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
   };
 
   const handleSocialSignIn = async (provider: string) => {
-    setSocialLoading(provider);
-    
-    // Simulate social authentication
-    setTimeout(() => {
-      const mockEmail = `user@${provider}.com`;
-      onAuthenticated(mockEmail);
+    try {
+      switch (provider.toLowerCase()) {
+        case 'google':
+          await authenticateWithGoogle();
+          break;
+        case 'apple':
+          await authenticateWithApple();
+          break;
+        case 'microsoft':
+          await authenticateWithMicrosoft();
+          break;
+        default:
+          toast({
+            title: "Provider Not Supported",
+            description: `${provider} authentication is not yet supported`,
+            variant: "destructive"
+          });
+          return;
+      }
+    } catch (error) {
+      console.error(`${provider} authentication error:`, error);
       toast({
-        title: "Welcome!",
-        description: `Signed in with ${provider}`,
+        title: "Authentication Failed",
+        description: `Failed to sign in with ${provider}`,
+        variant: "destructive"
       });
-      setSocialLoading(null);
-    }, 1500);
+    }
   };
 
-  if (isAuthenticated) {
+  // Show authenticated state if user is logged in globally or locally
+  if (isAuthenticated || globalIsAuthenticated) {
+    const displayEmail = userEmail || user?.email || '';
+    const displayName = user?.name || '';
+
     return (
       <Card className="dark:bg-gray-800/50 border-green-200 dark:border-green-800">
         <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
@@ -124,8 +159,13 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
               <h4 className="font-medium text-green-800 dark:text-green-300">
                 Signed in successfully
               </h4>
+              {displayName && (
+                <p className="text-green-700 dark:text-green-300 text-sm font-medium">
+                  Welcome, {displayName}
+                </p>
+              )}
               <p className="text-green-600 dark:text-green-400 text-sm">
-                {userEmail}
+                {displayEmail}
               </p>
             </div>
           </div>
@@ -157,7 +197,7 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
           <Button
             variant="outline"
             onClick={() => handleSocialSignIn('Google')}
-            disabled={!!socialLoading}
+            disabled={socialIsLoading || isLoggingIn || isRegistering}
             className={`w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 ${isMobile ? 'h-11' : 'h-12'}`}
           >
             <div className="flex items-center gap-3">
@@ -168,7 +208,7 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
               <span className={`font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
-                {socialLoading === 'Google' ? 'Connecting...' : 'Continue with Google'}
+                {loadingProvider === 'google' ? 'Connecting...' : 'Continue with Google'}
               </span>
             </div>
           </Button>
@@ -176,13 +216,13 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
           <Button
             variant="outline"
             onClick={() => handleSocialSignIn('Apple')}
-            disabled={!!socialLoading}
+            disabled={socialIsLoading || isLoggingIn || isRegistering}
             className={`w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 ${isMobile ? 'h-11' : 'h-12'}`}
           >
             <div className="flex items-center gap-3">
               <Apple className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <span className={`font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
-                {socialLoading === 'Apple' ? 'Connecting...' : 'Continue with Apple'}
+                {loadingProvider === 'apple' ? 'Connecting...' : 'Continue with Apple'}
               </span>
             </div>
           </Button>
@@ -190,7 +230,7 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
           <Button
             variant="outline"
             onClick={() => handleSocialSignIn('Microsoft')}
-            disabled={!!socialLoading}
+            disabled={socialIsLoading || isLoggingIn || isRegistering}
             className={`w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 ${isMobile ? 'h-11' : 'h-12'}`}
           >
             <div className="flex items-center gap-3">
@@ -201,7 +241,7 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
                 <path fill="#FFB900" d="M24 24H12.6V12.6H24V24z"/>
               </svg>
               <span className={`font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
-                {socialLoading === 'Microsoft' ? 'Connecting...' : 'Continue with Microsoft'}
+                {loadingProvider === 'microsoft' ? 'Connecting...' : 'Continue with Microsoft'}
               </span>
             </div>
           </Button>

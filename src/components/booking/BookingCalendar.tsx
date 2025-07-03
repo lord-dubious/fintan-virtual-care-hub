@@ -61,21 +61,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
     consultationType: 'VIDEO' // Default to video, could be made configurable
   });
 
-  // Show error message if availability fetch fails
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 text-center">
-        <p className="text-red-600 dark:text-red-400 mb-4">
-          Failed to load availability. Please try again.
-        </p>
-        <Button onClick={() => refetch()} variant="outline">
-          Retry
-        </Button>
-      </div>
-    );
-  }
-  
-  // Transform API data to match UI expectations
+  // Transform API data to match UI expectations - moved before conditional returns
   const bookingData = useMemo(() => {
     if (!availabilityData) return [];
 
@@ -96,6 +82,20 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
       };
     });
   }, [availabilityData]);
+
+  // Show error message if availability fetch fails
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-red-600 dark:text-red-400 mb-4">
+          Failed to load availability. Please try again.
+        </p>
+        <Button onClick={() => refetch()} variant="outline">
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   const getAvailableTimesForDate = (date: Date | undefined) => {
     if (!date) return [];

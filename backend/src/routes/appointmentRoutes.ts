@@ -9,6 +9,7 @@ import {
   rescheduleAppointment,
   cancelAppointmentEnhanced
 } from '@/controllers/appointmentController';
+import { getAppointmentsCalendar } from '@/controllers/appointmentCalendarController';
 import { authenticateToken, authorizeRoles } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
 
@@ -35,6 +36,17 @@ router.get(
   '/',
   authenticateToken,
   getAppointments
+);
+
+/**
+ * @route   GET /api/appointments/calendar
+ * @desc    Get user's appointments calendar
+ * @access  Private
+ */
+router.get(
+  '/calendar',
+  authenticateToken,
+  getAppointmentsCalendar
 );
 
 /**

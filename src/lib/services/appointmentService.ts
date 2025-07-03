@@ -12,9 +12,12 @@ interface CreateAppointmentParams {
   consultationType: 'VIDEO' | 'AUDIO';
 }
 
+// Return types for appointment service - using unknown for complex Prisma types
+type AppointmentWithDetails = unknown;
+
 export const appointmentService = {
   // Get appointments for a user
-  async getUserAppointments(userId: string, role: string): Promise<any[]> {
+  async getUserAppointments(userId: string, role: string): Promise<AppointmentWithDetails[]> {
     try {
       const where = role === 'PROVIDER'
         ? { provider: { userId } }
@@ -48,7 +51,7 @@ export const appointmentService = {
   },
 
   // Get appointment by ID
-  async getAppointmentById(appointmentId: string): Promise<any> {
+  async getAppointmentById(appointmentId: string): Promise<AppointmentWithDetails | null> {
     try {
       const appointment = await prisma.appointment.findUnique({
         where: { id: appointmentId },
@@ -88,7 +91,7 @@ export const appointmentService = {
   },
 
   // Create a new appointment
-  async createAppointment(params: CreateAppointmentParams): Promise<any> {
+  async createAppointment(params: CreateAppointmentParams): Promise<AppointmentWithDetails> {
     try {
       // Create appointment
       const appointment = await prisma.appointment.create({
@@ -119,7 +122,7 @@ export const appointmentService = {
   },
 
   // Update appointment status
-  async updateAppointmentStatus(appointmentId: string, status: string): Promise<any> {
+  async updateAppointmentStatus(appointmentId: string, status: string): Promise<unknown> {
     try {
       const appointment = await prisma.appointment.update({
         where: { id: appointmentId },
@@ -143,7 +146,7 @@ export const appointmentService = {
   },
 
   // Cancel appointment
-  async cancelAppointment(appointmentId: string): Promise<any> {
+  async cancelAppointment(appointmentId: string): Promise<unknown> {
     try {
       const appointment = await prisma.appointment.update({
         where: { id: appointmentId },
@@ -169,7 +172,7 @@ export const appointmentService = {
   },
 
   // Join consultation
-  async joinConsultation(appointmentId: string): Promise<any> {
+  async joinConsultation(appointmentId: string): Promise<unknown> {
     try {
       // Get appointment
       const appointmentResult = await this.getAppointmentById(appointmentId);

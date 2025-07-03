@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import ConsultationRoom from './ConsultationRoom';
+import ConsultationRoom from './consultation/ConsultationRoom';
 
 const ConsultationPage: React.FC = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();

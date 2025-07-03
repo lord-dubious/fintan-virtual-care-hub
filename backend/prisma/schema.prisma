@@ -16,7 +16,8 @@ model User {
   name                  String?
   email                 String?   @unique
   emailVerified         DateTime?
-  image                 String?
+  image                 String?   // Profile picture URL
+  profilePicture        String?   // Alternative profile picture field
   password              String?
   role                  String    @default("PATIENT")
   phone                 String?

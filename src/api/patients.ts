@@ -32,6 +32,76 @@ interface AddMedicalRecordData {
   prescription?: string;
 }
 
+interface PatientDashboardData {
+  patient: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    profilePicture?: string;
+    emergencyContact?: any;
+    allergies?: string[];
+    medications?: string[];
+    medicalHistory?: string;
+  };
+  upcomingAppointments: Array<{
+    id: string;
+    date: string;
+    duration: number;
+    consultationType: string;
+    reason?: string;
+    status: string;
+    provider: {
+      name: string;
+      specialization?: string;
+      profilePicture?: string;
+      consultationFee?: number;
+    };
+  }>;
+  recentAppointments: Array<{
+    id: string;
+    date: string;
+    duration: number;
+    consultationType: string;
+    reason?: string;
+    status: string;
+    provider: {
+      name: string;
+      specialization?: string;
+    };
+  }>;
+  recentActivity: Array<{
+    id: string;
+    action: string;
+    description: string;
+    metadata?: any;
+    createdAt: string;
+  }>;
+  medicalRecords: Array<{
+    id: string;
+    diagnosis?: string;
+    treatment?: string;
+    prescription?: string;
+    notes?: string;
+    createdAt: string;
+    provider?: {
+      name: string;
+    };
+  }>;
+  statistics: {
+    totalAppointments: number;
+    completedAppointments: number;
+    cancelledAppointments: number;
+    totalMedicalRecords: number;
+  };
+  nextAppointment?: {
+    id: string;
+    date: string;
+    provider: string;
+    consultationType: string;
+  };
+}
+
 // Removed local PatientAppointment interface, using type from shared/domain.ts
 
 // Patients API
@@ -107,6 +177,11 @@ export const patientsApi = {
   // Get current patient profile (for dashboard)
   async getCurrentPatientProfile(): Promise<ApiResponse<PatientWithUser>> { // Changed return type to PatientWithUser
     return apiClient.get<PatientWithUser>(`${API_ENDPOINTS.PATIENTS.BASE}/profile`);
+  },
+
+  // Get patient dashboard data
+  async getPatientDashboard(): Promise<ApiResponse<PatientDashboardData>> {
+    return apiClient.get(`${API_ENDPOINTS.PATIENTS.BASE}/dashboard`);
   },
 
   // Get merged medical records

@@ -24,9 +24,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check role requirements if specified
-  if (requiredRole && user?.role !== requiredRole) {
-    // Redirect to dashboard if authenticated but wrong role
-    return <Navigate to="/dashboard" replace />;
+  if (requiredRole) {
+    const hasAccess =
+      user?.role === requiredRole ||
+      (requiredRole === 'DOCTOR' && user?.role === 'PROVIDER');
+
+    if (!hasAccess) {
+      // Redirect to appropriate dashboard based on user role
+      if (user?.role === 'ADMIN') {
+        return <Navigate to="/admin/dashboard" replace />;
+      } else if (user?.role === 'DOCTOR' || user?.role === 'PROVIDER') {
+        return <Navigate to="/doctor/dashboard" replace />;
+      } else {
+        return <Navigate to="/patient/dashboard" replace />;
+      }
+    }
   }
 
   // User is authenticated and has the required role (if any)

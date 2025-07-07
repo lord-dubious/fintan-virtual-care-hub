@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,28 +10,23 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/useAuth';
 
 interface AuthModalsProps {
-  isLoginOpen: boolean;
-  isSignupOpen: boolean;
-  onLoginClose: () => void;
-  onSignupClose: () => void;
-  onSwitchToSignup: () => void;
-  onSwitchToLogin: () => void;
+  isModalOpen: boolean;
+  onClose: () => void;
+  defaultTab: string;
   onSignupSuccess?: (email: string, name: string) => void;
 }
 
 export const AuthModals: React.FC<AuthModalsProps> = ({
-  isLoginOpen,
-  isSignupOpen,
-  onLoginClose,
-  onSignupClose,
-  onSwitchToSignup,
-  onSwitchToLogin,
+  isModalOpen,
+  onClose,
+  defaultTab,
   onSignupSuccess
 }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login, register, isLoggingIn, isRegistering, user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState(defaultTab);
   
   const [loginData, setLoginData] = useState({
     email: '',
@@ -45,7 +40,9 @@ export const AuthModals: React.FC<AuthModalsProps> = ({
     password: ''
   });
 
-
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [defaultTab]);
 
   const handleLogin = async () => {
     if (!loginData.email || !loginData.password) {
@@ -58,23 +55,24 @@ export const AuthModals: React.FC<AuthModalsProps> = ({
     }
 
     try {
-      await login({ email: loginData.email, password: loginData.password });
-      // Toast notification is handled by useAuth hook
-      onLoginClose();
+      const result = await login({ email: loginData.email, password: loginData.password });
+      onClose();
       setLoginData({ email: '', password: '' });
 
-      // Redirect to appropriate dashboard based on user role
+      // Get user role from login result or current user state
+      const userRole = result?.user?.role || user?.role;
+
       setTimeout(() => {
-        if (user?.role === 'PATIENT') {
-          navigate('/dashboard');
-        } else if (user?.role === 'ADMIN') {
+        if (userRole === 'PATIENT') {
+          navigate('/patient/dashboard');
+        } else if (userRole === 'ADMIN') {
           navigate('/admin/dashboard');
-        } else if (user?.role === 'DOCTOR') {
+        } else if (userRole === 'DOCTOR' || userRole === 'PROVIDER') {
           navigate('/doctor/dashboard');
         } else {
-          navigate('/dashboard'); // Default to patient dashboard
+          navigate('/patient/dashboard');
         }
-      }, 1000); // Small delay to allow auth state to update
+      }, 100); // Reduced timeout for faster redirect
     } catch (error: unknown) {
       toast({
         title: "Sign In Failed",
@@ -104,38 +102,40 @@ export const AuthModals: React.FC<AuthModalsProps> = ({
         role: 'PATIENT',
       });
 
-      // Toast notification is handled by useAuth hook
-      onSignupClose();
+      onClose();
       setSignupData({ firstName: '', lastName: '', email: '', password: '' });
 
-      // Trigger patient onboarding
       if (onSignupSuccess) {
         onSignupSuccess(signupData.email, fullName);
       }
     } catch (error: unknown) {
-      // Error toast is handled by useAuth hook
       console.error('Registration error:', error);
+      toast({
+        title: "Registration Failed",
+        description: error instanceof Error ? error.message : "An error occurred during registration",
+        variant: "destructive"
+      });
     }
   };
 
-
-
   return (
-    <>
-      {/* Login Modal */}
-      <Dialog open={isLoginOpen} onOpenChange={onLoginClose}>
-        <DialogContent className="sm:max-w-md bg-white dark:bg-medical-dark-surface border-medical-border-light dark:border-medical-dark-border">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-center text-medical-primary dark:text-medical-accent">
-              Welcome Back
-            </DialogTitle>
-            <DialogDescription className="text-center text-medical-neutral-600 dark:text-medical-dark-text-secondary">
-              Sign in to your account to continue
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6 py-4">
-            {/* Email Login Only */}
+    <Dialog open={isModalOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md bg-white dark:bg-medical-dark-surface border-medical-border-light dark:border-medical-dark-border max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-center text-medical-primary dark:text-medical-accent">
+            {activeTab === 'login' ? 'Welcome Back' : 'Create Account'}
+          </DialogTitle>
+          <DialogDescription className="text-center text-medical-neutral-600 dark:text-medical-dark-text-secondary">
+            {activeTab === 'login' ? 'Sign in to your account to continue' : 'Join Dr. Fintan\'s practice to get started'}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
+          <TabsContent value="login" className="space-y-6 py-4">
             <div className="text-center mb-6">
               <h3 className="text-lg font-semibold text-medical-neutral-700 dark:text-medical-dark-text-primary">
                 Sign in with your email
@@ -200,34 +200,15 @@ export const AuthModals: React.FC<AuthModalsProps> = ({
               <p className="text-sm text-medical-neutral-500 dark:text-medical-dark-text-secondary">
                 Don't have an account?{' '}
                 <button
-                  onClick={() => {
-                    onLoginClose();
-                    onSwitchToSignup();
-                  }}
+                  onClick={() => setActiveTab("signup")}
                   className="text-medical-primary dark:text-medical-accent hover:underline font-medium"
                 >
                   Sign up
                 </button>
               </p>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Signup Modal */}
-      <Dialog open={isSignupOpen} onOpenChange={onSignupClose}>
-        <DialogContent className="sm:max-w-lg bg-white dark:bg-medical-dark-surface border-medical-border-light dark:border-medical-dark-border max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-center text-medical-primary dark:text-medical-accent">
-              Create Account
-            </DialogTitle>
-            <DialogDescription className="text-center text-medical-neutral-600 dark:text-medical-dark-text-secondary">
-              Join Dr. Fintan's practice to get started
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-3">
-            {/* Email Registration Only */}
+          </TabsContent>
+          <TabsContent value="signup" className="space-y-4 py-3">
             <div className="text-center mb-6">
               <h3 className="text-lg font-semibold text-medical-neutral-700 dark:text-medical-dark-text-primary">
                 Create your account
@@ -323,19 +304,16 @@ export const AuthModals: React.FC<AuthModalsProps> = ({
               <p className="text-sm text-medical-neutral-500 dark:text-medical-dark-text-secondary">
                 Already have an account?{' '}
                 <button
-                  onClick={() => {
-                    onSignupClose();
-                    onSwitchToLogin();
-                  }}
+                  onClick={() => setActiveTab("login")}
                   className="text-medical-primary dark:text-medical-accent hover:underline font-medium"
                 >
                   Sign in
                 </button>
               </p>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 };

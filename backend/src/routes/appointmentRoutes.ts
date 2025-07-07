@@ -7,7 +7,8 @@ import {
   cancelAppointment,
   updateAppointmentStatusEnhanced,
   rescheduleAppointment,
-  cancelAppointmentEnhanced
+  cancelAppointmentEnhanced,
+  checkSlotAvailability
 } from '@/controllers/appointmentController';
 import { getAppointmentsCalendar } from '@/controllers/appointmentCalendarController';
 import { authenticateToken, authorizeRoles } from '@/middleware/auth';
@@ -113,6 +114,18 @@ router.put(
   '/:id/cancel-enhanced',
   authenticateToken,
   cancelAppointmentEnhanced
+);
+
+/**
+ * @route   POST /api/appointments/check-availability
+ * @desc    Check real-time availability for a time slot
+ * @access  Private (Patient)
+ */
+router.post(
+  '/check-availability',
+  authenticateToken,
+  authorizeRoles('PATIENT'),
+  checkSlotAvailability
 );
 
 export default router;

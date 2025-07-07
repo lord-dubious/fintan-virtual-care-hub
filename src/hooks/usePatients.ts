@@ -245,13 +245,22 @@ export const usePatientDashboard = () => {
   return useQuery({
     queryKey: ['patient', 'dashboard'],
     queryFn: async () => {
-      const response = await patientsApi.getCurrentPatientProfile();
+      const response = await patientsApi.getPatientDashboard();
       if (!response.success) {
         throw new Error(response.error || 'Failed to fetch patient dashboard data');
       }
       return response.data!;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes for dashboard data
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchOnWindowFocus: true, // Refresh when user returns to tab
+    refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // Enable background updates
+    refetchOnMount: 'always',
+    // Optimistic updates for better UX
+    placeholderData: (previousData) => previousData,
   });
 };
 

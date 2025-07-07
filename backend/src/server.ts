@@ -2,11 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import { createServer } from 'http';
+import net from 'net';
 import { config } from '@/config';
 import { checkDatabaseConnection, disconnectDatabase } from '@/config/database';
 import logger, { requestLogger } from '@/config/logger';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
 import { rateLimiters } from '@/middleware/rateLimiter';
+import { initializeSocket } from '@/config/socket';
 
 // Import routes (will be created)
 // import authRoutes from '@/routes/auth';
@@ -42,23 +45,12 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// CORS configuration
+// CORS configuration - Allow all origins
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // Check if the origin is in our allowed list
-    if (config.frontend.corsOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    logger.warn(`🚫 CORS blocked origin: ${origin}`);
-    return callback(new Error('Not allowed by CORS'), false);
-  },
+  origin: true, // Allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-csrf-token'],
   exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
 }));
 
@@ -141,6 +133,7 @@ app.get('/health', async (req, res) => {
 // Import routes
 import authRoutes from '@/routes/authRoutes';
 import userRoutes from '@/routes/userRoutes';
+import patientRoutes from '@/routes/patientRoutes';
 // import profileRoutes from './routes/profileRoutes';
 import appointmentRoutes from '@/routes/appointmentRoutes';
 import consultationRoutes from '@/routes/consultationRoutes';
@@ -148,10 +141,16 @@ import paymentRoutes from '@/routes/paymentRoutes';
 import onboardingRoutes from '@/routes/onboardingRoutes';
 import adminRoutes from '@/routes/adminRoutes';
 import schedulingRoutes from '@/routes/schedulingRoutes';
+import calendarRoutes from '@/routes/calendarRoutes';
+import providerRoutes from '@/routes/providerRoutes';
+import activityRoutes from '@/routes/activityRoutes';
+import medicalRecordRoutes from '@/routes/medicalRecordRoutes';
+import availabilityRoutes from '@/routes/availability';
 
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/patients', patientRoutes);
 // app.use('/api/profile', profileRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/consultations', consultationRoutes);
@@ -159,8 +158,12 @@ app.use('/api/payments', rateLimiters.api, paymentRoutes);
 app.use('/api/patients/onboarding', rateLimiters.api, onboardingRoutes);
 app.use('/api/admin', rateLimiters.admin, adminRoutes);
 app.use('/api/scheduling', schedulingRoutes);
+app.use('/api/calendar', calendarRoutes);
+app.use('/api/providers', providerRoutes);
+app.use('/api/medical-records', medicalRecordRoutes);
+app.use('/api/patients/activities', activityRoutes);
+app.use('/api/availability', availabilityRoutes);
 // app.use('/api/patients', patientRoutes);
-// app.use('/api/providers', providerRoutes);
 // app.use('/api/health', healthRoutes);
 
 // Temporary test endpoint
@@ -179,69 +182,229 @@ app.use(notFoundHandler);
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
+// Create HTTP server and initialize Socket.IO
+const httpServer = createServer(app);
+const socketService = initializeSocket(httpServer);
+
 // Declare server variable
 let server: any;
 
+// Port checking utility
+const isPortInUse = (port: number): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const testServer = net.createServer();
+
+    testServer.listen(port, () => {
+      testServer.close(() => {
+        resolve(false); // Port is available
+      });
+    });
+
+    testServer.on('error', () => {
+      resolve(true); // Port is in use
+    });
+  });
+};
+
+// Kill processes using the port
+const killPortProcesses = async (port: number): Promise<void> => {
+  try {
+    const { exec } = require('child_process');
+    const util = require('util');
+    const execAsync = util.promisify(exec);
+
+    // Find processes using the port
+    try {
+      const { stdout } = await execAsync(`lsof -ti:${port}`);
+      const pidList = stdout.trim().split('\n');
+      const pids = pidList.filter((pid: string) => pid.trim() !== '');
+
+      if (pids.length > 0) {
+        logger.info(`🔍 Found ${pids.length} process(es) using port ${port}: ${pids.join(', ')}`);
+
+        // Kill each process
+        for (const pid of pids) {
+          try {
+            await execAsync(`kill -9 ${pid}`);
+            logger.info(`💀 Killed process ${pid} using port ${port}`);
+          } catch (error) {
+            logger.warn(`⚠️ Could not kill process ${pid}: ${error}`);
+          }
+        }
+
+        // Wait a moment for processes to die
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    } catch (error) {
+      // lsof command failed, port might be free
+      logger.debug(`No processes found using port ${port}`);
+    }
+  } catch (error) {
+    logger.error(`Error killing port processes: ${error}`);
+  }
+};
+
 // Graceful shutdown
 const gracefulShutdown = async (signal: string) => {
-  logger.info(`Received ${signal}. Starting graceful shutdown...`);
+  logger.info(`🛑 Received ${signal}. Starting graceful shutdown...`);
+
+  // Set a timeout for forced shutdown
+  const forceShutdownTimeout = setTimeout(() => {
+    logger.error('⏰ Forced shutdown after 15 seconds timeout');
+    process.exit(1);
+  }, 15000);
 
   try {
-    // Close database connections
-    await disconnectDatabase();
+    logger.info('📊 Shutting down server...');
 
-    // Close server
+    // Close HTTP server (stops accepting new connections)
     if (server) {
-      server.close(() => {
-        logger.info('Server closed successfully');
-        process.exit(0);
+      await new Promise<void>((resolve, reject) => {
+        server.close((err: Error | undefined) => {
+          if (err) {
+            logger.error('❌ Error closing HTTP server:', err);
+            reject(err);
+          } else {
+            logger.info('✅ HTTP server closed successfully');
+            resolve();
+          }
+        });
       });
     }
 
-    // Force close after 10 seconds
-    setTimeout(() => {
-      logger.error('Forced shutdown after timeout');
-      process.exit(1);
-    }, 10000);
+    // Close Socket.IO connections
+    if (socketService) {
+      logger.info('🔌 Closing Socket.IO connections...');
+      socketService.close();
+      logger.info('✅ Socket.IO connections closed');
+    }
+
+    // Close database connections
+    logger.info('🗄️ Closing database connections...');
+    await disconnectDatabase();
+    logger.info('✅ Database connections closed');
+
+    // Clear the force shutdown timeout
+    clearTimeout(forceShutdownTimeout);
+
+    logger.info('🎉 Graceful shutdown completed successfully');
+    process.exit(0);
+
   } catch (error) {
-    logger.error('Error during graceful shutdown:', error);
+    logger.error('❌ Error during graceful shutdown:', error);
+    clearTimeout(forceShutdownTimeout);
     process.exit(1);
   }
 };
 
 // Handle shutdown signals
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => {
+  logger.info('🔄 SIGTERM received (Docker/PM2 shutdown)');
+  gracefulShutdown('SIGTERM');
+});
+
+process.on('SIGINT', () => {
+  logger.info('⌨️ SIGINT received (Ctrl+C)');
+  gracefulShutdown('SIGINT');
+});
+
+process.on('SIGHUP', () => {
+  logger.info('🔄 SIGHUP received (terminal closed)');
+  gracefulShutdown('SIGHUP');
+});
+
+process.on('SIGQUIT', () => {
+  logger.info('🛑 SIGQUIT received (quit signal)');
+  gracefulShutdown('SIGQUIT');
+});
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception:', error);
-  process.exit(1);
+  logger.error('💥 Uncaught Exception:', {
+    message: error.message,
+    stack: error.stack,
+    name: error.name
+  });
+
+  // Try graceful shutdown, but force exit if it takes too long
+  setTimeout(() => {
+    logger.error('⏰ Force exit after uncaught exception');
+    process.exit(1);
+  }, 5000);
+
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  logger.error('🚫 Unhandled Promise Rejection:', {
+    reason: reason,
+    promise: promise,
+    stack: reason instanceof Error ? reason.stack : 'No stack trace'
+  });
+
+  // Try graceful shutdown, but force exit if it takes too long
+  setTimeout(() => {
+    logger.error('⏰ Force exit after unhandled rejection');
+    process.exit(1);
+  }, 5000);
+
+  gracefulShutdown('UNHANDLED_REJECTION');
 });
 
-// Start server
-server = app.listen(config.server.port, '0.0.0.0', async () => {
-  logger.info(`🚀 Dr. Fintan Virtual Care Hub Backend API Server started`);
-  logger.info(`📍 Environment: ${config.server.nodeEnv}`);
-  logger.info(`🌐 Server running on port ${config.server.port}`);
-  logger.info(`📊 API Base URL: ${config.server.apiBaseUrl}`);
-  logger.info(`🔗 Frontend URL: ${config.frontend.url}`);
-  
-  // Check database connection
-  const dbConnected = await checkDatabaseConnection();
-  if (dbConnected) {
-    logger.info('✅ Database connection established');
-  } else {
-    logger.error('❌ Database connection failed');
-  }
-  
-  logger.info('🎯 Ready to serve requests!');
+// Handle process warnings
+process.on('warning', (warning) => {
+  logger.warn('⚠️ Process Warning:', {
+    name: warning.name,
+    message: warning.message,
+    stack: warning.stack
+  });
+});
+
+// Check and clean up port before starting
+const startServer = async () => {
+  const port = config.server.port;
+
+  logger.info(`🚀 Starting server on port ${port}...`);
+
+  // Start server with Socket.IO
+  server = httpServer.listen(port, '0.0.0.0', async () => {
+    logger.info(`🚀 Dr. Fintan Virtual Care Hub Backend API Server started`);
+    logger.info(`📍 Environment: ${config.server.nodeEnv}`);
+    logger.info(`🌐 Server running on port ${port}`);
+    logger.info(`📊 API Base URL: ${config.server.apiBaseUrl}`);
+    logger.info(`🔗 Frontend URL: ${config.frontend.url}`);
+    logger.info(`🔌 Socket.IO enabled for real-time communication`);
+
+    // Check database connection
+    const dbConnected = await checkDatabaseConnection();
+    if (dbConnected) {
+      logger.info('✅ Database connection established');
+    } else {
+      logger.error('❌ Database connection failed');
+    }
+
+    logger.info('🎯 Ready to serve requests!');
+    logger.info('💡 Press Ctrl+C to gracefully shutdown the server');
+  });
+
+  // Handle server startup errors
+  server.on('error', (error: any) => {
+    if (error.code === 'EADDRINUSE') {
+      logger.error(`❌ Port ${port} is already in use. Another process might be running.`);
+      logger.info('💡 Try running: npm run kill-port or manually kill the process');
+      process.exit(1);
+    } else {
+      logger.error('❌ Server startup error:', error);
+      process.exit(1);
+    }
+  });
+};
+
+// Start the server
+startServer().catch((error) => {
+  logger.error('❌ Failed to start server:', error);
+  process.exit(1);
 });
 
 export default app;

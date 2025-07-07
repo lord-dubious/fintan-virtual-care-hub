@@ -166,11 +166,6 @@ export const PatientSchema = z.object({
     phone: z.string().min(1),
     relationship: z.string().min(1).max(50),
   }).optional(),
-  insurance: z.object({
-    provider: z.string().min(1).max(100),
-    policyNumber: z.string().min(1).max(50),
-    groupNumber: z.string().max(50).optional(),
-  }).optional(),
   medicalHistory: z.string().max(2000).optional(),
   allergies: z.array(z.string().max(100)).optional(),
   medications: z.array(z.string().max(100)).optional(),
@@ -188,11 +183,6 @@ export const UpdatePatientSchema = z.object({
     name: z.string().min(1).max(100),
     phone: z.string().min(1),
     relationship: z.string().min(1).max(50),
-  }).optional(),
-  insurance: z.object({
-    provider: z.string().min(1).max(100),
-    policyNumber: z.string().min(1).max(50),
-    groupNumber: z.string().max(50).optional(),
   }).optional(),
   medicalHistory: z.string().max(2000).optional(),
   allergies: z.array(z.string().max(100)).optional(),

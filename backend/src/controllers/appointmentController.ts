@@ -3,7 +3,10 @@ import { prisma } from '@/config/database';
 import logger from '@/config/logger';
 import { AuthenticatedRequest } from '@/types';
 import { schedulingService } from '@/services/schedulingService';
+import { activityLogService } from '@/services/activityLogService';
+import { ConflictDetectionService } from '@/services/conflictDetectionService';
 import { z } from 'zod';
+import { startOfDay, endOfDay } from 'date-fns';
 
 // Validation schemas
 const updateAppointmentStatusSchema = z.object({
@@ -16,6 +19,19 @@ const rescheduleAppointmentSchema = z.object({
   duration: z.number().min(15).max(240).optional(),
   timezone: z.string().min(1, 'Timezone is required'),
   reason: z.string().optional(),
+});
+
+const appointmentQuerySchema = z.object({
+  page: z.string().optional().transform(val => val ? parseInt(val) : 1),
+  limit: z.string().optional().transform(val => val ? Math.min(parseInt(val), 100) : 10),
+  status: z.string().optional(),
+  providerId: z.string().optional(),
+  patientId: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  consultationType: z.enum(['VIDEO', 'AUDIO']).optional(),
+  sortBy: z.enum(['appointmentDate', 'createdAt', 'status']).optional().default('appointmentDate'),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
 });
 
 const cancelAppointmentSchema = z.object({
@@ -45,7 +61,43 @@ export const createAppointment = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    const { providerId, appointmentDate, reason, consultationType = 'VIDEO' } = req.body;
+    const {
+      providerId,
+      appointmentDate,
+      reason = 'General consultation',
+      consultationType = 'VIDEO',
+      duration = 30,
+      timezone = 'UTC'
+    } = req.body;
+
+    // Validate required fields
+    if (!providerId || !appointmentDate) {
+      res.status(400).json({
+        success: false,
+        error: 'Provider ID and appointment date are required',
+      });
+      return;
+    }
+
+    // Validate consultation type
+    if (!['VIDEO', 'AUDIO'].includes(consultationType)) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid consultation type. Must be VIDEO or AUDIO',
+      });
+      return;
+    }
+
+    // Validate duration
+    if (duration < 15 || duration > 240) {
+      res.status(400).json({
+        success: false,
+        error: 'Duration must be between 15 and 240 minutes',
+      });
+      return;
+    }
+
+    logger.info(`📝 Creating appointment: ${req.user.email} with provider ${providerId} at ${appointmentDate}`);
 
     // Get patient ID
     const patient = await prisma.patient.findUnique({
@@ -64,86 +116,228 @@ export const createAppointment = async (req: AuthenticatedRequest, res: Response
     // Verify provider exists and is active
     const provider = await prisma.provider.findUnique({
       where: { id: providerId },
-      select: { 
-        id: true, 
-        isVerified: true, 
+      select: {
+        id: true,
+        isVerified: true,
         isActive: true,
+        approvalStatus: true,
+        consultationFee: true,
+        specialization: true,
         user: {
-          select: { name: true }
+          select: {
+            name: true,
+            email: true
+          }
         }
       },
     });
 
-    if (!provider || !provider.isVerified || !provider.isActive) {
-      res.status(400).json({
+    if (!provider) {
+      res.status(404).json({
         success: false,
-        error: 'Provider not available',
+        error: 'Provider not found',
       });
       return;
     }
 
-    // Use scheduling service for comprehensive availability check
+    if (!provider.isVerified || !provider.isActive || provider.approvalStatus !== 'APPROVED') {
+      res.status(400).json({
+        success: false,
+        error: 'Provider is not available for appointments',
+        details: {
+          isVerified: provider.isVerified,
+          isActive: provider.isActive,
+          approvalStatus: provider.approvalStatus
+        }
+      });
+      return;
+    }
+
+    logger.info(`✅ Provider verified: ${provider.user.name} (${provider.specialization})`);
+
+    // Parse and validate appointment date
     const startDateTime = new Date(appointmentDate);
-    const duration = 30; // Default duration
-    const availability = await schedulingService.isSlotAvailable(
+
+    if (isNaN(startDateTime.getTime())) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid appointment date format',
+      });
+      return;
+    }
+
+    // Check if appointment is in the past
+    if (startDateTime <= new Date()) {
+      res.status(400).json({
+        success: false,
+        error: 'Cannot book appointments in the past',
+      });
+      return;
+    }
+
+    logger.info(`🔍 Checking availability for ${startDateTime.toISOString()}`);
+
+    // Use enhanced conflict detection service
+    const conflictCheck = await ConflictDetectionService.checkAppointmentBooking(
       providerId,
       startDateTime,
-      duration
+      duration,
+      patient.id
     );
 
-    if (!availability.available) {
+    if (!conflictCheck.isValid) {
+      logger.warn(`❌ Slot not available due to conflicts:`, conflictCheck.conflicts);
       res.status(409).json({
         success: false,
         error: 'Time slot is not available',
-        details: availability.conflictReason,
+        details: {
+          conflicts: conflictCheck.conflicts,
+          warnings: conflictCheck.warnings,
+          suggestions: conflictCheck.suggestions
+        },
       });
       return;
     }
 
-    // Create appointment
-    const appointment = await prisma.appointment.create({
-      data: {
-        providerId,
-        patientId: patient.id,
-        appointmentDate: startDateTime,
-        duration,
-        reason,
-        consultationType,
-        status: 'SCHEDULED',
-      },
-      include: {
-        provider: {
-          select: {
-            id: true,
-            specialization: true,
-            consultationFee: true,
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
+    // Log any warnings
+    if (conflictCheck.warnings.length > 0) {
+      logger.warn(`⚠️ Booking warnings:`, conflictCheck.warnings);
+    }
+
+    logger.info(`✅ Slot available, creating appointment`);
+
+    // Create appointment with transaction for data consistency
+    const appointment = await prisma.$transaction(async (tx) => {
+      // Double-check availability within transaction
+      const conflictingAppointment = await tx.appointment.findFirst({
+        where: {
+          providerId,
+          appointmentDate: {
+            gte: startDateTime,
+            lt: new Date(startDateTime.getTime() + duration * 60 * 1000),
+          },
+          status: {
+            in: ['SCHEDULED', 'CONFIRMED'],
+          },
+        },
+      });
+
+      if (conflictingAppointment) {
+        throw new Error('Time slot was just booked by another patient');
+      }
+
+      // Create the appointment
+      return await tx.appointment.create({
+        data: {
+          providerId,
+          patientId: patient.id,
+          appointmentDate: startDateTime,
+          duration,
+          reason,
+          consultationType,
+          status: 'SCHEDULED',
+          timezone,
+        },
+        include: {
+          provider: {
+            select: {
+              id: true,
+              specialization: true,
+              consultationFee: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          patient: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
               },
             },
           },
         },
-        patient: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
+      });
     });
+
+    logger.info(`✅ Appointment created successfully: ID ${appointment.id}`);
+
+    // Log activity for both patient and provider
+    try {
+      await activityLogService.logAppointment(
+        req.user.id,
+        'CREATED',
+        appointment.id,
+        {
+          providerId: appointment.providerId,
+          appointmentDate: appointment.appointmentDate,
+          consultationType: appointment.consultationType,
+        }
+      );
+
+      // Log for provider as well
+      await activityLogService.logAppointment(
+        appointment.provider.user.id,
+        'CREATED',
+        appointment.id,
+        {
+          patientId: appointment.patientId,
+          appointmentDate: appointment.appointmentDate,
+          consultationType: appointment.consultationType,
+        }
+      );
+    } catch (activityError) {
+      logger.error('Activity logging error (non-blocking):', activityError);
+    }
+
+    // TODO: Send notifications to both patient and provider
+    // This would typically involve email/SMS services
+    try {
+      // Log notification intent (replace with actual notification service)
+      logger.info(`📧 Notification: Appointment confirmation to ${appointment.patient.user.email}`);
+      logger.info(`📧 Notification: New appointment alert to ${appointment.provider.user.email}`);
+
+      // Here you would integrate with email service like SendGrid, AWS SES, etc.
+      // await notificationService.sendAppointmentConfirmation(appointment);
+    } catch (notificationError) {
+      logger.error('Notification error (non-blocking):', notificationError);
+      // Don't fail the appointment creation if notifications fail
+    }
 
     res.status(201).json({
       success: true,
-      data: { appointment },
+      data: {
+        appointment,
+        bookingDetails: {
+          appointmentId: appointment.id,
+          appointmentDate: appointment.appointmentDate,
+          duration: appointment.duration,
+          consultationType: appointment.consultationType,
+          provider: {
+            name: appointment.provider.user.name,
+            specialization: appointment.provider.specialization,
+            consultationFee: appointment.provider.consultationFee,
+          },
+          patient: {
+            name: appointment.patient.user.name,
+          },
+          status: appointment.status,
+          nextSteps: [
+            'You will receive a confirmation email shortly',
+            'Join the consultation 5 minutes before the scheduled time',
+            'Prepare any questions or documents you want to discuss'
+          ]
+        }
+      },
       message: 'Appointment booked successfully',
     });
   } catch (error) {
@@ -169,13 +363,28 @@ export const getAppointments = async (req: AuthenticatedRequest, res: Response):
       return;
     }
 
-    const { status, page = '1', limit = '10' } = req.query;
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
-    const skip = (pageNum - 1) * limitNum;
+    // Validate and parse query parameters
+    const queryParams = appointmentQuerySchema.parse(req.query);
+    const {
+      page,
+      limit,
+      status,
+      providerId,
+      patientId,
+      dateFrom,
+      dateTo,
+      consultationType,
+      sortBy,
+      sortOrder
+    } = queryParams;
+
+    const skip = (page - 1) * limit;
+
+    logger.info(`📋 Getting appointments for user: ${req.user.email} with filters:`, queryParams);
 
     const where: any = {};
 
+    // Role-based filtering
     if (req.user.role === 'PATIENT') {
       const patient = await prisma.patient.findUnique({
         where: { userId: req.user.id },
@@ -191,7 +400,12 @@ export const getAppointments = async (req: AuthenticatedRequest, res: Response):
       }
 
       where.patientId = patient.id;
-    } else if (req.user.role === 'PROVIDER') {
+
+      // Patients can only see their own appointments
+      if (providerId) {
+        where.providerId = providerId;
+      }
+    } else if (req.user.role === 'PROVIDER' || req.user.role === 'DOCTOR') {
       const provider = await prisma.provider.findUnique({
         where: { userId: req.user.id },
         select: { id: true },
@@ -206,10 +420,46 @@ export const getAppointments = async (req: AuthenticatedRequest, res: Response):
       }
 
       where.providerId = provider.id;
+
+      // Providers can only see their own appointments
+      if (patientId) {
+        where.patientId = patientId;
+      }
+    } else if (req.user.role === 'ADMIN') {
+      // Admins can filter by both provider and patient
+      if (providerId) {
+        where.providerId = providerId;
+      }
+      if (patientId) {
+        where.patientId = patientId;
+      }
     }
 
+    // Status filtering
     if (status) {
-      where.status = status;
+      if (status.includes(',')) {
+        where.status = { in: status.split(',') };
+      } else {
+        where.status = status;
+      }
+    }
+
+    // Consultation type filtering
+    if (consultationType) {
+      where.consultationType = consultationType;
+    }
+
+    // Date range filtering
+    if (dateFrom || dateTo) {
+      where.appointmentDate = {};
+
+      if (dateFrom) {
+        where.appointmentDate.gte = startOfDay(new Date(dateFrom));
+      }
+
+      if (dateTo) {
+        where.appointmentDate.lte = endOfDay(new Date(dateTo));
+      }
     }
 
     const [appointments, total] = await Promise.all([
@@ -251,25 +501,45 @@ export const getAppointments = async (req: AuthenticatedRequest, res: Response):
           },
         },
         skip,
-        take: limitNum,
+        take: limit,
         orderBy: {
-          appointmentDate: 'desc',
+          [sortBy]: sortOrder,
         },
       }),
       prisma.appointment.count({ where }),
     ]);
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
     res.json({
       success: true,
       data: {
         appointments,
         pagination: {
-          page: pageNum,
-          limit: limitNum,
+          page,
+          limit,
           total,
-          pages: Math.ceil(total / limitNum),
+          totalPages,
+          hasNextPage,
+          hasPrevPage,
+          nextPage: hasNextPage ? page + 1 : null,
+          prevPage: hasPrevPage ? page - 1 : null,
+        },
+        filters: {
+          status,
+          providerId,
+          patientId,
+          dateFrom,
+          dateTo,
+          consultationType,
+          sortBy,
+          sortOrder,
         },
       },
+      message: `Retrieved ${appointments.length} appointments`,
     });
   } catch (error) {
     logger.error('Get appointments error:', error);
@@ -1132,6 +1402,57 @@ export const cancelAppointmentEnhanced = async (req: AuthenticatedRequest, res: 
     res.status(500).json({
       success: false,
       error: 'Failed to cancel appointment',
+    });
+  }
+};
+
+/**
+ * Check real-time availability for a specific time slot
+ * POST /api/appointments/check-availability
+ */
+export const checkSlotAvailability = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { providerId, startDateTime, duration = 30 } = req.body;
+
+    if (!providerId || !startDateTime) {
+      res.status(400).json({
+        success: false,
+        error: 'Provider ID and start date time are required',
+      });
+      return;
+    }
+
+    logger.info(`🔍 Checking slot availability: ${providerId} at ${startDateTime}`);
+
+    const startDate = new Date(startDateTime);
+    const result = await schedulingService.isSlotAvailable(
+      providerId,
+      startDate,
+      duration
+    );
+
+    if (result.available) {
+      res.json({
+        success: true,
+        data: {
+          available: true,
+          message: 'Time slot is available'
+        }
+      });
+    } else {
+      res.json({
+        success: true,
+        data: {
+          available: false,
+          reason: result.conflictReason || 'Time slot is not available'
+        }
+      });
+    }
+  } catch (error) {
+    logger.error('Check slot availability error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check slot availability',
     });
   }
 };

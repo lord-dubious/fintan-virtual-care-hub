@@ -16,8 +16,8 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get the redirect path from location state or default to dashboard
-  const from = location.state?.from?.pathname || '/dashboard';
+  // Get the redirect path from location state or default to patient dashboard
+  const from = location.state?.from?.pathname || '/patient/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

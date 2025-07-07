@@ -9,10 +9,13 @@ import DateTimeStep from '@/components/booking/DateTimeStep';
 import PatientInfoStep from '@/components/booking/PatientInfoStep';
 import PaymentStep from '@/components/booking/PaymentStep';
 import SimpleSignOn from '@/components/booking/SimpleSignOn';
+import NewBookingCalendar from '@/components/booking/NewBookingCalendar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePatientProfileForBooking } from '@/hooks/usePatientProfile';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export interface BookingData {
   consultationType: 'video' | 'audio' | '';
@@ -45,6 +48,7 @@ const BookingPage: React.FC = () => {
 
   // Determine initial step based on authentication status
   const [currentStep, setCurrentStep] = useState(0);
+  const [useNewBooking, setUseNewBooking] = useState(true); // Toggle for new booking system
 
   const [bookingData, setBookingData] = useState<BookingData>({
     consultationType: '',
@@ -280,11 +284,64 @@ const BookingPage: React.FC = () => {
     }
   };
 
+  // Handle new booking completion
+  const handleNewBookingComplete = (appointmentData: unknown) => {
+    console.log('✅ New booking completed:', appointmentData);
+    navigate('/dashboard');
+  };
+
+  // If using new booking system, render it instead
+  if (useNewBooking) {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br from-medical-primary/5 to-medical-accent/5 dark:from-gray-900 dark:to-gray-800 ${isMobile ? 'px-3 py-4' : 'px-4 py-8'}`}>
+        <div className={`${isMobile ? 'max-w-full' : 'container mx-auto max-w-4xl'}`}>
+          {/* Booking Mode Toggle */}
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Book Your Appointment</h1>
+              <p className="text-gray-600 dark:text-gray-300">Choose your preferred booking experience</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={useNewBooking ? "default" : "secondary"}>New System</Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUseNewBooking(!useNewBooking)}
+              >
+                Switch to {useNewBooking ? 'Classic' : 'New'} Booking
+              </Button>
+            </div>
+          </div>
+
+          {/* New Booking Calendar */}
+          <NewBookingCalendar
+            providerId={providerId}
+            consultationType={bookingData.consultationType === 'video' ? 'VIDEO' : 'AUDIO'}
+            onBookingComplete={handleNewBookingComplete}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen bg-gradient-to-br from-medical-primary/5 to-medical-accent/5 dark:from-gray-900 dark:to-gray-800 ${isMobile ? 'px-3 py-4' : 'px-4 py-8'}`}>
       <div className={`${isMobile ? 'max-w-full' : 'container mx-auto max-w-4xl'}`}>
-        <BookingHeader totalSteps={totalSteps} />
-        
+        {/* Booking Mode Toggle */}
+        <div className="mb-6 flex items-center justify-between">
+          <BookingHeader totalSteps={totalSteps} />
+          <div className="flex items-center gap-2">
+            <Badge variant={useNewBooking ? "secondary" : "default"}>Classic System</Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setUseNewBooking(!useNewBooking)}
+            >
+              Switch to {useNewBooking ? 'Classic' : 'New'} Booking
+            </Button>
+          </div>
+        </div>
+
         <Card className={`shadow-xl border-0 dark:bg-gray-800/95 dark:border-gray-700 ${isMobile ? 'mx-0' : ''}`}>
           <CardContent className={`${isMobile ? 'p-4' : 'p-6 md:p-8'}`}>
             <BookingProgress

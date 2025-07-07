@@ -11,14 +11,16 @@ declare global {
 // Create Prisma Client instance
 function createPrismaClient(): PrismaClient {
   return new PrismaClient({
-    log: config.server.isDevelopment 
-      ? ['query', 'info', 'warn', 'error']
+    log: config.server.isDevelopment
+      ? ['query', 'info', 'warn']  // Removed 'error' to reduce connection noise
       : ['warn', 'error'],
     datasources: {
       db: {
         url: config.database.url,
       },
     },
+    // Error formatting to reduce noise
+    errorFormat: 'minimal',
   });
 }
 
@@ -33,15 +35,25 @@ if (config.server.isProduction) {
   prisma = global.__prisma;
 }
 
-// Database connection health check
-export async function checkDatabaseConnection(): Promise<boolean> {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return true;
-  } catch (error) {
-    console.error('Database connection failed:', error);
-    return false;
+// Database connection health check with retry
+export async function checkDatabaseConnection(retries = 3): Promise<boolean> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return true;
+    } catch (error) {
+      console.warn(`Database connection attempt ${attempt}/${retries} failed:`, error);
+
+      if (attempt === retries) {
+        console.error('Database connection failed after all retries');
+        return false;
+      }
+
+      // Wait before retry (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+    }
   }
+  return false;
 }
 
 // Graceful shutdown

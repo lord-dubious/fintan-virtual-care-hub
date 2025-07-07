@@ -100,11 +100,6 @@ export const schemas = {
         allergies: z.array(z.string()).optional(),
         surgeries: z.array(z.string()).optional(),
       }).optional(),
-      insurance: z.object({
-        provider: z.string().min(2, 'Insurance provider is required'),
-        policyNumber: z.string().min(1, 'Policy number is required'),
-        groupNumber: z.string().optional(),
-      }).optional(),
     }),
   }),
 
@@ -123,11 +118,6 @@ export const schemas = {
         medications: z.array(z.string()).optional(),
         allergies: z.array(z.string()).optional(),
         surgeries: z.array(z.string()).optional(),
-      }).optional(),
-      insurance: z.object({
-        provider: z.string().min(2, 'Insurance provider is required'),
-        policyNumber: z.string().min(1, 'Policy number is required'),
-        groupNumber: z.string().optional(),
       }).optional(),
     }),
   }),

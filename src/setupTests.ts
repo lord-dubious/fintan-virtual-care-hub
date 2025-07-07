@@ -5,13 +5,21 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers);
 
-// Mock environment variables
-process.env.VITE_API_URL = 'http://localhost:3000/api';
-process.env.VITE_DAILY_DOMAIN = 'test.daily.co';
-process.env.VITE_STRIPE_PUBLISHABLE_KEY = 'pk_test_123';
-process.env.VITE_ENABLE_VIDEO_CALLS = 'true';
-process.env.VITE_ENABLE_AUDIO_CALLS = 'true';
-process.env.VITE_ENABLE_PAYMENTS = 'true';
+// Mock environment variables for Vite
+Object.defineProperty(import.meta, 'env', {
+  value: {
+    VITE_API_URL: 'http://localhost:3000/api',
+    VITE_DAILY_DOMAIN: 'test.daily.co',
+    VITE_STRIPE_PUBLISHABLE_KEY: 'pk_test_123',
+    VITE_ENABLE_VIDEO_CALLS: 'true',
+    VITE_ENABLE_AUDIO_CALLS: 'true',
+    VITE_ENABLE_PAYMENTS: 'true',
+    MODE: 'test',
+    DEV: false,
+    PROD: false,
+  },
+  writable: true,
+});
 
 // Mock localStorage
 const localStorageMock = {

@@ -15,8 +15,8 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isSignupOpen, setIsSignupOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [currentAuthTab, setCurrentAuthTab] = useState("login"); // "login" or "signup"
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [newUserData, setNewUserData] = useState({ email: '', name: '' });
   const location = useLocation();
@@ -26,23 +26,15 @@ const Navbar: React.FC = () => {
   };
 
   const handleLoginOpen = () => {
-    setIsLoginOpen(true);
+    setIsAuthModalOpen(true);
+    setCurrentAuthTab("login");
     setIsMenuOpen(false);
   };
 
   const handleSignupOpen = () => {
-    setIsSignupOpen(true);
+    setIsAuthModalOpen(true);
+    setCurrentAuthTab("signup");
     setIsMenuOpen(false);
-  };
-
-  const handleSwitchToSignup = () => {
-    setIsLoginOpen(false);
-    setIsSignupOpen(true);
-  };
-
-  const handleSwitchToLogin = () => {
-    setIsSignupOpen(false);
-    setIsLoginOpen(true);
   };
 
   const handleSignupSuccess = (email: string, name: string) => {
@@ -57,13 +49,13 @@ const Navbar: React.FC = () => {
 
   const handleProfileClick = () => {
     if (user?.role === 'PATIENT') {
-      navigate('/dashboard');
+      navigate('/patient/dashboard');
     } else if (user?.role === 'ADMIN') {
       navigate('/admin/dashboard');
-    } else if (user?.role === 'DOCTOR') {
+    } else if (user?.role === 'DOCTOR' || user?.role === 'PROVIDER') {
       navigate('/doctor/dashboard');
     } else {
-      navigate('/dashboard'); // Default to patient dashboard
+      navigate('/patient/dashboard'); // Default to patient dashboard
     }
     setIsMenuOpen(false);
   };
@@ -375,12 +367,9 @@ const Navbar: React.FC = () => {
 
       {/* Auth Modals */}
       <AuthModals
-        isLoginOpen={isLoginOpen}
-        isSignupOpen={isSignupOpen}
-        onLoginClose={() => setIsLoginOpen(false)}
-        onSignupClose={() => setIsSignupOpen(false)}
-        onSwitchToSignup={handleSwitchToSignup}
-        onSwitchToLogin={handleSwitchToLogin}
+        isModalOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        defaultTab={currentAuthTab}
         onSignupSuccess={handleSignupSuccess}
       />
 

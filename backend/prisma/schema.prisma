@@ -28,6 +28,7 @@ model User {
   provider             Provider?
   sessions             Session[]
   refreshTokens        RefreshToken[]
+  activityLogs         ActivityLog[]
 }
 
 model Account {
@@ -96,7 +97,6 @@ model Patient {
   allergies         Allergy[]
   medications       Medication[]
   conditions        Condition[]
-  insuranceRecords  Insurance[]
   user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -121,6 +121,7 @@ model Provider {
   appointments   Appointment[]
   medicalRecords MedicalRecord[]
   availability   Availability[]
+  schedules      ProviderSchedule[]
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -139,6 +140,77 @@ model MedicalRecord {
   provider       Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 }
 
+// Enhanced availability system with complex scheduling support
+model ProviderSchedule {
+  id          String   @id @default(cuid())
+  providerId  String
+  name        String   // e.g., "Default Schedule", "Summer Schedule"
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  timezone    String   @default("UTC")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  provider    Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  // Related models
+  weeklyAvailability WeeklyAvailability[]
+  scheduleExceptions ScheduleException[]
+  breakPeriods       BreakPeriod[]
+
+  @@index([providerId, isDefault])
+  @@index([providerId, isActive])
+}
+
+model WeeklyAvailability {
+  id         String          @id @default(cuid())
+  scheduleId String
+  dayOfWeek  DayOfWeek
+  isAvailable Boolean        @default(true)
+  startTime  String          // HH:MM format
+  endTime    String          // HH:MM format
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  schedule   ProviderSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, dayOfWeek, startTime])
+  @@index([scheduleId, dayOfWeek])
+}
+
+model BreakPeriod {
+  id         String          @id @default(cuid())
+  scheduleId String
+  dayOfWeek  DayOfWeek?      // null means applies to all days
+  startTime  String          // HH:MM format
+  endTime    String          // HH:MM format
+  title      String?         // e.g., "Lunch Break", "Admin Time"
+  isRecurring Boolean        @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  schedule   ProviderSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, dayOfWeek])
+}
+
+model ScheduleException {
+  id         String          @id @default(cuid())
+  scheduleId String
+  date       DateTime        // Specific date for the exception
+  type       ExceptionType
+  startTime  String?         // HH:MM format (for partial day exceptions)
+  endTime    String?         // HH:MM format (for partial day exceptions)
+  title      String          // e.g., "Vacation", "Conference", "Emergency"
+  notes      String?
+  isRecurring Boolean        @default(false)
+  recurrencePattern String? // JSON for recurring patterns
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  schedule   ProviderSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, date])
+  @@index([scheduleId, type])
+}
+
+// Legacy availability model - kept for backward compatibility
 model Availability {
   id          String   @id @default(cuid())
   providerId  String
@@ -269,6 +341,25 @@ enum Role {
   ADMIN
 }
 
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum ExceptionType {
+  UNAVAILABLE    // Provider not available (vacation, sick leave)
+  MODIFIED_HOURS // Different hours for this day
+  BREAK_CHANGE   // Different break schedule
+  HOLIDAY        // Public holiday
+  CONFERENCE     // Professional conference
+  EMERGENCY      // Emergency unavailability
+}
+
 model EmergencyContact {
   id        String  @id @default(cuid())
   patientId String
@@ -303,11 +394,20 @@ model Condition {
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
 
-model Insurance {
-  id        String  @id @default(cuid())
-  patientId String
-  provider  String
-  policyNumber String
-  groupNumber String?
-  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  title      String?
+  entityType String?
+  entityId   String?
+  description String?
+  details    String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

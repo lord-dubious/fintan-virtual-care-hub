@@ -45,18 +45,20 @@ async function main() {
       userId: providerUser.id,
       specialization: 'General Medicine',
       bio: 'Dr. Sarah Smith is a board-certified physician with over 10 years of experience in general medicine and telemedicine.',
-      education: {
+      education: JSON.stringify({
         degree: 'MD',
         university: 'Harvard Medical School',
         year: 2012,
-      },
-      experience: {
+      }),
+      experience: JSON.stringify({
         years: 10,
         specialties: ['General Medicine', 'Preventive Care', 'Telemedicine'],
-      },
+      }),
       licenseNumber: 'MD123456789',
       isVerified: true,
       isActive: true,
+      approvalStatus: 'APPROVED',
+      approvedAt: new Date(),
       consultationFee: 75.00,
     },
   });

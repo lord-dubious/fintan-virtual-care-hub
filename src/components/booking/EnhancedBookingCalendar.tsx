@@ -1,24 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { format, addDays, isToday, isTomorrow, isPast } from "date-fns";
+import { format, addDays, isPast } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Clock, Calendar as CalendarPlus, ArrowRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { CalendarIcon, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import SmartSuggestionsView from './SmartSuggestionsView';
-import WeekView from './WeekView';
-import CalendarView from './CalendarView';
-import AppointmentConfirmation from './AppointmentConfirmation';
-import ViewModeSelector from './ViewModeSelector';
-import TimeFilter from './TimeFilter';
-import { useAvailability, useGenerateCalendarExport } from '@/hooks/useCalendar';
+
+import { useAvailability } from '@/hooks/useCalendar';
+import { useProviders } from '@/hooks/useProviders';
 import { logger } from '@/lib/utils/monitoring'; // Import logger
 
 interface EnhancedBookingCalendarProps {
@@ -28,6 +17,7 @@ interface EnhancedBookingCalendarProps {
   onTimeSelect: (time: string) => void;
   consultationType: string;
   providerId?: string;
+  className?: string;
 }
 
 interface TimeSlot {
@@ -37,13 +27,7 @@ interface TimeSlot {
   reason?: string;
 }
 
-interface SmartSuggestion {
-  date: Date;
-  time: string;
-  reason: string;
-  priority: 'high' | 'medium' | 'low';
-  discount?: number;
-}
+
 
 const EnhancedBookingCalendar: React.FC<EnhancedBookingCalendarProps> = ({
   selectedDate,
@@ -51,14 +35,19 @@ const EnhancedBookingCalendar: React.FC<EnhancedBookingCalendarProps> = ({
   onDateSelect,
   onTimeSelect,
   consultationType,
-  providerId: propProviderId
+  providerId: propProviderId,
+  className
 }) => {
-  const { toast } = useToast();
-  const [showCalendarOptions, setShowCalendarOptions] = useState(false);
-  const generateCalendarExport = useGenerateCalendarExport();
 
-  // Use provided provider ID or fall back to environment variable
-  const providerId = propProviderId || import.meta.env.VITE_DEFAULT_PROVIDER_ID || "default-provider-id";
+
+  // Fetch providers to get a default provider if none specified
+  const { data: providersData } = useProviders();
+
+  // Use provided provider ID or fall back to first available provider
+  const providerId = propProviderId ||
+                    providersData?.providers?.[0]?.id ||
+                    import.meta.env.VITE_DEFAULT_PROVIDER_ID ||
+                    "default-provider-id";
 
   // Calculate date range for availability query
   const dateRange = useMemo(() => {
@@ -77,18 +66,28 @@ const EnhancedBookingCalendar: React.FC<EnhancedBookingCalendarProps> = ({
     consultationType: consultationType as 'VIDEO' | 'AUDIO' // Ensure type compatibility
   });
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🔍 Booking Calendar Debug:', {
+      providerId,
+      dateRange,
+      consultationType,
+      isLoading,
+      error: error?.message,
+      availabilityData,
+      providersData
+    });
+  }, [providerId, dateRange, consultationType, isLoading, error, availabilityData, providersData]);
+
   const [availableSlots, setAvailableSlots] = useState<Record<string, TimeSlot[]>>({});
-  const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestion[]>([]);
 
   useEffect(() => {
     if (isLoading || error || !availabilityData) {
       setAvailableSlots({});
-      setSmartSuggestions([]);
       return;
     }
 
     const slots: Record<string, TimeSlot[]> = {};
-    const suggestions: SmartSuggestion[] = [];
     
     availabilityData.forEach(dayAvailability => {
       const dateKey = format(new Date(dayAvailability.date), 'yyyy-MM-dd');
@@ -101,57 +100,6 @@ const EnhancedBookingCalendar: React.FC<EnhancedBookingCalendarProps> = ({
       slots[dateKey] = timeSlots;
     });
     setAvailableSlots(slots);
-
-    // Generate smart suggestions from fetched data
-    const today = new Date();
-    const nextAvailableSlots = Object.entries(slots)
-      .filter(([_, times]) => times.some(t => t.available))
-      .slice(0, 6); // Limit to 6 suggestions
-
-    nextAvailableSlots.forEach(([dateStr, times]) => {
-      const date = new Date(dateStr);
-      const availableTimes = times.filter(t => t.available);
-      if (availableTimes.length === 0) return;
-      
-      let reason = '';
-      let priority: 'high' | 'medium' | 'low' = 'medium';
-      let discount = undefined;
-      
-      if (isToday(date)) {
-        reason = 'Available today - Same day consultation';
-        priority = 'high';
-        discount = 20;
-      } else if (isTomorrow(date)) {
-        reason = 'Available tomorrow - Next day appointment';
-        priority = 'high';
-        discount = 15;
-      } else if (date.getDay() === 1) { // Monday
-        reason = 'Monday morning - Fresh start to your week';
-        priority = 'medium';
-      } else if (date.getDay() === 6) { // Saturday
-        reason = 'Weekend slot - Flexible timing';
-        priority = 'low';
-      } else if (availableTimes.some(t => t.priority === 'high')) {
-        reason = 'Premium time slot - High availability';
-        priority = 'high';
-      } else {
-        reason = `${format(date, 'EEEE')} appointment - Good availability`;
-        priority = 'medium';
-      }
-      
-      suggestions.push({
-        date,
-        time: availableTimes[0].time, // Take the first available time
-        reason,
-        priority,
-        discount
-      });
-    });
-
-    setSmartSuggestions(suggestions.sort((a, b) => {
-      const priorityOrder = { high: 3, medium: 2, low: 1 };
-      return priorityOrder[b.priority] - priorityOrder[a.priority];
-    }));
 
   }, [availabilityData, isLoading, error, consultationType]); // Added consultationType to dependencies
 
@@ -181,61 +129,7 @@ const EnhancedBookingCalendar: React.FC<EnhancedBookingCalendarProps> = ({
   
   const availableTimes = selectedDate ? getAvailableTimesForDate(selectedDate) : [];
 
-  const handleAddToCalendar = async (type: 'google' | 'apple' | 'outlook') => {
-    if (!selectedDate || !selectedTime) {
-      toast({
-        title: "Please select a date and time first",
-        variant: "destructive"
-      });
-      return;
-    }
 
-    // For now, we'll use a mock appointment ID. In a real app, this would be the actual appointment ID
-    const mockAppointmentId = "temp-appointment-id";
-
-    try {
-      switch (type) {
-        case 'google': {
-          // Generate Google Calendar URL
-          const startDateTime = new Date(selectedDate);
-          const [time, period] = selectedTime.split(' ');
-          const [hours, minutes] = time.split(':');
-          let hour24 = parseInt(hours);
-          if (period === 'PM' && hour24 !== 12) hour24 += 12;
-          if (period === 'AM' && hour24 === 12) hour24 = 0;
-
-          startDateTime.setHours(hour24, parseInt(minutes), 0, 0);
-          const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1 hour later
-
-          const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Dr.%20Fintan%20Consultation&dates=${startDateTime.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}/${endDateTime.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}&details=Virtual%20consultation%20with%20Dr.%20Fintan`;
-
-          window.open(googleUrl, '_blank');
-          toast({
-            title: "Opening Google Calendar",
-            description: "Adding appointment to your Google Calendar..."
-          });
-          break;
-        }
-
-        case 'apple':
-        case 'outlook': {
-          // Generate and download ICS file
-          await generateCalendarExport.mutateAsync(mockAppointmentId);
-          break;
-        }
-      }
-    } catch (error: unknown) {
-      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
-      logger.error('Failed to add to calendar:', errorData);
-      toast({
-        title: "Failed to add to calendar",
-        description: "Please try again or add the appointment manually.",
-        variant: "destructive"
-      });
-    }
-
-    setShowCalendarOptions(false);
-  };
 
   return (
     <div className={cn("flex flex-col", className)}>
@@ -284,6 +178,23 @@ const EnhancedBookingCalendar: React.FC<EnhancedBookingCalendarProps> = ({
                   <p className="text-medical-neutral-500 dark:text-medical-dark-text-secondary">
                     Loading available times...
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : error ? (
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center py-8">
+                  <p className="text-red-600 dark:text-red-400 mb-4">
+                    Unable to load available times: {error.message}
+                  </p>
+                  <Button
+                    onClick={() => refetch()}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    Try Again
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -339,38 +250,7 @@ const EnhancedBookingCalendar: React.FC<EnhancedBookingCalendarProps> = ({
                   {format(selectedDate, 'PPP')} at {selectedTime}
                 </p>
                 
-                <Popover open={showCalendarOptions} onOpenChange={setShowCalendarOptions}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                      <CalendarPlus className="mr-2 h-4 w-4" />
-                      Add to Calendar
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-56 p-2">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start mb-1"
-                      onClick={() => handleAddToCalendar('google')}
-                    >
-                      Add to Google Calendar
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start mb-1"
-                      onClick={() => handleAddToCalendar('apple')}
-                    >
-                      Add to Apple Calendar
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={() => handleAddToCalendar('outlook')}
-                    >
-                      Add to Outlook
-                    </Button>
-                  </PopoverContent>
-                </Popover>
+
               </CardContent>
             </Card>
           )}

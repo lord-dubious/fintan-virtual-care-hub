@@ -32,10 +32,24 @@ const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPassword'));
 const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPassword'));
 const PatientDashboard = lazy(() => import('./pages/PatientDashboard'));
 const DoctorDashboard = lazy(() => import('./pages/DoctorDashboard'));
+const PatientLayout = lazy(() => import('./components/layout/PatientLayout'));
+const PatientDashboardNew = lazy(() => import('./pages/patient/Dashboard'));
+const PatientAppointments = lazy(() => import('./pages/patient/Appointments'));
+const PatientHealthRecords = lazy(() => import('./pages/patient/HealthRecords'));
+const PatientMessages = lazy(() => import('./pages/patient/Messages'));
+const PatientSettings = lazy(() => import('./pages/patient/Settings'));
+const DoctorLayout = lazy(() => import('./components/layout/DoctorLayout'));
+const DoctorDashboardNew = lazy(() => import('./pages/doctor/Dashboard'));
+const DoctorAppointments = lazy(() => import('./pages/doctor/Appointments'));
+const DoctorPatients = lazy(() => import('./pages/doctor/Patients'));
+const DoctorMedicalRecords = lazy(() => import('./pages/doctor/MedicalRecords'));
+const DoctorAvailabilitySettings = lazy(() => import('./pages/doctor/AvailabilitySettings'));
 const PaymentPage = lazy(() => import('./pages/PaymentPage'));
 const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 const SocialAuthDemo = lazy(() => import('./pages/SocialAuthDemo'));
+const NewBookingPage = lazy(() => import('./pages/NewBookingPage'));
 import DebugAuth from './pages/DebugAuth';
+import AuthDebug from '@/components/debug/AuthDebug';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -97,6 +111,7 @@ const App = () => {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/services" element={<ServicesPage />} />
                 <Route path="/booking" element={<BookingPage />} />
+                <Route path="/new-booking" element={<NewBookingPage />} />
                 <Route path="/booking/confirmation" element={
                   <ProtectedRoute>
                     <BookingConfirmation />
@@ -115,16 +130,47 @@ const App = () => {
                 <Route path="/auth/reset-password/:token" element={<ResetPasswordPage />} />
                 <Route path="/auth/social-demo" element={<SocialAuthDemo />} />
                 <Route path="/debug-auth" element={<DebugAuth />} />
+                <Route path="/auth-debug" element={<AuthDebug />} />
                 <Route path="/dashboard" element={
                   <ProtectedRoute requiredRole="PATIENT">
                     <PatientDashboard />
                   </ProtectedRoute>
                 } />
+
+                {/* New Patient Portal Routes */}
+                <Route path="/patient" element={
+                  <ProtectedRoute requiredRole="PATIENT">
+                    <PatientLayout />
+                  </ProtectedRoute>
+                }>
+                  <Route path="dashboard" element={<PatientDashboardNew />} />
+                  <Route path="appointments" element={<PatientAppointments />} />
+                  <Route path="records" element={<PatientHealthRecords />} />
+                  <Route path="messages" element={<PatientMessages />} />
+                  <Route path="settings" element={<PatientSettings />} />
+                </Route>
+
                 <Route path="/doctor/dashboard" element={
                   <ProtectedRoute requiredRole="DOCTOR">
                     <DoctorDashboard />
                   </ProtectedRoute>
                 } />
+
+                {/* New Doctor Portal Routes */}
+                <Route path="/doctor" element={
+                  <ProtectedRoute requiredRole="DOCTOR">
+                    <DoctorLayout />
+                  </ProtectedRoute>
+                }>
+                  <Route path="dashboard" element={<DoctorDashboardNew />} />
+                  <Route path="appointments" element={<DoctorAppointments />} />
+                  <Route path="patients" element={<DoctorPatients />} />
+                  <Route path="records" element={<DoctorMedicalRecords />} />
+                  <Route path="messages" element={<div>Messages - Coming Soon</div>} />
+                  <Route path="analytics" element={<div>Analytics - Coming Soon</div>} />
+                  <Route path="schedule" element={<DoctorAvailabilitySettings />} />
+                  <Route path="settings" element={<div>Settings - Coming Soon</div>} />
+                </Route>
                 <Route path="/payment/:appointmentId" element={
                   <ProtectedRoute>
                     <PaymentPage />

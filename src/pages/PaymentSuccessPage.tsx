@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { usePayment, useVerifyPayment } from '@/hooks/usePayments';
 import { paymentsApi } from '@/api/payments';
+import { appointmentsApi } from '@/api/appointments';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import AppointmentConfirmation from '@/components/booking/AppointmentConfirmation';
+
+interface AppointmentData {
+  id: string;
+  appointmentDate: Date | string;
+  [key: string]: unknown;
+}
 
 const PaymentSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const verifyPayment = useVerifyPayment();
 
@@ -18,6 +25,7 @@ const PaymentSuccessPage: React.FC = () => {
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [confirmationError, setConfirmationError] = useState<string | null>(null);
+  const [appointment, setAppointment] = useState<AppointmentData | null>(null);
 
   // Poll payment status if we have a payment ID
   const { data: payment, isLoading: isPolling, error: pollingError } = usePayment(paymentId || '');
@@ -27,6 +35,24 @@ const PaymentSuccessPage: React.FC = () => {
     payment.status !== 'COMPLETED' &&
     payment.status !== 'FAILED' &&
     payment.status !== 'CANCELLED';
+
+  // Fetch appointment details when payment is available
+  React.useEffect(() => {
+    const fetchAppointment = async () => {
+      if (payment?.appointmentId && !appointment) {
+        try {
+          const response = await appointmentsApi.getAppointment(payment.appointmentId);
+          if (response.success && response.data) {
+            setAppointment(response.data as unknown as AppointmentData);
+          }
+        } catch (error) {
+          console.error('Failed to fetch appointment details:', error);
+        }
+      }
+    };
+
+    fetchAppointment();
+  }, [payment?.appointmentId, appointment]);
 
   // Set up polling interval
   React.useEffect(() => {
@@ -167,6 +193,21 @@ const PaymentSuccessPage: React.FC = () => {
                 Your payment has been processed successfully.
                 {payment?.appointmentId && " Your appointment is confirmed!"}
               </p>
+
+              {/* Add to Calendar section for confirmed appointments */}
+              {payment?.appointmentId && appointment?.appointmentDate && (
+                <div className="w-full mb-4">
+                  <AppointmentConfirmation
+                    selectedDate={new Date(appointment.appointmentDate)}
+                    selectedTime={new Date(appointment.appointmentDate).toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true
+                    })}
+                  />
+                </div>
+              )}
+
               {payment && (
                 <div className="bg-muted p-4 rounded-lg w-full">
                   <div className="text-sm space-y-1">

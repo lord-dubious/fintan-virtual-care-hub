@@ -48,21 +48,7 @@ export const conditionSchema = z.object({
   notes: z.string().optional(),
 });
 
-// Insurance schema
-export const insuranceSchema = z.object({
-  provider: z.string().min(2, 'Insurance provider is required'),
-  policyNumber: z.string().min(1, 'Policy number is required'),
-  groupNumber: z.string().optional(),
-  subscriberName: z.string().min(2, 'Subscriber name is required'),
-  subscriberId: z.string().optional(),
-  relationship: z.enum(['SELF', 'SPOUSE', 'CHILD', 'OTHER']).default('SELF'),
-  effectiveDate: z.string().transform((str) => new Date(str)).optional(),
-  expirationDate: z.string().transform((str) => new Date(str)).optional(),
-  copay: z.number().positive().optional(),
-  deductible: z.number().positive().optional(),
-  isPrimary: z.boolean().default(true),
-  isActive: z.boolean().default(true),
-});
+
 
 // Medical history schema
 export const medicalHistorySchema = z.object({
@@ -118,11 +104,10 @@ export const consentSchema = z.object({
 
 // Complete onboarding schema
 export const completeOnboardingSchema = z.object({
-  step: z.number().min(1).max(6),
+  step: z.number().min(1).max(5),
   basicInfo: basicInfoSchema.optional(),
   emergencyContacts: z.array(emergencyContactSchema).optional(),
   medicalHistory: medicalHistorySchema.optional(),
-  insurance: z.array(insuranceSchema).optional(),
   preferences: preferencesSchema.optional(),
   consent: consentSchema.optional(),
 });
@@ -132,9 +117,8 @@ export const onboardingStepSchemas = {
   1: z.object({ basicInfo: basicInfoSchema }),
   2: z.object({ emergencyContacts: z.array(emergencyContactSchema).min(1, 'At least one emergency contact is required') }),
   3: z.object({ medicalHistory: medicalHistorySchema }),
-  4: z.object({ insurance: z.array(insuranceSchema).min(1, 'At least one insurance record is required') }),
-  5: z.object({ preferences: preferencesSchema }),
-  6: z.object({ consent: consentSchema }),
+  4: z.object({ preferences: preferencesSchema }),
+  5: z.object({ consent: consentSchema }),
 };
 
 // Export types
@@ -143,7 +127,6 @@ export type EmergencyContactData = z.infer<typeof emergencyContactSchema>;
 export type AllergyData = z.infer<typeof allergySchema>;
 export type MedicationData = z.infer<typeof medicationSchema>;
 export type ConditionData = z.infer<typeof conditionSchema>;
-export type InsuranceData = z.infer<typeof insuranceSchema>;
 export type MedicalHistoryData = z.infer<typeof medicalHistorySchema>;
 export type PreferencesData = z.infer<typeof preferencesSchema>;
 export type ConsentData = z.infer<typeof consentSchema>;

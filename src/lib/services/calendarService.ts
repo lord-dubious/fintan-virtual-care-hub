@@ -23,11 +23,15 @@ export const calendarService = {
       // Get the day of the week (0 = Sunday, 1 = Monday, etc.)
       const dayOfWeek = date.getDay();
       
+      // Convert day number to day name
+      const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const dayName = dayNames[dayOfWeek];
+
       // Get the provider's availability for this day of the week
       const availability = await prisma.availability.findFirst({
         where: {
           providerId,
-          dayOfWeek,
+          dayOfWeek: dayName,
         },
       });
 
@@ -160,12 +164,15 @@ export const calendarService = {
   // Update provider availability
   async updateProviderAvailability(providerId: string, dayOfWeek: string, isAvailable: boolean, startTime?: string, endTime?: string): Promise<boolean> {
     try {
-      const dayOfWeekNumber = parseInt(dayOfWeek, 10);
+      // Convert day name to day name (if it's a number, convert it)
+      const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const dayName = isNaN(parseInt(dayOfWeek)) ? dayOfWeek : dayNames[parseInt(dayOfWeek)];
+
       // Check if availability record exists
       const existingAvailability = await prisma.availability.findFirst({
         where: {
           providerId,
-          dayOfWeek: dayOfWeekNumber,
+          dayOfWeek: dayName,
         },
       });
 
@@ -192,7 +199,7 @@ export const calendarService = {
         await prisma.availability.create({
           data: {
             providerId,
-            dayOfWeek: dayOfWeekNumber,
+            dayOfWeek: dayName,
             startTime: startTime || '09:00',
             endTime: endTime || '17:00',
           },
@@ -215,8 +222,10 @@ export const calendarService = {
       endTime.setMinutes(endTime.getMinutes() + 30);
 
       // Get the day of the week
-      const dayOfWeek = startTime.getDay();
-      
+      const dayOfWeekNumber = startTime.getDay();
+      const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const dayOfWeek = dayNames[dayOfWeekNumber];
+
       // Check if the provider is available on this day
       const availability = await prisma.availability.findFirst({
         where: {

@@ -1,7 +1,8 @@
 import { prisma } from '@/config/database';
 import logger from '@/config/logger';
-import { addDays, addWeeks, addMonths, format, startOfDay, endOfDay } from 'date-fns';
+import { addDays, addWeeks, addMonths, format, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { SlotCalculator } from 'slot-calculator';
 
 export interface TimeSlot {
   startTime: Date;
@@ -32,19 +33,19 @@ export interface RecurringAppointmentRequest {
 
 export class SchedulingService {
   /**
-   * Get available time slots for a provider on a specific date
+   * Get available time slots for a provider on a specific date using slot-calculator
    */
   async getAvailableSlots(request: AvailabilityRequest): Promise<TimeSlot[]> {
     try {
       const { providerId, date, timezone, duration = 30 } = request;
 
-      // Parse the date and convert to UTC for database queries
-      const requestDate = new Date(date + 'T00:00:00');
-      const startOfDayUTC = fromZonedTime(startOfDay(requestDate), timezone);
-      const endOfDayUTC = fromZonedTime(endOfDay(requestDate), timezone);
+      logger.info(`🔍 Getting available slots for provider ${providerId} on ${date}`);
+
+      // Parse the date
+      const requestDate = parseISO(date + 'T00:00:00');
+      const dayOfWeek = format(requestDate, 'EEEE').toUpperCase();
 
       // Get provider availability for the requested day
-      const dayOfWeek = format(requestDate, 'EEEE').toUpperCase();
       const providerAvailability = await prisma.availability.findMany({
         where: {
           providerId,
@@ -57,10 +58,14 @@ export class SchedulingService {
       });
 
       if (providerAvailability.length === 0) {
+        logger.info(`❌ No availability found for provider ${providerId} on ${dayOfWeek}`);
         return [];
       }
 
       // Get existing appointments for the day
+      const startOfDayUTC = fromZonedTime(startOfDay(requestDate), timezone);
+      const endOfDayUTC = fromZonedTime(endOfDay(requestDate), timezone);
+
       const existingAppointments = await prisma.appointment.findMany({
         where: {
           providerId,
@@ -72,16 +77,19 @@ export class SchedulingService {
             in: ['SCHEDULED', 'CONFIRMED'],
           },
         },
-        orderBy: {
-          appointmentDate: 'asc',
+        select: {
+          appointmentDate: true,
+          duration: true,
         },
       });
 
-      // Generate time slots
+      logger.info(`📅 Found ${existingAppointments.length} existing appointments`);
+
+      // Use slot-calculator to generate available slots
       const timeSlots: TimeSlot[] = [];
 
       for (const availability of providerAvailability) {
-        const slots = this.generateSlotsFromAvailability(
+        const slots = await this.calculateSlotsWithSlotCalculator(
           availability,
           requestDate,
           timezone,
@@ -91,11 +99,129 @@ export class SchedulingService {
         timeSlots.push(...slots);
       }
 
-      return timeSlots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+      const sortedSlots = timeSlots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+      logger.info(`✅ Generated ${sortedSlots.length} time slots`);
+
+      return sortedSlots;
     } catch (error) {
       logger.error('Get available slots error:', error);
       throw new Error('Failed to get available slots');
     }
+  }
+
+  /**
+   * Calculate available slots using slot-calculator library
+   */
+  private async calculateSlotsWithSlotCalculator(
+    availability: any,
+    requestDate: Date,
+    timezone: string,
+    duration: number,
+    existingAppointments: any[]
+  ): Promise<TimeSlot[]> {
+    try {
+      // Create date strings for the specific day
+      const dateStr = format(requestDate, 'yyyy-MM-dd');
+      const startTimeStr = `${dateStr}T${availability.startTime}:00`;
+      const endTimeStr = `${dateStr}T${availability.endTime}:00`;
+
+      // Convert to proper Date objects
+      const startTime = fromZonedTime(new Date(startTimeStr), timezone);
+      const endTime = fromZonedTime(new Date(endTimeStr), timezone);
+
+      // Prepare existing bookings for slot-calculator
+      const existingBookings = existingAppointments.map(appointment => ({
+        start: appointment.appointmentDate,
+        end: new Date(appointment.appointmentDate.getTime() + (appointment.duration || 30) * 60 * 1000),
+      }));
+
+      // Initialize slot calculator
+      const slotCalculator = new SlotCalculator({
+        startTime,
+        endTime,
+        slotDuration: duration, // in minutes
+        existingBookings,
+        timezone,
+      });
+
+      // Get available slots
+      const availableSlots = slotCalculator.getAvailableSlots();
+
+      // Convert to our TimeSlot format
+      return availableSlots.map(slot => ({
+        startTime: slot.start,
+        endTime: slot.end,
+        isAvailable: true,
+        conflictReason: undefined,
+      }));
+
+    } catch (error) {
+      logger.error('Error calculating slots with slot-calculator:', error);
+      // Fallback to basic slot generation
+      return this.generateBasicSlots(availability, requestDate, timezone, duration, existingAppointments);
+    }
+  }
+
+  /**
+   * Fallback method for basic slot generation
+   */
+  private generateBasicSlots(
+    availability: any,
+    requestDate: Date,
+    timezone: string,
+    duration: number,
+    existingAppointments: any[]
+  ): TimeSlot[] {
+    const slots: TimeSlot[] = [];
+    const dateStr = format(requestDate, 'yyyy-MM-dd');
+
+    // Parse start and end times
+    const [startHour, startMinute] = availability.startTime.split(':').map(Number);
+    const [endHour, endMinute] = availability.endTime.split(':').map(Number);
+
+    // Create start and end times for the day
+    const dayStart = fromZonedTime(
+      new Date(`${dateStr}T${availability.startTime}:00`),
+      timezone
+    );
+    const dayEnd = fromZonedTime(
+      new Date(`${dateStr}T${availability.endTime}:00`),
+      timezone
+    );
+
+    // Generate slots
+    let currentTime = new Date(dayStart);
+
+    while (currentTime < dayEnd) {
+      const slotEnd = new Date(currentTime.getTime() + duration * 60 * 1000);
+
+      if (slotEnd <= dayEnd) {
+        // Check for conflicts with existing appointments
+        const hasConflict = existingAppointments.some(appointment => {
+          const appointmentEnd = new Date(
+            appointment.appointmentDate.getTime() + (appointment.duration || 30) * 60 * 1000
+          );
+
+          return (
+            (currentTime >= appointment.appointmentDate && currentTime < appointmentEnd) ||
+            (slotEnd > appointment.appointmentDate && slotEnd <= appointmentEnd) ||
+            (currentTime <= appointment.appointmentDate && slotEnd >= appointmentEnd)
+          );
+        });
+
+        slots.push({
+          startTime: new Date(currentTime),
+          endTime: new Date(slotEnd),
+          isAvailable: !hasConflict,
+          conflictReason: hasConflict ? 'Appointment already booked' : undefined,
+        });
+      }
+
+      // Move to next slot
+      currentTime = new Date(currentTime.getTime() + duration * 60 * 1000);
+    }
+
+    return slots;
   }
 
   /**

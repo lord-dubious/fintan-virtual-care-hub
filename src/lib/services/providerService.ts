@@ -186,7 +186,9 @@ export const providerService = {
       }
   
       if (date) {
-        const dayOfWeek = date.getDay();
+        const dayOfWeekNumber = date.getDay();
+        const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+        const dayOfWeek = dayNames[dayOfWeekNumber];
         const availability = provider.availabilities.filter(a => a.dayOfWeek === dayOfWeek);
         return { success: true, data: availability };
       }
@@ -207,7 +209,11 @@ export const providerService = {
     }
   ): Promise<ApiResponse<Availability | null>> {
     try {
-      const { dayOfWeek, startTime, endTime, isAvailable } = availabilityData;
+      const { dayOfWeek: dayOfWeekNumber, startTime, endTime, isAvailable } = availabilityData;
+
+      // Convert day number to day name
+      const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const dayOfWeek = dayNames[dayOfWeekNumber];
 
       const existing = await prisma.availability.findFirst({
         where: { providerId, dayOfWeek, startTime, endTime },

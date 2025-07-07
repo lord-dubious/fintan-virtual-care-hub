@@ -22,7 +22,7 @@ import { emailService } from '@/services/emailService';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: config.server.isProduction,
-  sameSite: 'strict' as const,
+  sameSite: config.server.isProduction ? 'strict' as const : 'lax' as const,
   path: '/',
 };
 
@@ -117,7 +117,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // Set CSRF token (not httpOnly so frontend can read it)
     res.cookie(CSRF_TOKEN_COOKIE, csrfToken, {
       secure: config.server.isProduction,
-      sameSite: 'strict' as const,
+      sameSite: config.server.isProduction ? 'strict' as const : 'lax' as const,
       path: '/',
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
@@ -232,7 +232,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Set CSRF token (not httpOnly so frontend can read it)
     res.cookie(CSRF_TOKEN_COOKIE, csrfToken, {
       secure: config.server.isProduction,
-      sameSite: 'strict' as const,
+      sameSite: config.server.isProduction ? 'strict' as const : 'lax' as const,
       path: '/',
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
@@ -271,7 +271,7 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
     res.clearCookie(REFRESH_TOKEN_COOKIE, COOKIE_OPTIONS);
     res.clearCookie(CSRF_TOKEN_COOKIE, {
       secure: config.server.isProduction,
-      sameSite: 'strict' as const,
+      sameSite: config.server.isProduction ? 'strict' as const : 'lax' as const,
       path: '/',
     });
 
@@ -591,7 +591,7 @@ export const setCookies = async (req: AuthenticatedRequest, res: Response): Prom
     // Set CSRF token
     res.cookie(CSRF_TOKEN_COOKIE, csrfToken, {
       secure: config.server.isProduction,
-      sameSite: 'strict' as const,
+      sameSite: config.server.isProduction ? 'strict' as const : 'lax' as const,
       path: '/',
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
@@ -621,7 +621,7 @@ export const getCSRFToken = async (req: Request, res: Response): Promise<void> =
     // Set CSRF token cookie
     res.cookie(CSRF_TOKEN_COOKIE, csrfToken, {
       secure: config.server.isProduction,
-      sameSite: 'strict' as const,
+      sameSite: config.server.isProduction ? 'strict' as const : 'lax' as const,
       path: '/',
       maxAge: 15 * 60 * 1000, // 15 minutes
     });

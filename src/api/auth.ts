@@ -4,12 +4,14 @@ import { LoginSchema, RegisterSchema, UserSchema } from '@/lib/validation/schema
 import type { LoginData, RegisterData, User } from '@/lib/validation/schemas';
 
 // Use types from validation schemas for consistency and validation
-export type { User, LoginData as LoginCredentials, RegisterData } from '@/lib/validation/schemas';
+export type { User, LoginData, RegisterData } from '@/lib/validation/schemas';
+export type LoginCredentials = LoginData;
 
 export interface AuthResponse {
   user: User;
   token: string;
   refreshToken?: string;
+  csrfToken?: string;
 }
 
 export interface ChangePasswordData {

@@ -8,14 +8,14 @@ import { authApi } from '@/api/auth';
 
 const DebugAuth: React.FC = () => {
   const { user, isAuthenticated, login, isLoading } = useAuth();
-  const [testResults, setTestResults] = useState<any[]>([]);
+  const [testResults, setTestResults] = useState<Array<{ test: string; result: unknown; success: boolean; timestamp: string }>>([]); // Changed timestamp to string
 
-  const addTestResult = (test: string, result: any, success: boolean) => {
+  const addTestResult = (test: string, result: unknown, success: boolean) => {
     setTestResults(prev => [...prev, {
       test,
       result: typeof result === 'object' ? JSON.stringify(result, null, 2) : result,
       success,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleString() // Ensure timestamp is a string
     }]);
   };
 
@@ -25,7 +25,7 @@ const DebugAuth: React.FC = () => {
       const data = await response.json();
       addTestResult('API Health Check', data, response.ok);
     } catch (error) {
-      addTestResult('API Health Check', error.message, false);
+      addTestResult('API Health Check', error instanceof Error ? error.message : String(error), false);
     }
   };
 
@@ -37,7 +37,7 @@ const DebugAuth: React.FC = () => {
       });
       addTestResult('Login Test', response, response.success);
     } catch (error) {
-      addTestResult('Login Test', error.message, false);
+      addTestResult('Login Test', error instanceof Error ? error.message : String(error), false);
     }
   };
 
@@ -47,11 +47,12 @@ const DebugAuth: React.FC = () => {
         name: 'Test User Debug',
         email: `test-${Date.now()}@example.com`,
         password: 'password123',
+        confirmPassword: 'password123',
         role: 'PATIENT'
       });
       addTestResult('Register Test', response, response.success);
     } catch (error) {
-      addTestResult('Register Test', error.message, false);
+      addTestResult('Register Test', error instanceof Error ? error.message : String(error), false);
     }
   };
 
@@ -152,7 +153,7 @@ const DebugAuth: React.FC = () => {
                       </div>
                     </div>
                     <pre className="text-sm bg-white p-2 rounded border overflow-x-auto">
-                      {result.result}
+                      {String(result.result)} {/* Explicitly convert to string */}
                     </pre>
                   </div>
                 ))}

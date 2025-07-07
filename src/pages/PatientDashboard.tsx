@@ -27,8 +27,11 @@ import {
   Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { AppointmentStatus, MedicalRecord } from '../../shared/domain'; // Import canonical types
+import { ApiAppointment } from '@/api/appointments'; // Explicitly import ApiAppointment
 
-interface Appointment {
+// Define UI-specific appointment type
+interface AppointmentUI {
   id: string;
   date: Date;
   time: string;
@@ -36,9 +39,11 @@ interface Appointment {
   status: 'scheduled' | 'completed' | 'cancelled';
   doctor: string;
   notes?: string;
+  reason?: string; // Add reason to UI type
 }
 
-interface Prescription {
+// Define UI-specific prescription type
+interface PrescriptionUI {
   id: string;
   medication: string;
   dosage: string;
@@ -49,7 +54,8 @@ interface Prescription {
   instructions: string;
 }
 
-interface HealthRecord {
+// Define UI-specific health record type
+interface HealthRecordUI {
   id: string;
   date: Date;
   type: 'consultation' | 'lab_result' | 'prescription' | 'note';
@@ -58,6 +64,7 @@ interface HealthRecord {
   attachments?: string[];
 }
 
+
 const PatientDashboard: React.FC = () => {
   const isMobile = useIsMobile();
   const { user, isAuthenticated } = useAuth();
@@ -65,48 +72,48 @@ const PatientDashboard: React.FC = () => {
   
   // Get data from real API
   const { data: patientData, isLoading: isLoadingPatient } = usePatientDashboard();
-  const { data: patientAppointments, isLoading: isLoadingAppointments } = useAppointments({ status: 'all' });
+  const { data: appointmentsResponse, isLoading: isLoadingAppointments } = useAppointments({ status: 'all' as AppointmentStatus }); // Cast "all"
   const { data: medicalRecords, isLoading: isLoadingRecords } = usePatientMedicalRecords();
   
   // Map API data to component state
-  const appointments = React.useMemo(() => {
-    if (!patientAppointments) return [];
-    return patientAppointments.map(apt => ({
+  const appointments: AppointmentUI[] = React.useMemo(() => {
+    if (!appointmentsResponse?.appointments) return [];
+    return appointmentsResponse.appointments.map((apt: ApiAppointment) => ({
       id: apt.id,
-      date: new Date(apt.scheduledAt),
-      time: format(new Date(apt.scheduledAt), 'h:mm a'),
-      type: apt.consultationType.toLowerCase() as 'video' | 'audio',
-      status: apt.status.toLowerCase() as 'scheduled' | 'completed' | 'cancelled',
-      doctor: apt.providerName || 'Dr. Fintan Ekochin',
-      notes: apt.reason
+      date: apt.appointmentDate,
+      time: format(apt.appointmentDate, 'h:mm a'),
+      type: (apt.consultationType || 'VIDEO').toLowerCase() as 'video' | 'audio',
+      status: (apt.status || 'SCHEDULED').toLowerCase() as 'scheduled' | 'completed' | 'cancelled',
+      doctor: apt.provider?.user?.name || 'Dr. Fintan Ekochin',
+      notes: apt.consultation?.notes || apt.reason || ''
     }));
-  }, [patientAppointments]);
+  }, [appointmentsResponse]);
   
-  const prescriptions = React.useMemo(() => {
+  const prescriptions: PrescriptionUI[] = React.useMemo(() => {
     if (!medicalRecords) return [];
     return medicalRecords
-      .filter(record => record.type === 'prescription')
-      .map(prescription => ({
-        id: prescription.id,
-        medication: prescription.title || 'Prescription',
-        dosage: prescription.prescription?.dosage || '',
-        frequency: prescription.prescription?.frequency || '',
-        startDate: new Date(prescription.date),
-        endDate: new Date(prescription.prescription?.endDate || Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: prescription.prescription?.status || 'active',
-        instructions: prescription.prescription?.instructions || prescription.notes || ''
+      .filter((record: MedicalRecord) => record.prescriptions)
+      .map((record: MedicalRecord) => ({
+        id: record.id,
+        medication: record.diagnosis || 'Prescription',
+        dosage: record.prescriptions?.dosage || '',
+        frequency: record.prescriptions?.frequency || '',
+        startDate: record.createdAt,
+        endDate: record.prescriptions?.endDate || new Date(record.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000),
+        status: record.prescriptions?.status || 'active',
+        instructions: record.prescriptions?.instructions || record.notes || ''
       }));
   }, [medicalRecords]);
   
-  const healthRecords = React.useMemo(() => {
+  const healthRecords: HealthRecordUI[] = React.useMemo(() => {
     if (!medicalRecords) return [];
-    return medicalRecords.map(record => ({
+    return medicalRecords.map((record: MedicalRecord) => ({
       id: record.id,
-      date: new Date(record.date),
-      type: record.type as 'consultation' | 'lab_result' | 'prescription' | 'note',
-      title: record.title || 'Medical Record',
-      content: record.notes,
-      attachments: record.attachments
+      date: record.createdAt,
+      type: (record.diagnosis ? 'consultation' : 'note') as 'consultation' | 'lab_result' | 'prescription' | 'note',
+      title: record.diagnosis || 'Medical Record',
+      content: record.notes || '',
+      attachments: record.attachments || []
     }));
   }, [medicalRecords]);
 

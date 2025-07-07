@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import type { Appointment } from '../../../shared/domain';
+import { logger } from '../utils/monitoring';
 
 const prisma = new PrismaClient();
 
@@ -26,7 +28,6 @@ export const calendarService = {
         where: {
           providerId,
           dayOfWeek,
-          isAvailable: true,
         },
       });
 
@@ -49,7 +50,7 @@ export const calendarService = {
       endDate.setHours(endHour, endMinute, 0, 0);
 
       // Get all appointments for this provider on this date
-      const appointments = await prisma.appointment.findMany({
+      const appointments: Appointment[] = await prisma.appointment.findMany({
         where: {
           providerId,
           appointmentDate: {
@@ -102,8 +103,9 @@ export const calendarService = {
         success: true,
         timeSlots,
       };
-    } catch (error) {
-      console.error('Error getting available time slots:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Error getting available time slots:', errorData);
       return {
         success: false,
         message: 'Failed to get available time slots',
@@ -112,7 +114,7 @@ export const calendarService = {
   },
 
   // Get provider availability for a week
-  async getProviderWeeklyAvailability(providerId: string, startDate: Date): Promise<any> {
+  async getProviderWeeklyAvailability(providerId: string, startDate: Date): Promise<Array<{ date: Date; dayOfWeek: number; isAvailable: boolean; startTime: string; endTime: string }> | []> {
     try {
       // Get the provider's availability for all days of the week
       const availability = await prisma.availability.findMany({
@@ -139,7 +141,7 @@ export const calendarService = {
         weekDates.push({
           date,
           dayOfWeek,
-          isAvailable: dayAvailability ? dayAvailability.isAvailable : false,
+          isAvailable: !!dayAvailability,
           startTime: dayAvailability ? dayAvailability.startTime : null,
           endTime: dayAvailability ? dayAvailability.endTime : null,
         });
@@ -148,42 +150,49 @@ export const calendarService = {
       }
 
       return weekDates;
-    } catch (error) {
-      console.error('Error getting provider weekly availability:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Error getting provider weekly availability:', errorData);
       return [];
     }
   },
 
   // Update provider availability
-  async updateProviderAvailability(providerId: string, dayOfWeek: number, isAvailable: boolean, startTime?: string, endTime?: string): Promise<boolean> {
+  async updateProviderAvailability(providerId: string, dayOfWeek: string, isAvailable: boolean, startTime?: string, endTime?: string): Promise<boolean> {
     try {
+      const dayOfWeekNumber = parseInt(dayOfWeek, 10);
       // Check if availability record exists
       const existingAvailability = await prisma.availability.findFirst({
         where: {
           providerId,
-          dayOfWeek,
+          dayOfWeek: dayOfWeekNumber,
         },
       });
 
       if (existingAvailability) {
-        // Update existing record
-        await prisma.availability.update({
-          where: {
-            id: existingAvailability.id,
-          },
-          data: {
-            isAvailable,
-            startTime: startTime || existingAvailability.startTime,
-            endTime: endTime || existingAvailability.endTime,
-          },
-        });
-      } else {
-        // Create new record
+        if (isAvailable) {
+          // Update existing record
+          await prisma.availability.update({
+            where: {
+              id: existingAvailability.id,
+            },
+            data: {
+              startTime: startTime || existingAvailability.startTime,
+              endTime: endTime || existingAvailability.endTime,
+            },
+          });
+        } else {
+          // If setting to not available, delete the record
+          await prisma.availability.delete({
+            where: { id: existingAvailability.id },
+          });
+        }
+      } else if (isAvailable) {
+        // Create new record only if setting to available
         await prisma.availability.create({
           data: {
             providerId,
-            dayOfWeek,
-            isAvailable,
+            dayOfWeek: dayOfWeekNumber,
             startTime: startTime || '09:00',
             endTime: endTime || '17:00',
           },
@@ -191,8 +200,9 @@ export const calendarService = {
       }
 
       return true;
-    } catch (error) {
-      console.error('Error updating provider availability:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Error updating provider availability:', errorData);
       return false;
     }
   },
@@ -212,7 +222,6 @@ export const calendarService = {
         where: {
           providerId,
           dayOfWeek,
-          isAvailable: true,
         },
       });
 
@@ -271,10 +280,10 @@ export const calendarService = {
       });
 
       return overlappingAppointments.length === 0;
-    } catch (error) {
-      console.error('Error checking time slot availability:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Error checking time slot availability:', errorData);
       return false;
     }
   },
 };
-

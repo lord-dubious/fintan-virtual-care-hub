@@ -43,8 +43,11 @@ const queryClient = new QueryClient({
       staleTime: 2 * 60 * 1000, // 2 minutes - reduce refetch on focus
       retry: (failureCount, error: unknown) => {
         // Don't retry on 4xx errors
-        if (error?.response?.status >= 400 && error?.response?.status < 500) {
-          return false;
+        if (error && typeof error === 'object' && 'response' in error) {
+          const response = (error as { response?: { status?: number } }).response;
+          if (response?.status && response.status >= 400 && response.status < 500) {
+            return false;
+          }
         }
         return failureCount < 3;
       },

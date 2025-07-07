@@ -32,13 +32,14 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ paymentData, onPaymentS
       } else {
         throw new Error("Unsupported payment provider or invalid response.");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An error occurred during payment initialization";
       toast({
         title: "Payment Initialization Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       });
-      onPaymentFailure(error.message);
+      onPaymentFailure(errorMessage);
     }
   };
 

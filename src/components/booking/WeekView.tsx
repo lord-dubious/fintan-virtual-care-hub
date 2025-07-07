@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { format, addDays, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ interface WeekViewProps {
   onDateSelect: (date: Date) => void;
 }
 
-const WeekView: React.FC<WeekViewProps> = ({
+const WeekView: React.FC<WeekViewProps> = React.memo(({
   currentWeek,
   selectedDate,
   availableSlots,
@@ -30,13 +30,13 @@ const WeekView: React.FC<WeekViewProps> = ({
   onWeekChange,
   onDateSelect
 }) => {
-  const getWeekDays = () => {
+  const weekDays = useMemo(() => {
     const start = startOfWeek(currentWeek);
     const end = endOfWeek(currentWeek);
     return eachDayOfInterval({ start, end }).filter(date => date.getDay() !== 0);
-  };
+  }, [currentWeek]);
 
-  const getAvailableTimesForDate = (date: Date) => {
+  const getAvailableTimesForDate = useCallback((date: Date) => {
     const dateKey = format(date, 'yyyy-MM-dd');
     const slots = availableSlots[dateKey] || [];
     return slots.filter(slot => {
@@ -54,7 +54,7 @@ const WeekView: React.FC<WeekViewProps> = ({
         default: return true;
       }
     });
-  };
+  }, [availableSlots, timeFilter]);
 
   return (
     <Card>
@@ -81,7 +81,7 @@ const WeekView: React.FC<WeekViewProps> = ({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          {getWeekDays().map((date) => {
+          {weekDays.map((date) => {
             const availableTimes = getAvailableTimesForDate(date);
             const isSelected = selectedDate && isSameDay(date, selectedDate);
             
@@ -114,6 +114,6 @@ const WeekView: React.FC<WeekViewProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
 
 export default WeekView;

@@ -1,242 +1,252 @@
-import { PrismaClient, Provider, User, UserRole } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { PrismaClient, Prisma } from '@prisma/client';
+import {
+  ProviderWithUser,
+  ApiResponse,
+  ProviderRegistrationFormData,
+  UpdateProviderRequest,
+  Role,
+  User,
+} from '../../../shared/domain';
+import { hashPassword } from '../../utils/authUtils';
+import { Availability } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export interface ProviderCreateInput {
-  email: string;
-  password: string;
-  name: string;
-  phone?: string;
-  title?: string;
-  specialization?: string;
-  bio?: string;
-  licenseNumber?: string;
-}
-
-export interface ProviderUpdateInput {
-  name?: string;
-  email?: string;
-  phone?: string;
-  title?: string;
-  specialization?: string;
-  bio?: string;
-  licenseNumber?: string;
-}
-
-export interface ProviderWithUser extends Provider {
-  user: User;
-}
-
-async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 10;
-  return bcrypt.hash(password, saltRounds);
-}
-
 export const providerService = {
-  async create(data: ProviderCreateInput): Promise<ProviderWithUser> {
-    const hashedPassword = await hashPassword(data.password);
+  async create(data: ProviderRegistrationFormData): Promise<ApiResponse<ProviderWithUser>> {
+    try {
+      const hashedPassword = await hashPassword(data.password);
 
-    return prisma.$transaction(async (tx) => {
-      // Create user first
-      const user = await tx.user.create({
-        data: {
-          email: data.email,
-          password: hashedPassword,
-          name: data.name,
-          phone: data.phone,
-          role: UserRole.PROVIDER,
-        },
+      const result = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email: data.email,
+            password: hashedPassword,
+            name: data.name,
+            phone: data.phone,
+            role: Role.PROVIDER,
+          },
+        });
+
+        const provider = await tx.provider.create({
+          data: {
+            userId: user.id,
+            specialization: data.specialization,
+            bio: data.bio,
+          },
+          include: {
+            user: true,
+          },
+        });
+
+        return provider;
       });
 
-      // Then create provider profile
-      const provider = await tx.provider.create({
-        data: {
-          userId: user.id,
-          title: data.title,
-          specialization: data.specialization,
-          bio: data.bio,
-          licenseNumber: data.licenseNumber,
-        },
+      return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to create provider' };
+    }
+  },
+
+  async findById(id: string): Promise<ApiResponse<ProviderWithUser | null>> {
+    try {
+      const provider = await prisma.provider.findUnique({
+        where: { id },
         include: {
           user: true,
         },
       });
-
-      return provider;
-    });
+      return { success: true, data: provider };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to find provider' };
+    }
   },
 
-  async findById(id: string): Promise<ProviderWithUser | null> {
-    return prisma.provider.findUnique({
-      where: { id },
-      include: {
-        user: true,
-      },
-    });
-  },
-
-  async getById(id: string): Promise<ProviderWithUser | null> {
+  async getById(id: string): Promise<ApiResponse<ProviderWithUser | null>> {
     return this.findById(id);
   },
 
-  async findByEmail(email: string): Promise<ProviderWithUser | null> {
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+  async findByEmail(email: string): Promise<ApiResponse<ProviderWithUser | null>> {
+    try {
+      const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user || user.role !== UserRole.PROVIDER) {
-      return null;
-    }
-
-    return prisma.provider.findUnique({
-      where: { userId: user.id },
-      include: {
-        user: true,
-      },
-    });
-  },
-
-  async getByEmail(email: string): Promise<ProviderWithUser | null> {
-    return this.findByEmail(email);
-  },
-
-  async findMany(filters?: {
-    specialization?: string;
-  }): Promise<ProviderWithUser[]> {
-    const where: any = {};
-
-    if (filters?.specialization) {
-      where.specialization = filters.specialization;
-    }
-
-    return prisma.provider.findMany({
-      where,
-      include: {
-        user: true,
-      },
-    });
-  },
-
-  async getAll(): Promise<ProviderWithUser[]> {
-    return this.findMany();
-  },
-
-  async update(id: string, data: ProviderUpdateInput): Promise<ProviderWithUser> {
-    const provider = await prisma.provider.findUnique({
-      where: { id },
-      include: { user: true },
-    });
-
-    if (!provider) {
-      throw new Error(`Provider with ID ${id} not found`);
-    }
-
-    return prisma.$transaction(async (tx) => {
-      // Update user information
-      if (data.name || data.email || data.phone) {
-        await tx.user.update({
-          where: { id: provider.userId },
-          data: {
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-          },
-        });
+      if (!user || user.role !== Role.PROVIDER) {
+        return { success: true, data: null };
       }
 
-      // Update provider information
-      const updatedProvider = await tx.provider.update({
-        where: { id },
-        data: {
-          title: data.title,
-          specialization: data.specialization,
-          bio: data.bio,
-          licenseNumber: data.licenseNumber,
-        },
+      const provider = await prisma.provider.findUnique({
+        where: { userId: user.id },
         include: {
           user: true,
         },
       });
-
-      return updatedProvider;
-    });
+      return { success: true, data: provider };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to find provider' };
+    }
   },
 
-  async delete(id: string): Promise<ProviderWithUser> {
-    const provider = await prisma.provider.findUnique({
-      where: { id },
-      include: { user: true },
-    });
-
-    if (!provider) {
-      throw new Error(`Provider with ID ${id} not found`);
-    }
-
-    // Delete the user (will cascade delete the provider due to onDelete: Cascade)
-    await prisma.user.delete({
-      where: { id: provider.userId },
-    });
-
-    return provider;
+  async getByEmail(email: string): Promise<ApiResponse<ProviderWithUser | null>> {
+    return this.findByEmail(email);
   },
 
-  async getAvailability(providerId: string, date?: Date): Promise<any[]> {
-    const provider = await prisma.provider.findUnique({
-      where: { id: providerId },
-      include: {
-        availability: true,
-      },
-    });
+  async findMany(filters?: { specialization?: string }): Promise<ApiResponse<ProviderWithUser[]>> {
+    try {
+      const where: Prisma.ProviderWhereInput = {};
 
-    if (!provider) {
-      throw new Error(`Provider with ID ${providerId} not found`);
-    }
+      if (filters?.specialization) {
+        where.specialization = filters.specialization;
+      }
 
-    // If date is provided, filter by day of week
-    if (date) {
-      const dayOfWeek = date.getDay(); // 0-6 for Sunday-Saturday
-      return provider.availability.filter(a => a.dayOfWeek === dayOfWeek);
-    }
-
-    return provider.availability;
-  },
-
-  async setAvailability(providerId: string, availabilityData: {
-    dayOfWeek: number;
-    startTime: string;
-    endTime: string;
-    isAvailable: boolean;
-  }): Promise<any> {
-    const { dayOfWeek, startTime, endTime, isAvailable } = availabilityData;
-
-    // Check if availability record already exists
-    const existingAvailability = await prisma.availability.findFirst({
-      where: {
-        providerId,
-        dayOfWeek,
-        startTime,
-        endTime,
-      },
-    });
-
-    if (existingAvailability) {
-      // Update existing availability
-      return prisma.availability.update({
-        where: { id: existingAvailability.id },
-        data: { isAvailable },
-      });
-    } else {
-      // Create new availability
-      return prisma.availability.create({
-        data: {
-          providerId,
-          dayOfWeek,
-          startTime,
-          endTime,
-          isAvailable,
+      const providers = await prisma.provider.findMany({
+        where,
+        include: {
+          user: true,
         },
       });
+      return { success: true, data: providers };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to find providers' };
+    }
+  },
+
+  async getAll(): Promise<ApiResponse<ProviderWithUser[]>> {
+    return this.findMany();
+  },
+
+  async update(id: string, data: Partial<UpdateProviderRequest & { user: Partial<User> }>): Promise<ApiResponse<ProviderWithUser>> {
+    try {
+      const provider = await prisma.provider.findUnique({
+        where: { id },
+      });
+
+      if (!provider) {
+        return { success: false, error: `Provider with ID ${id} not found` };
+      }
+
+      const result = await prisma.$transaction(async (tx) => {
+        if (data.user) {
+          await tx.user.update({
+            where: { id: provider.userId },
+            data: data.user,
+          });
+        }
+        
+        const { user, ...providerData } = data;
+
+        const updatedProvider = await tx.provider.update({
+          where: { id },
+          data: providerData,
+          include: {
+            user: true,
+          },
+        });
+
+        return updatedProvider;
+      });
+
+      return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to update provider' };
+    }
+  },
+
+  async delete(id: string): Promise<ApiResponse<ProviderWithUser>> {
+    try {
+        const provider = await prisma.provider.findUnique({
+            where: { id },
+            include: { user: true },
+        });
+
+        if (!provider) {
+            return { success: false, error: `Provider with ID ${id} not found` };
+        }
+
+        await prisma.user.delete({
+            where: { id: provider.userId },
+        });
+
+        return { success: true, data: provider };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to delete provider' };
+    }
+  },
+
+  async getAvailability(providerId: string, date?: Date): Promise<ApiResponse<Availability[]>> {
+    try {
+      const provider = await prisma.provider.findUnique({
+        where: { id: providerId },
+        include: {
+          availabilities: true,
+        },
+      });
+  
+      if (!provider) {
+        return { success: false, error: `Provider with ID ${providerId} not found` };
+      }
+  
+      if (date) {
+        const dayOfWeek = date.getDay();
+        const availability = provider.availabilities.filter(a => a.dayOfWeek === dayOfWeek);
+        return { success: true, data: availability };
+      }
+  
+      return { success: true, data: provider.availabilities };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to get availability' };
+    }
+  },
+
+  async updateAvailability(
+    providerId: string,
+    availabilityData: {
+      dayOfWeek: number;
+      startTime: string;
+      endTime: string;
+      isAvailable: boolean;
+    }
+  ): Promise<ApiResponse<Availability | null>> {
+    try {
+      const { dayOfWeek, startTime, endTime, isAvailable } = availabilityData;
+
+      const existing = await prisma.availability.findFirst({
+        where: { providerId, dayOfWeek, startTime, endTime },
+      });
+
+      if (isAvailable) {
+        if (existing) {
+          // Already available, do nothing
+          return { success: true, data: existing };
+        } else {
+          // Add availability
+          const newAvailability = await prisma.availability.create({
+            data: {
+              providerId,
+              dayOfWeek,
+              startTime,
+              endTime,
+            },
+          });
+          return { success: true, data: newAvailability };
+        }
+      } else {
+        if (existing) {
+          // Remove availability
+          await prisma.availability.delete({
+            where: { id: existing.id },
+          });
+        }
+        // Not available, and doesn't exist, so do nothing
+        return { success: true, data: null };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update availability',
+      };
     }
   },
 };

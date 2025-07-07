@@ -100,6 +100,7 @@ export const AuthModals: React.FC<AuthModalsProps> = ({
         name: fullName,
         email: signupData.email,
         password: signupData.password,
+        confirmPassword: signupData.password,
         role: 'PATIENT',
       });
 

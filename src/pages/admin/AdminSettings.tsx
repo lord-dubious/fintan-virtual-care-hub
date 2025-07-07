@@ -159,7 +159,7 @@ const AdminSettings = () => {
                   <Calendar
                     mode="multiple"
                     selected={availableDays}
-                    onSelect={setAvailableDays as any}
+                    onSelect={setAvailableDays as (dates: Date[] | undefined) => void}
                     className="rounded-md border"
                   />
                 </div>

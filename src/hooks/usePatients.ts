@@ -251,13 +251,6 @@ export const usePatientDashboard = () => {
       }
       return response.data!;
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to load dashboard",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

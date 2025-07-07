@@ -225,4 +225,7 @@ export const tokenManager = {
 
   // Set auth data after login
   setAuthData: (data: AuthData) => cookieTokenManager.setAuthData(data),
+
+  // Check if cookie auth is enabled
+  isCookieAuthEnabled: () => cookieTokenManager.isCookieAuthEnabled(),
 };

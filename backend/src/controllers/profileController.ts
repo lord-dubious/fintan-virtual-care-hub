@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
-import { AuthenticatedRequest } from '../types';
-import { logger } from '../lib/logger';
+import { prisma } from '@/config/database';
+import { AuthenticatedRequest } from '@/types';
+import logger from '@/config/logger';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';

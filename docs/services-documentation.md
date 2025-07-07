@@ -1,776 +1,325 @@
 # Services Documentation
 
-This document provides detailed information about the service layer of the Fintan Virtual Care Hub application.
+This document provides detailed information about the service layer of the Fintan Virtual Care Hub application. This includes both frontend (`src/lib/services`, `src/services`) and backend (`backend/src/services`) services, outlining their responsibilities and key methods.
 
 ## Table of Contents
 
-1. [Authentication Service](#authentication-service)
-2. [Patient Service](#patient-service)
-3. [Provider Service](#provider-service)
-4. [Appointment Service](#appointment-service)
-5. [Consultation Service](#consultation-service)
-6. [Daily Service (Audio/Video)](#daily-service)
-7. [Medical Record Service](#medical-record-service)
-8. [Notification Service](#notification-service)
-9. [Payment Service](#payment-service)
-10. [Calendar Service](#calendar-service)
+1. [Frontend Services Overview](#frontend-services-overview)
+2. [Backend Services Overview](#backend-services-overview)
+3. [Authentication Service (Backend)](#authentication-service-backend)
+4. [Patient Service (Backend)](#patient-service-backend)
+5. [Provider Service (Backend)](#provider-service-backend)
+6. [Appointment Service (Backend)](#appointment-service-backend)
+7. [Consultation Service (Backend)](#consultation-service-backend)
+8. [Daily Service (Frontend SDK Wrapper)](#daily-service-frontend-sdk-wrapper)
+9. [Medical Record Service (Backend)](#medical-record-service-backend)
+10. [Notification Service (Backend)](#notification-service-backend)
+11. [Payment Service (Backend)](#payment-service-backend)
+12. [Calendar Service (Backend)](#calendar-service-backend)
+13. [Calendar Integration Service (Frontend)](#calendar-integration-service-frontend)
 
 ---
 
-## Authentication Service
+## Frontend Services Overview
 
-The Authentication Service handles user authentication, registration, and session management.
+These services are primarily responsible for interacting with the backend APIs and managing client-side logic.
+
+*   `src/lib/services/appointmentService.ts`: Handles client-side logic for appointments.
+*   `src/lib/services/authProvider.tsx`: Provides authentication context to React components.
+*   `src/lib/services/calendarService.ts`: Manages provider availability and time slots (frontend related logic, though interacts with backend).
+*   `src/lib/services/consultationService.ts`: Manages consultation data and state on the frontend, interacts with backend for Daily.co rooms/tokens.
+*   `src/lib/services/dailyService.ts`: Wraps the Daily.co SDK for direct frontend video/audio call management.
+*   `src/lib/services/medicalRecordService.ts`: Handles client-side medical record operations.
+*   `src/lib/services/notificationService.ts`: Manages client-side notifications.
+*   `src/lib/services/patientProfileService.ts`: Manages patient profile data and onboarding status.
+*   `src/lib/services/patientService.ts`: Handles client-side patient-specific operations.
+*   `src/lib/services/paymentService.ts`: Manages client-side payment operations.
+*   `src/lib/services/providerService.ts`: Handles client-side provider-specific operations.
+*   `src/services/calendarIntegrationService.ts`: Integrates with external calendar services (Google, Outlook, ICS).
+*   `src/services/videoCallService.ts`: Manages the overall video call session on the frontend, coordinating with `webrtcService`.
+*   `src/services/webrtcService.ts`: Provides a generic WebRTC interface for video/audio calls, used by `videoCallService`.
+
+## Backend Services Overview
+
+These services (`backend/src/services`) primarily interact with the database (Prisma) and external APIs, handling business logic and data persistence.
+
+*   `backend/src/services/authService.ts`: Handles user authentication, token management, and password resets.
+*   `backend/src/services/appointmentService.ts`: Manages appointment creation, updates, and retrieval.
+*   `backend/src/services/consultationService.ts`: Manages consultation records and Daily.co room/token generation.
+*   `backend/src/services/emailService.ts`: Handles sending emails (e.g., password reset, welcome).
+*   `backend/src/services/medicalRecordService.ts`: Manages medical record creation, retrieval, and updates.
+*   `backend/src/services/notificationService.ts`: Manages server-side notification creation and delivery.
+*   `backend/src/services/paymentService.ts`: Handles payment processing and integration with payment gateways.
+*   `backend/src/services/patientService.ts`: Manages patient data and onboarding.
+*   `backend/src/services/providerService.ts`: Manages provider data and availability.
+*   `backend/src/services/dailyService.ts`: (Not a direct file, but conceptually, the `dailyClient` in `backend/src/config/daily.ts` acts as a service for Daily.co API interactions).
+
+---
+
+## Authentication Service (Backend)
+**File:** `backend/src/controllers/authController.ts` and underlying services/utils.
+
+The Authentication Service handles user authentication, registration, session management, and password resets.
 
 ### Methods
 
-#### `register(userData: RegisterUserData): Promise<AuthResult>`
-
+#### `register(req: Request, res: Response): Promise<void>` (POST /api/auth/register)
 Registers a new user in the system.
 
-**Parameters:**
-- `userData`: Object containing user registration data
-  - `email`: User's email address
-  - `password`: User's password
-  - `name`: User's full name
-  - `role`: User's role (PATIENT, PROVIDER, ADMIN)
-  - `additionalInfo`: Additional information based on role
+#### `login(req: Request, res: Response): Promise<void>` (POST /api/auth/login)
+Authenticates a user and creates a session, setting HTTP-only cookies for access and refresh tokens, and a CSRF token.
 
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `user`: User object if successful
-  - `token`: JWT token if successful
-  - `message`: Error message if unsuccessful
+#### `logout(req: AuthenticatedRequest, res: Response): Promise<void>` (POST /api/auth/logout)
+Logs out a user by clearing cookies and invalidating refresh tokens.
 
-#### `login(email: string, password: string): Promise<AuthResult>`
+#### `getProfile(req: AuthenticatedRequest, res: Response): Promise<void>` (GET /api/auth/me)
+Retrieves the authenticated user's profile.
 
-Authenticates a user and creates a session.
+#### `forgotPassword(req: Request, res: Response): Promise<void>` (POST /api/auth/forgot-password)
+Initiates the password reset process by sending a reset link to the user's email.
 
-**Parameters:**
-- `email`: User's email address
-- `password`: User's password
+#### `resetPassword(req: Request, res: Response): Promise<void>` (POST /api/auth/reset-password)
+Resets a user's password using a token. This endpoint verifies the token and updates the password in a single step.
 
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `user`: User object if successful
-  - `token`: JWT token if successful
-  - `message`: Error message if unsuccessful
+#### `refreshToken(req: Request, res: Response): Promise<void>` (POST /api/auth/refresh-token)
+Generates a new access token using a refresh token.
 
-#### `resetPassword(email: string): Promise<ResetResult>`
+#### `setCookies(req: AuthenticatedRequest, res: Response): Promise<void>` (POST /api/auth/set-cookies)
+Explicitly sets authentication cookies (used in social auth flow).
 
-Initiates the password reset process.
-
-**Parameters:**
-- `email`: User's email address
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `message`: Success or error message
-
-#### `verifyResetToken(token: string): Promise<VerifyResult>`
-
-Verifies a password reset token.
-
-**Parameters:**
-- `token`: Reset token from email
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `message`: Success or error message
-
-#### `updatePassword(token: string, newPassword: string): Promise<UpdateResult>`
-
-Updates a user's password after reset.
-
-**Parameters:**
-- `token`: Reset token from email
-- `newPassword`: New password
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `message`: Success or error message
+#### `getCSRFToken(req: Request, res: Response): Promise<void>` (GET /api/auth/csrf-token)
+Generates and provides a CSRF token.
 
 ---
 
-## Patient Service
+## Patient Service (Backend)
+**File:** `backend/src/controllers/patientController.ts` and underlying services.
 
-The Patient Service handles patient-specific operations.
+The Patient Service handles patient-specific operations, including profile management and medical history.
 
-### Methods
+### Methods (Conceptual, based on API endpoints)
 
-#### `getPatientById(patientId: string): Promise<PatientResult>`
-
+#### `getPatient(patientId: string): Promise<Patient>` (GET /api/patients/:id)
 Retrieves a patient by ID.
 
-**Parameters:**
-- `patientId`: Patient's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `patient`: Patient object if successful
-  - `message`: Error message if unsuccessful
-
-#### `getPatientByUserId(userId: string): Promise<PatientResult>`
-
-Retrieves a patient by user ID.
-
-**Parameters:**
-- `userId`: User's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `patient`: Patient object if successful
-  - `message`: Error message if unsuccessful
-
-#### `updatePatientProfile(patientId: string, data: PatientUpdateData): Promise<PatientResult>`
-
+#### `updatePatient(patientId: string, data: PatientUpdateData): Promise<Patient>` (PUT /api/patients/:id)
 Updates a patient's profile information.
 
-**Parameters:**
-- `patientId`: Patient's unique identifier
-- `data`: Object containing fields to update
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `patient`: Updated patient object if successful
-  - `message`: Error message if unsuccessful
-
-#### `getPatientMedicalHistory(patientId: string): Promise<MedicalHistoryResult>`
-
+#### `getPatientMedicalHistory(patientId: string): Promise<MedicalRecord[]>` (GET /api/patients/:id/medical-history)
 Retrieves a patient's medical history.
 
-**Parameters:**
-- `patientId`: Patient's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `medicalHistory`: Array of medical history records if successful
-  - `message`: Error message if unsuccessful
-
 ---
 
-## Provider Service
+## Provider Service (Backend)
+**File:** `backend/src/controllers/providerController.ts` and underlying services.
 
-The Provider Service handles provider-specific operations.
+The Provider Service handles provider-specific operations, including profile and availability management.
 
-### Methods
+### Methods (Conceptual, based on API endpoints)
 
-#### `getProviderById(providerId: string): Promise<ProviderResult>`
-
+#### `getProvider(providerId: string): Promise<Provider>` (GET /api/providers/:id)
 Retrieves a provider by ID.
 
-**Parameters:**
-- `providerId`: Provider's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `provider`: Provider object if successful
-  - `message`: Error message if unsuccessful
-
-#### `getProviderByUserId(userId: string): Promise<ProviderResult>`
-
-Retrieves a provider by user ID.
-
-**Parameters:**
-- `userId`: User's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `provider`: Provider object if successful
-  - `message`: Error message if unsuccessful
-
-#### `getAllProviders(filters?: ProviderFilters): Promise<ProvidersResult>`
-
+#### `getAllProviders(filters?: ProviderFilters): Promise<Provider[]>` (GET /api/providers)
 Retrieves all providers, optionally filtered.
 
-**Parameters:**
-- `filters`: Optional object containing filter criteria
-  - `specialty`: Filter by specialty
-  - `availability`: Filter by availability
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `providers`: Array of provider objects if successful
-  - `message`: Error message if unsuccessful
-
-#### `updateProviderProfile(providerId: string, data: ProviderUpdateData): Promise<ProviderResult>`
-
+#### `updateProvider(providerId: string, data: ProviderUpdateData): Promise<Provider>` (PUT /api/providers/:id/profile)
 Updates a provider's profile information.
 
-**Parameters:**
-- `providerId`: Provider's unique identifier
-- `data`: Object containing fields to update
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `provider`: Updated provider object if successful
-  - `message`: Error message if unsuccessful
-
-#### `updateProviderAvailability(providerId: string, availability: AvailabilityData[]): Promise<AvailabilityResult>`
-
+#### `updateProviderAvailability(providerId: string, availabilityData: AvailabilityData[]): Promise<Availability[]>` (PUT /api/providers/:id/availability)
 Updates a provider's availability schedule.
-
-**Parameters:**
-- `providerId`: Provider's unique identifier
-- `availability`: Array of availability objects
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `availability`: Updated availability array if successful
-  - `message`: Error message if unsuccessful
 
 ---
 
-## Appointment Service
+## Appointment Service (Backend)
+**File:** `backend/src/controllers/appointmentController.ts` and underlying services.
 
 The Appointment Service handles appointment scheduling and management.
 
-### Methods
+### Methods (Conceptual, based on API endpoints)
 
-#### `createAppointment(appointmentData: AppointmentCreateData): Promise<AppointmentResult>`
-
+#### `createAppointment(appointmentData: AppointmentCreateData): Promise<Appointment>` (POST /api/appointments)
 Creates a new appointment.
 
-**Parameters:**
-- `appointmentData`: Object containing appointment data
-  - `patientId`: Patient's unique identifier
-  - `providerId`: Provider's unique identifier
-  - `appointmentDate`: Date and time of appointment
-  - `consultationType`: Type of consultation (AUDIO, VIDEO)
-  - `reason`: Reason for appointment
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `appointment`: Created appointment object if successful
-  - `message`: Error message if unsuccessful
-
-#### `getAppointmentById(appointmentId: string): Promise<AppointmentResult>`
-
+#### `getAppointment(appointmentId: string): Promise<Appointment>` (GET /api/appointments/:id)
 Retrieves an appointment by ID.
 
-**Parameters:**
-- `appointmentId`: Appointment's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `appointment`: Appointment object if successful
-  - `message`: Error message if unsuccessful
-
-#### `getPatientAppointments(patientId: string, status?: AppointmentStatus): Promise<AppointmentsResult>`
-
+#### `getPatientAppointments(patientId: string, status?: AppointmentStatus): Promise<Appointment[]>` (GET /api/appointments/patient/:patientId)
 Retrieves appointments for a specific patient.
 
-**Parameters:**
-- `patientId`: Patient's unique identifier
-- `status`: Optional filter by appointment status
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `appointments`: Array of appointment objects if successful
-  - `message`: Error message if unsuccessful
-
-#### `getProviderAppointments(providerId: string, status?: AppointmentStatus): Promise<AppointmentsResult>`
-
+#### `getProviderAppointments(providerId: string, status?: AppointmentStatus): Promise<Appointment[]>` (GET /api/appointments/provider/:providerId)
 Retrieves appointments for a specific provider.
 
-**Parameters:**
-- `providerId`: Provider's unique identifier
-- `status`: Optional filter by appointment status
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `appointments`: Array of appointment objects if successful
-  - `message`: Error message if unsuccessful
-
-#### `updateAppointmentStatus(appointmentId: string, status: AppointmentStatus): Promise<AppointmentResult>`
-
+#### `updateAppointmentStatus(appointmentId: string, status: AppointmentStatus): Promise<Appointment>` (PUT /api/appointments/:id/status)
 Updates an appointment's status.
 
-**Parameters:**
-- `appointmentId`: Appointment's unique identifier
-- `status`: New appointment status
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `appointment`: Updated appointment object if successful
-  - `message`: Error message if unsuccessful
-
-#### `rescheduleAppointment(appointmentId: string, newDate: Date): Promise<AppointmentResult>`
-
+#### `rescheduleAppointment(appointmentId: string, newDate: Date): Promise<Appointment>` (PUT /api/appointments/:id/reschedule)
 Reschedules an appointment.
 
-**Parameters:**
-- `appointmentId`: Appointment's unique identifier
-- `newDate`: New date and time for the appointment
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `appointment`: Updated appointment object if successful
-  - `message`: Error message if unsuccessful
-
 ---
 
-## Consultation Service
+## Consultation Service (Backend)
+**File:** `backend/src/controllers/consultationController.ts` and underlying services.
 
-The Consultation Service handles video/audio consultations between patients and providers.
+The Consultation Service handles video/audio consultations and Daily.co room/token management.
 
 ### Methods
 
-#### `getConsultationById(consultationId: string): Promise<ConsultationResult>`
-
+#### `getConsultation(consultationId: string): Promise<Consultation>` (GET /api/consultations/:id)
 Retrieves a consultation by ID.
 
-**Parameters:**
-- `consultationId`: Consultation's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `consultation`: Consultation object if successful
-  - `message`: Error message if unsuccessful
-
-#### `getConsultationByAppointmentId(appointmentId: string): Promise<ConsultationResult>`
-
+#### `getConsultationByAppointment(appointmentId: string): Promise<Consultation>` (GET /api/consultations/appointment/:appointmentId)
 Retrieves a consultation by appointment ID.
 
-**Parameters:**
-- `appointmentId`: Appointment's unique identifier
+#### `joinConsultation(appointmentId: string): Promise<JoinConsultationResponse>` (POST /api/consultations/:appointmentId/join)
+Creates a new consultation room if one does not exist for the given appointment, and generates a secure token for the user to join the Daily.co video call.
 
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `consultation`: Consultation object if successful
-  - `message`: Error message if unsuccessful
+#### `createConsultation(appointmentId: string, videoEnabled?: boolean): Promise<Consultation>` (POST /api/consultations/create/:appointmentId)
+Creates a new consultation record for an appointment.
 
-#### `createConsultationRoom(appointmentId: string): Promise<string>`
+#### `updateConsultationNotes(consultationId: string, notes: string): Promise<Consultation>` (PUT /api/consultations/:consultationId/notes)
+Updates a consultation's notes.
 
-Creates a new consultation room using Daily.co API.
-
-**Parameters:**
-- `appointmentId`: Appointment's unique identifier
-
-**Returns:**
-- Promise resolving to the room URL
-
-#### `generateRoomToken(consultationId: string, userId: string): Promise<string>`
-
-Generates a secure token for joining a consultation room.
-
-**Parameters:**
-- `consultationId`: Consultation's unique identifier
-- `userId`: User's unique identifier
-
-**Returns:**
-- Promise resolving to the room token
-
-#### `createConsultation(appointmentId: string): Promise<ConsultationResult>`
-
-Creates a new consultation for an appointment.
-
-**Parameters:**
-- `appointmentId`: Appointment's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `consultation`: Created consultation object if successful
-  - `message`: Error message if unsuccessful
-
-#### `updateConsultationStatus(consultationId: string, status: string): Promise<ConsultationResult>`
-
+#### `updateConsultationStatus(consultationId: string, status: ConsultationStatus): Promise<Consultation>` (PUT /api/consultations/:consultationId/status)
 Updates a consultation's status.
 
-**Parameters:**
-- `consultationId`: Consultation's unique identifier
-- `status`: New consultation status
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `consultation`: Updated consultation object if successful
-  - `message`: Error message if unsuccessful
-
-#### `updateConsultation(consultationId: string, data: any): Promise<ConsultationResult>`
-
+#### `updateConsultation(consultationId: string, data: any): Promise<Consultation>` (PUT /api/consultations/:consultationId)
 Updates a consultation with provided data.
-
-**Parameters:**
-- `consultationId`: Consultation's unique identifier
-- `data`: Object containing fields to update
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `consultation`: Updated consultation object if successful
-  - `message`: Error message if unsuccessful
 
 ---
 
-## Daily Service
+## Daily Service (Frontend SDK Wrapper)
+**File:** `src/lib/services/dailyService.ts`
 
-The Daily Service handles audio/video call functionality using the Daily.co SDK.
+This service wraps the Daily.co SDK for direct frontend video/audio call management. It is responsible for initializing and controlling the Daily.co call object.
 
 ### Methods
 
-#### `initializeCall(roomUrl: string, token: string, options?: CallOptions): Promise<boolean>`
-
+#### `initializeCall(roomUrl: string, token?: string, options?: { video?: boolean, audio?: boolean }): Promise<boolean>`
 Initializes a call with Daily.co.
 
-**Parameters:**
-- `roomUrl`: URL of the Daily.co room
-- `token`: Secure token for joining the room
-- `options`: Optional call configuration
-  - `video`: Boolean to enable/disable video
-  - `audio`: Boolean to enable/disable audio
-
-**Returns:**
-- Promise resolving to a boolean indicating success
-
 #### `toggleAudio(): Promise<boolean>`
-
 Toggles the local audio on/off.
 
-**Returns:**
-- Promise resolving to a boolean indicating success
-
 #### `toggleVideo(): Promise<boolean>`
-
 Toggles the local video on/off.
 
-**Returns:**
-- Promise resolving to a boolean indicating success
-
 #### `enableVideo(): Promise<boolean>`
-
 Enables the local video.
 
-**Returns:**
-- Promise resolving to a boolean indicating success
-
 #### `shareScreen(): Promise<boolean>`
-
 Toggles screen sharing on/off.
 
-**Returns:**
-- Promise resolving to a boolean indicating success
-
 #### `sendVideoRequest(): Promise<boolean>`
-
 Sends a request to enable video (for providers in audio calls).
 
-**Returns:**
-- Promise resolving to a boolean indicating success
-
 #### `sendVideoRequestResponse(accepted: boolean): Promise<boolean>`
-
 Sends a response to a video request.
 
-**Parameters:**
-- `accepted`: Boolean indicating if the request was accepted
-
-**Returns:**
-- Promise resolving to a boolean indicating success
-
 #### `onVideoRequestReceived(callback: () => void): void`
-
 Registers a callback for when a video request is received.
 
-**Parameters:**
-- `callback`: Function to call when a video request is received
-
 #### `endCall(): Promise<void>`
-
 Ends the current call and cleans up resources.
 
-**Returns:**
-- Promise that resolves when the call has ended
+#### `destroyCall(): void`
+Destroys the Daily.co call object.
 
-#### `getCallObject(): any`
-
+#### `getCallObject(): DailyCall | null`
 Gets the Daily.co call object for advanced usage.
 
-**Returns:**
-- The Daily.co call object
+#### `getParticipants(): Record<string, ParticipantState>`
+Gets the current participants' states in the call.
 
 ---
 
-## Medical Record Service
+## Medical Record Service (Backend)
+**File:** `backend/src/controllers/medicalRecordController.ts` and underlying services.
 
 The Medical Record Service handles patient medical records.
 
-### Methods
+### Methods (Conceptual, based on API endpoints)
 
-#### `getPatientRecords(patientId: string): Promise<MedicalRecordsResult>`
-
+#### `getPatientRecords(patientId: string): Promise<MedicalRecord[]>` (GET /api/medical-records/patient/:patientId)
 Retrieves medical records for a specific patient.
 
-**Parameters:**
-- `patientId`: Patient's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `records`: Array of medical record objects if successful
-  - `message`: Error message if unsuccessful
-
-#### `getRecordById(recordId: string): Promise<MedicalRecordResult>`
-
+#### `getRecordById(recordId: string): Promise<MedicalRecord>` (GET /api/medical-records/:id)
 Retrieves a specific medical record by ID.
 
-**Parameters:**
-- `recordId`: Medical record's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `record`: Medical record object if successful
-  - `message`: Error message if unsuccessful
-
-#### `createRecord(recordData: MedicalRecordCreateData): Promise<MedicalRecordResult>`
-
+#### `createRecord(recordData: MedicalRecordCreateData): Promise<MedicalRecord>` (POST /api/medical-records)
 Creates a new medical record.
 
-**Parameters:**
-- `recordData`: Object containing medical record data
-  - `patientId`: Patient's unique identifier
-  - `providerId`: Provider's unique identifier
-  - `consultationId`: Related consultation ID
-  - `diagnosis`: Diagnosis information
-  - `notes`: Clinical notes
-  - `prescriptions`: Prescribed medications
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `record`: Created medical record object if successful
-  - `message`: Error message if unsuccessful
-
-#### `updateRecord(recordId: string, data: MedicalRecordUpdateData): Promise<MedicalRecordResult>`
-
+#### `updateRecord(recordId: string, data: MedicalRecordUpdateData): Promise<MedicalRecord>` (PUT /api/medical-records/:id)
 Updates an existing medical record.
-
-**Parameters:**
-- `recordId`: Medical record's unique identifier
-- `data`: Object containing fields to update
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `record`: Updated medical record object if successful
-  - `message`: Error message if unsuccessful
 
 ---
 
-## Notification Service
+## Notification Service (Backend)
+**File:** `backend/src/controllers/notificationController.ts` and underlying services.
 
 The Notification Service handles system notifications and reminders.
 
-### Methods
+### Methods (Conceptual, based on API endpoints)
 
-#### `createNotification(notificationData: NotificationCreateData): Promise<NotificationResult>`
-
+#### `createNotification(notificationData: NotificationCreateData): Promise<Notification>` (POST /api/notifications)
 Creates a new notification.
 
-**Parameters:**
-- `notificationData`: Object containing notification data
-  - `userId`: User's unique identifier
-  - `type`: Notification type
-  - `title`: Notification title
-  - `message`: Notification message
-  - `relatedId`: ID of related entity (appointment, consultation, etc.)
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `notification`: Created notification object if successful
-  - `message`: Error message if unsuccessful
-
-#### `getUserNotifications(userId: string, read?: boolean): Promise<NotificationsResult>`
-
+#### `getUserNotifications(userId: string, read?: boolean): Promise<Notification[]>` (GET /api/notifications/user/:userId)
 Retrieves notifications for a specific user.
 
-**Parameters:**
-- `userId`: User's unique identifier
-- `read`: Optional filter by read status
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `notifications`: Array of notification objects if successful
-  - `message`: Error message if unsuccessful
-
-#### `markNotificationAsRead(notificationId: string): Promise<NotificationResult>`
-
+#### `markNotificationAsRead(notificationId: string): Promise<Notification>` (PUT /api/notifications/:id/read)
 Marks a notification as read.
-
-**Parameters:**
-- `notificationId`: Notification's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `notification`: Updated notification object if successful
-  - `message`: Error message if unsuccessful
-
-#### `sendAppointmentReminder(appointmentId: string): Promise<ReminderResult>`
-
-Sends a reminder for an upcoming appointment.
-
-**Parameters:**
-- `appointmentId`: Appointment's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `message`: Success or error message
 
 ---
 
-## Payment Service
+## Payment Service (Backend)
+**File:** `backend/src/controllers/paymentController.ts` and underlying services.
 
 The Payment Service handles payment processing and billing.
 
-### Methods
+### Methods (Conceptual, based on API endpoints)
 
-#### `createPaymentIntent(amount: number, currency: string, metadata: any): Promise<PaymentIntentResult>`
+#### `createPaymentIntent(data: CreatePaymentIntentData): Promise<PaymentIntent>` (POST /api/payments/create-intent)
+Creates a payment intent with the integrated payment gateway (e.g., Stripe).
 
-Creates a payment intent with Stripe.
+#### `confirmPayment(data: ConfirmPaymentData): Promise<Payment>` (POST /api/payments/confirm)
+Confirms a payment for an appointment.
 
-**Parameters:**
-- `amount`: Payment amount in cents
-- `currency`: Currency code (e.g., 'usd')
-- `metadata`: Additional metadata for the payment
+#### `getPaymentHistory(userId: string): Promise<Payment[]>` (GET /api/payments/patient/:patientId or /api/payments/provider/:providerId)
+Retrieves payment history for a user (patient or provider).
 
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `clientSecret`: Client secret for Stripe if successful
-  - `message`: Error message if unsuccessful
-
-#### `processPayment(appointmentId: string, paymentMethodId: string): Promise<PaymentResult>`
-
-Processes a payment for an appointment.
-
-**Parameters:**
-- `appointmentId`: Appointment's unique identifier
-- `paymentMethodId`: Stripe payment method ID
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `payment`: Payment object if successful
-  - `message`: Error message if unsuccessful
-
-#### `getPaymentHistory(userId: string): Promise<PaymentsResult>`
-
-Retrieves payment history for a user.
-
-**Parameters:**
-- `userId`: User's unique identifier
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `payments`: Array of payment objects if successful
-  - `message`: Error message if unsuccessful
-
-#### `refundPayment(paymentId: string, amount?: number): Promise<RefundResult>`
-
+#### `refundPayment(data: RefundData): Promise<Payment>` (POST /api/payments/refund)
 Processes a refund for a payment.
-
-**Parameters:**
-- `paymentId`: Payment's unique identifier
-- `amount`: Optional refund amount (defaults to full amount)
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `refund`: Refund object if successful
-  - `message`: Error message if unsuccessful
 
 ---
 
-## Calendar Service
+## Calendar Service (Backend)
+**File:** `backend/src/controllers/calendarController.ts` and underlying services.
 
-The Calendar Service handles calendar operations and availability management.
+The Calendar Service handles provider availability and time slot management.
+
+### Methods (Conceptual, based on API endpoints)
+
+#### `getAvailability(request: AvailabilityRequest): Promise<DayAvailability[]>` (GET /api/calendar/availability)
+Retrieves a provider's availability within a date range.
+
+#### `getDayAvailability(providerId: string, date: Date): Promise<DayAvailability>` (GET /api/calendar/availability/:providerId/:date)
+Retrieves available time slots for a specific date.
+
+#### `blockTimeSlot(request: BlockTimeSlotRequest): Promise<CalendarEvent>` (POST /api/calendar/block-slot)
+Blocks a time slot in a provider's calendar.
+
+---
+
+## Calendar Integration Service (Frontend)
+**File:** `src/services/calendarService.ts`
+
+This service handles integration with external calendar services like Google Calendar, Outlook, and ICS.
 
 ### Methods
 
-#### `getProviderAvailability(providerId: string, startDate: Date, endDate: Date): Promise<AvailabilityResult>`
+#### `createCalendarEvent(event: CalendarEvent, provider: CalendarProvider): Promise<string | null>`
+Creates a calendar event in the specified external calendar.
 
-Retrieves a provider's availability within a date range.
-
-**Parameters:**
-- `providerId`: Provider's unique identifier
-- `startDate`: Start date for availability search
-- `endDate`: End date for availability search
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `availability`: Array of available time slots if successful
-  - `message`: Error message if unsuccessful
-
-#### `getAvailableTimeSlots(providerId: string, date: Date): Promise<TimeSlotsResult>`
-
-Retrieves available time slots for a specific date.
-
-**Parameters:**
-- `providerId`: Provider's unique identifier
-- `date`: Date to check availability
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `timeSlots`: Array of available time slots if successful
-  - `message`: Error message if unsuccessful
-
-#### `blockTimeSlot(providerId: string, startTime: Date, endTime: Date, reason?: string): Promise<BlockResult>`
-
-Blocks a time slot in a provider's calendar.
-
-**Parameters:**
-- `providerId`: Provider's unique identifier
-- `startTime`: Start time of the block
-- `endTime`: End time of the block
-- `reason`: Optional reason for blocking
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `block`: Created block object if successful
-  - `message`: Error message if unsuccessful
-
-#### `syncWithExternalCalendar(providerId: string, calendarType: string, calendarId: string): Promise<SyncResult>`
-
-Syncs with an external calendar service.
-
-**Parameters:**
-- `providerId`: Provider's unique identifier
-- `calendarType`: Type of external calendar (GOOGLE, OUTLOOK, etc.)
-- `calendarId`: ID of the external calendar
-
-**Returns:**
-- Promise resolving to an object containing:
-  - `success`: Boolean indicating success
-  - `message`: Success or error message
-
+#### `syncWithCalendar(appointmentId: string, appointmentData: AppointmentWithDetails): Promise<boolean>`
+Syncs an appointment with an external calendar, generating an event based on appointment details.

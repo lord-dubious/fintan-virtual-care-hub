@@ -37,21 +37,9 @@ import {
 import { format } from 'date-fns';
 import { useAdminAppointments } from '@/hooks/useAdmin';
 import { useCancelAppointment, useJoinConsultation } from '@/hooks/useAppointments';
-import { AppointmentFilters } from '@/api/appointments';
+import { AppointmentFilters, ApiAppointment } from '@/api/appointments'; // Import ApiAppointment
 
-// Type definitions for API data
-interface ApiAppointment {
-  id: string;
-  patient?: {
-    user?: {
-      name?: string;
-    };
-  };
-  appointmentDate: string;
-  consultationType: 'VIDEO' | 'AUDIO' | string;
-  status: 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | string;
-}
-
+// Define UI-specific AppointmentUI based on ApiAppointment
 interface AppointmentUI {
   id: string;
   patient: string;
@@ -63,8 +51,8 @@ interface AppointmentUI {
 // Transform API appointment data to match UI expectations
 const transformAppointment = (appointment: ApiAppointment): AppointmentUI => ({
   id: appointment.id,
-  patient: appointment.patient?.user?.name || 'Unknown Patient',
-  date: appointment.appointmentDate,
+  patient: appointment.patient?.user?.name || 'Unknown Patient', // Access patient name via user object
+  date: appointment.appointmentDate.toISOString(), // Convert Date to ISO string
   type: appointment.consultationType === 'VIDEO' ? 'Video' : 'Audio',
   status: appointment.status === 'SCHEDULED' ? 'Confirmed' :
           appointment.status === 'CONFIRMED' ? 'Confirmed' :

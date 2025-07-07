@@ -1,5 +1,6 @@
 import { PrismaClient, Consultation, ConsultationStatus } from '@prisma/client';
 import { webrtcService } from './webrtcService';
+import { logger } from '../lib/utils/monitoring';
 
 const prisma = new PrismaClient();
 
@@ -63,7 +64,7 @@ class VideoCallService {
       createdAt: consultation.createdAt,
     };
 
-    console.log('Video call session created:', consultation.sessionId);
+    logger.info('Video call session created:', { sessionId: consultation.sessionId });
     return this.currentSession;
   }
 
@@ -81,8 +82,9 @@ class VideoCallService {
 
       await webrtcService.initializeCall(room);
       return true;
-    } catch (error) {
-      console.error('Failed to join session:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Failed to join session:', errorData);
       return false;
     }
   }
@@ -116,7 +118,7 @@ class VideoCallService {
     }
 
     this.currentSession = null;
-    console.log('Video call session ended:', sessionId);
+    logger.info('Video call session ended:', { sessionId });
   }
 
   async toggleVideo(): Promise<boolean> {
@@ -131,8 +133,9 @@ class VideoCallService {
     return await webrtcService.shareScreen();
   }
 
-  getCallObject(): any {
-    return webrtcService.getCallObject();
+  getCallObject(): Record<string, unknown> | null {
+    const callObject = webrtcService.getCallObject();
+    return callObject as Record<string, unknown> | null;
   }
 
   getCurrentSession(): VideoCallSession | null {
@@ -141,4 +144,3 @@ class VideoCallService {
 }
 
 export const videoCallService = new VideoCallService();
-

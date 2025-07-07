@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { tokenManager } from '@/api/tokenManager';
 import { socialAuthApi, socialAuthUtils, SocialAuthRequest, SocialAuthResponse } from '@/api/socialAuth';
+import { logger } from '../lib/utils/monitoring';
 
 export const useSocialAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -75,7 +76,7 @@ export const useSocialAuth = () => {
       const auth2 = window.google.accounts.oauth2.initTokenClient({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
         scope: 'openid email profile',
-        callback: async (response: any) => {
+        callback: async (response: { access_token?: string }) => {
           if (response.access_token) {
             await socialAuthMutation.mutateAsync({
               provider: 'google',
@@ -86,8 +87,9 @@ export const useSocialAuth = () => {
       });
 
       auth2.requestAccessToken();
-    } catch (error) {
-      console.error('Google authentication error:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Google authentication error:', errorData);
       toast({
         title: "Google Login Failed",
         description: "Failed to initialize Google authentication",
@@ -135,8 +137,9 @@ export const useSocialAuth = () => {
           idToken: response.authorization.id_token
         });
       }
-    } catch (error) {
-      console.error('Apple authentication error:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Apple authentication error:', errorData);
       toast({
         title: "Apple Login Failed",
         description: "Failed to authenticate with Apple",
@@ -203,8 +206,9 @@ export const useSocialAuth = () => {
         }
       }, 300000); // 5 minute timeout
       
-    } catch (error) {
-      console.error('Microsoft authentication error:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Microsoft authentication error:', errorData);
       toast({
         title: "Microsoft Login Failed",
         description: "Failed to authenticate with Microsoft",

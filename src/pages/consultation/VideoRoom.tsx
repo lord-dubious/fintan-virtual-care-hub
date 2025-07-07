@@ -3,14 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth/authProvider';
 import { consultationService } from '@/lib/services/consultationService';
 import { webrtcService } from '@/services/webrtcService';
+import { ConsultationResponse } from '@/types/consultation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+// import { Card, CardContent } from '@/components/ui/card';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp, MessageSquare, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ConsultationStatus } from '@prisma/client';
 
 const VideoRoom: React.FC = () => {
   const { consultationId } = useParams<{ consultationId: string }>();
-  const [consultation, setConsultation] = useState<any>(null);
+  const [consultation, setConsultation] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -28,22 +30,22 @@ const VideoRoom: React.FC = () => {
 
       setLoading(true);
       try {
-        const result = await consultationService.getConsultationById(consultationId);
-        if (result.success && result.consultation) {
+        const result = await consultationService.getConsultationById(consultationId) as ConsultationResponse;
+        if (result && result.success && result.consultation) {
           setConsultation(result.consultation);
-          
+
           // Initialize the video call
-          const initResult = await webrtcService.initializeCall(
-            result.consultation.roomUrl,
-            undefined,
-            { video: true, audio: true }
-          );
-          
-          if (!initResult) {
+          try {
+            if (result.consultation.roomUrl) {
+              await webrtcService.initializeCall(result.consultation.roomUrl);
+            } else {
+              setError('Room URL is missing');
+            }
+          } catch (initError) {
             setError('Failed to initialize video call');
           }
         } else {
-          setError(result.message || 'Failed to load consultation');
+          setError(result?.message as string || 'Failed to load consultation');
         }
       } catch (err) {
         console.error('Error fetching consultation:', err);
@@ -90,8 +92,8 @@ const VideoRoom: React.FC = () => {
     await webrtcService.endCall();
     
     // Update consultation status if needed
-    if (consultation && consultation.status === 'IN_PROGRESS') {
-      await consultationService.updateConsultationStatus(consultationId!, 'COMPLETED');
+    if (consultation && (consultation as { status?: string; id?: string }).status === 'IN_PROGRESS') {
+      await consultationService.updateConsultationStatus((consultation as { id: string }).id, ConsultationStatus.COMPLETED);
     }
     
     // Navigate back to appointments

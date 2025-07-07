@@ -44,7 +44,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Helper function for vector similarity search
 export async function findSimilarEntries(
-  model: any,
+  model: { findMany: (options: Record<string, unknown>) => Promise<unknown[]> },
   embedding: number[],
   field: string,
   limit: number = 5

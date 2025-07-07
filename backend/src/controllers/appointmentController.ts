@@ -6,16 +6,6 @@ import { schedulingService } from '@/services/schedulingService';
 import { z } from 'zod';
 
 // Validation schemas
-const createAppointmentSchema = z.object({
-  providerId: z.string().cuid(),
-  appointmentDate: z.string().datetime(),
-  duration: z.number().min(15).max(240).default(30),
-  reason: z.string().min(1, 'Reason is required'),
-  consultationType: z.enum(['VIDEO', 'AUDIO', 'IN_PERSON']).default('VIDEO'),
-  timezone: z.string().min(1, 'Timezone is required'),
-  notes: z.string().optional(),
-});
-
 const updateAppointmentStatusSchema = z.object({
   status: z.enum(['SCHEDULED', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW']),
   notes: z.string().optional(),
@@ -873,7 +863,7 @@ export const rescheduleAppointment = async (req: AuthenticatedRequest, res: Resp
 
     // Check new slot availability
     const newStartDateTime = new Date(appointmentDate);
-    const newDuration = duration || appointment.duration;
+    const newDuration = duration || appointment.duration || 30; // Default to 30 minutes
 
     const availability = await schedulingService.isSlotAvailable(
       appointment.providerId,
@@ -989,7 +979,7 @@ export const cancelAppointmentEnhanced = async (req: AuthenticatedRequest, res: 
       return;
     }
 
-    const { reason, refundRequested } = validation.data;
+    const { reason } = validation.data;
 
     const appointment = await prisma.appointment.findUnique({
       where: { id },

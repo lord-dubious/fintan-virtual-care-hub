@@ -10,13 +10,13 @@ interface DatabaseTest {
   name: string;
   description: string;
   icon: React.ReactNode;
-  testFn: () => Promise<{ success: boolean; message: string; details?: any }>;
+  testFn: () => Promise<{ success: boolean; message: string; details?: Record<string, unknown> }>;
 }
 
 interface TestResult {
   status: 'pending' | 'running' | 'success' | 'error';
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
   duration?: number;
 }
 

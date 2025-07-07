@@ -5,6 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAdminStatistics, useAdminAppointments } from '@/hooks/useAdmin';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { ApiAppointment } from '@/api/appointments'; // Import ApiAppointment
 
 interface StatCardProps {
   title: string;
@@ -28,7 +29,13 @@ const StatCard = ({ title, value, description, icon }: StatCardProps) => {
   );
 };
 
-const AppointmentItem = ({ patient, time, type }: { patient: string; time: string; type: string }) => {
+interface AppointmentItemProps {
+  patient: string;
+  time: string;
+  type: string;
+}
+
+const AppointmentItem = ({ patient, time, type }: AppointmentItemProps) => {
   return (
     <div className="flex items-center justify-between rounded-lg border p-3">
       <div className="space-y-1">
@@ -80,9 +87,9 @@ const AdminDashboard = () => {
   const formattedAppointments = React.useMemo(() => {
     if (!appointmentsData?.appointments) return [];
 
-    return appointmentsData.appointments.map(appointment => ({
-      patient: appointment.patient?.name || 'Unknown Patient',
-      time: format(new Date(appointment.scheduledAt), 'p'),
+    return appointmentsData.appointments.map((appointment: ApiAppointment) => ({ // Use ApiAppointment
+      patient: appointment.patient?.user.name || 'Unknown Patient', // Access patient name via user object
+      time: format(appointment.appointmentDate, 'p'), // Use appointmentDate which is a Date object
       type: `${appointment.consultationType.charAt(0).toUpperCase() + appointment.consultationType.slice(1).toLowerCase()} Consultation`
     }));
   }, [appointmentsData]);

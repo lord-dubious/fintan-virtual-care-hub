@@ -19,7 +19,7 @@ const resetPasswordSchema = z.object({
 
 const ResetPasswordPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
-  const { mutate: resetPassword, isLoading } = useConfirmPasswordReset();
+  const { mutate: resetPassword, isPending } = useConfirmPasswordReset();
 
   const form = useForm<z.infer<typeof resetPasswordSchema>>({
     resolver: zodResolver(resetPasswordSchema),
@@ -71,8 +71,8 @@ const ResetPasswordPage: React.FC = () => {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Resetting...' : 'Reset Password'}
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? 'Resetting...' : 'Reset Password'}
               </Button>
             </form>
           </Form>
@@ -87,4 +87,4 @@ const ResetPasswordPage: React.FC = () => {
   );
 };
 
-export default ResetPasswordPage; 
+export default ResetPasswordPage;

@@ -30,6 +30,7 @@ export const USER_STORAGE_KEY = 'current_user';
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
+    BASE: '/auth',
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
     LOGOUT: '/auth/logout',

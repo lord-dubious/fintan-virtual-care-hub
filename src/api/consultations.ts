@@ -5,7 +5,7 @@ import { API_ENDPOINTS } from './config';
 export interface Consultation {
   id: string;
   appointmentId: string;
-  roomUrl: string;
+  roomUrl?: string;
   status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   videoEnabled: boolean;
   recordingEnabled?: boolean;

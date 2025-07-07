@@ -6,6 +6,7 @@ import { usePatientDashboard, usePatientMedicalRecords } from '@/hooks/usePatien
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { Loader2, FileText, Calendar, User, Download } from 'lucide-react';
+import { PatientWithUser, MedicalRecord, ProviderWithUser } from 'shared/domain'; // Import PatientWithUser and MedicalRecord, and ProviderWithUser
 
 const PatientProfile = () => {
   const { data: patient, isLoading } = usePatientDashboard();
@@ -19,6 +20,9 @@ const PatientProfile = () => {
     );
   }
   
+  // Cast patient to PatientWithUser for correct type inference
+  const patientData: PatientWithUser | undefined = patient;
+
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-2xl font-bold mb-6">Patient Profile</h1>
@@ -47,11 +51,11 @@ const PatientProfile = () => {
                 </div>
                 <div>
                   <span className="text-sm text-gray-500 dark:text-gray-400">Phone</span>
-                  <p className="font-medium">{patient?.user?.phone || 'Not provided'}</p>
+                  <p className="font-medium">{patientData?.phone || 'Not provided'}</p>
                 </div>
                 <div>
                   <span className="text-sm text-gray-500 dark:text-gray-400">Date of Birth</span>
-                  <p className="font-medium">{patient?.user?.dateOfBirth ? format(new Date(patient.user.dateOfBirth), 'MMMM d, yyyy') : 'Not provided'}</p>
+                  <p className="font-medium">{patientData?.dateOfBirth ? format(patientData.dateOfBirth, 'MMMM d, yyyy') : 'Not provided'}</p>
                 </div>
               </div>
               
@@ -71,31 +75,31 @@ const PatientProfile = () => {
               <div>
                 <h3 className="font-semibold">Allergies</h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {patient?.allergies?.length ? patient.allergies.join(', ') : 'No known allergies'}
+                  {patientData?.medicalHistory?.allergies?.length ? patientData.medicalHistory.allergies.join(', ') : 'No known allergies'}
                 </p>
               </div>
               
               <div>
                 <h3 className="font-semibold">Current Medications</h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {patient?.medications?.length ? patient.medications.join(', ') : 'No current medications'}
+                  {patientData?.medicalHistory?.medications?.length ? patientData.medicalHistory.medications.join(', ') : 'No current medications'}
                 </p>
               </div>
               
               <div>
                 <h3 className="font-semibold">Medical History</h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {patient?.medicalHistory || 'No medical history provided'}
+                  {patientData?.medicalHistory?.history || 'No medical history provided'}
                 </p>
               </div>
               
               <div>
                 <h3 className="font-semibold">Emergency Contact</h3>
-                {patient?.emergencyContact ? (
+                {patientData?.emergencyContact ? (
                   <div className="text-gray-600 dark:text-gray-400">
-                    <p>{patient.emergencyContact.name}</p>
-                    <p>{patient.emergencyContact.relationship}</p>
-                    <p>{patient.emergencyContact.phone}</p>
+                    <p>{patientData.emergencyContact.name}</p>
+                    <p>{patientData.emergencyContact.relationship}</p>
+                    <p>{patientData.emergencyContact.phone}</p>
                   </div>
                 ) : (
                   <p className="text-gray-600 dark:text-gray-400">No emergency contact provided</p>
@@ -143,51 +147,69 @@ const PatientRecords = () => {
         </Card>
       ) : (
         <div className="space-y-6">
-          {medicalRecords.map((record) => (
-            <Card key={record.id}>
-              <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  <span>{record.type.charAt(0).toUpperCase() + record.type.slice(1)}: {record.title || 'Medical Record'}</span>
-                  <span className="text-sm font-normal text-gray-500">
-                    {format(new Date(record.date), 'MMM d, yyyy')}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4">{record.notes}</p>
-                {record.diagnosis && (
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-1">Diagnosis</h4>
-                    <p className="text-gray-600 dark:text-gray-400">{record.diagnosis}</p>
-                  </div>
-                )}
-                {record.prescription && (
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-1">Prescription</h4>
-                    <p className="text-gray-600 dark:text-gray-400">{record.prescription}</p>
-                  </div>
-                )}
-                {record.provider && (
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Provider: {record.provider.user.name}
-                  </div>
-                )}
-                {record.attachments?.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-medium mb-2">Attachments</h4>
-                    <div className="flex flex-wrap gap-3">
-                      {record.attachments.map((attachment, idx) => (
-                        <Button key={idx} variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" /> 
-                          {attachment.split('/').pop() || `File ${idx+1}`}
-                        </Button>
-                      ))}
+          {medicalRecords.map((record: MedicalRecord) => { // Explicitly type record as MedicalRecord
+            // Derive type and title based on record content
+            let recordType: 'consultation' | 'lab_result' | 'prescription' | 'note' = 'note';
+            let recordTitle: string = 'Medical Record';
+
+            if (record.diagnosis) {
+              recordType = 'consultation';
+              recordTitle = record.diagnosis;
+            } else if (record.prescriptions) {
+              recordType = 'prescription';
+              recordTitle = 'Prescription';
+            }
+            // Add more conditions for other types like 'lab_result' if applicable
+
+            return (
+              <Card key={record.id}>
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center">
+                    <span>{recordType.charAt(0).toUpperCase() + recordType.slice(1)}: {recordTitle}</span>
+                    <span className="text-sm font-normal text-gray-500">
+                      {format(record.createdAt, 'MMM d, yyyy')} {/* Use createdAt */}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-4">{record.notes}</p>
+                  {record.diagnosis && (
+                    <div className="mb-4">
+                      <h4 className="font-medium mb-1">Diagnosis</h4>
+                      <p className="text-gray-600 dark:text-gray-400">{record.diagnosis}</p>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  )}
+                  {record.prescriptions && (
+                    <div className="mb-4">
+                      <h4 className="font-medium mb-1">Prescription</h4>
+                      {/* Assuming prescriptions is an object with instructions/dosage */}
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {record.prescriptions.instructions || record.prescriptions.dosage || 'Details not provided'}
+                      </p>
+                    </div>
+                  )}
+                  {record.providerId && (
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Provider ID: {record.providerId} {/* Display providerId, or fetch name if needed */}
+                    </div>
+                  )}
+                  {record.attachments && record.attachments.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-medium mb-2">Attachments</h4>
+                      <div className="flex flex-wrap gap-3">
+                        {record.attachments.map((attachment: string, idx: number) => ( // Explicitly type attachment and idx
+                          <Button key={idx} variant="outline" size="sm">
+                            <Download className="h-4 w-4 mr-2" /> 
+                            {attachment.split('/').pop() || `File ${idx+1}`}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
@@ -205,4 +227,3 @@ const PatientRoutes: React.FC = () => {
 };
 
 export default PatientRoutes;
-

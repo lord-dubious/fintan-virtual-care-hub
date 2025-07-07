@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,37 +9,25 @@ datasource db {
 }
 
 model User {
-  id                    String    @id @default(cuid())
-  name                  String?
-  email                 String?   @unique
-  emailVerified         DateTime?
-  image                 String?   // Profile picture URL
-  profilePicture        String?   // Alternative profile picture field
-  password              String?
-  role                  String    @default("PATIENT")
-  phone                 String?
-  passwordResetToken    String?   @unique
-  passwordResetExpires  DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  accounts      Account[]
-  sessions      Session[]
-  patient       Patient?
-  provider      Provider?
-  notifications Notification[]
-  refreshTokens RefreshToken[]
-}
-
-model RefreshToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String         @id @default(cuid())
+  email                String?        @unique
+  password             String?
+  name                 String?
+  phone                String?
+  profilePicture       String?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  emailVerified        DateTime?
+  image                String?
+  role                 Role           @default(PATIENT)
+  accounts             Account[]
+  notifications        Notification[]
+  patient              Patient?
+  provider             Provider?
+  sessions             Session[]
+  refreshTokens        RefreshToken[]
 }
 
 model Account {
@@ -51,15 +36,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -72,6 +56,16 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -81,8 +75,8 @@ model VerificationToken {
 }
 
 model Patient {
-  id                String    @id @default(cuid())
-  userId            String    @unique
+  id                String        @id @default(cuid())
+  userId            String        @unique
   dateOfBirth       DateTime?
   address           String?
   phone             String?
@@ -90,108 +84,59 @@ model Patient {
   medicalHistory    Json?
   insurance         Json?
   preferences       Json?
-  onboardingStatus  String    @default("INCOMPLETE") // INCOMPLETE, IN_PROGRESS, COMPLETED
-  onboardingStep    Int       @default(1) // Current step in onboarding process
-  consentGiven      Boolean   @default(false)
+  onboardingStatus  String        @default("INCOMPLETE")
+  onboardingStep    Int           @default(0)
+  consentGiven      Boolean       @default(false)
   consentDate       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
   appointments      Appointment[]
   medicalRecords    MedicalRecord[]
-  payments          Payment[]
+  emergencyContacts EmergencyContact[]
   allergies         Allergy[]
   medications       Medication[]
   conditions        Condition[]
   insuranceRecords  Insurance[]
-  emergencyContacts EmergencyContact[]
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Provider {
-  id                String    @id @default(cuid())
-  userId            String    @unique
-  specialization    String?
-  bio               String?   @db.Text
-  education         Json?
-  experience        Json?
-  licenseNumber     String?
-  licenseState      String?
-  licenseExpiry     DateTime?
-  licenseVerified   Boolean   @default(false)
-  approvalStatus    String    @default("PENDING") // PENDING, APPROVED, REJECTED
-  approvedBy        String?   // Admin user ID who approved
-  approvedAt        DateTime?
-  rejectionReason   String?
-  isVerified        Boolean   @default(false)
-  isActive          Boolean   @default(true)
-  consultationFee   Decimal?  @db.Decimal(10, 2)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointments      Appointment[]
-  availability      Availability[]
-  medicalRecords    MedicalRecord[]
+  id             String          @id @default(cuid())
+  userId         String          @unique
+  specialization String?
+  bio            String?
+  education      String?
+  experience     String?
+  licenseNumber  String?         // Professional license number
+  consultationFee Decimal?
+  approvalStatus String          @default("PENDING")
+  approvedBy     String?
+  approvedAt     DateTime?
+  rejectionReason String?
+  isActive       Boolean         @default(true)
+  isVerified     Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  avatarUrl      String?
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  availability   Availability[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Appointment {
-  id                String   @id @default(cuid())
-  providerId        String
-  patientId         String
-  appointmentDate   DateTime
-  duration          Int      @default(30) // Duration in minutes
-  reason            String?
-  status            String   @default("SCHEDULED") // SCHEDULED, CONFIRMED, CANCELLED, COMPLETED, NO_SHOW
-  consultationType  String   @default("VIDEO") // VIDEO, AUDIO, IN_PERSON
-  notes             String?  @db.Text
-  isRecurring       Boolean  @default(false)
-  recurrencePattern String?  // DAILY, WEEKLY, MONTHLY
-  parentAppointmentId String? // For recurring appointments
-  timezone          String?  // User's timezone when appointment was created
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  provider          Provider      @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  patient           Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  consultation      Consultation?
-  payment           Payment?
-  parentAppointment Appointment?  @relation("RecurringAppointments", fields: [parentAppointmentId], references: [id])
-  childAppointments Appointment[] @relation("RecurringAppointments")
-}
-
-model Consultation {
-  id            String   @id @default(cuid())
-  appointmentId String   @unique
-  roomUrl       String
-  dailyRoomId   String?  @unique // Daily.co room ID
-  dailyRoomName String?  @unique // Daily.co room name
-  status        String   @default("SCHEDULED")
-  videoEnabled  Boolean  @default(false) // Tracks if video was enabled in an audio call
-  notes         String?
-  startedAt     DateTime? // When the consultation actually started
-  endedAt       DateTime? // When the consultation ended
-  duration      Int?     // Duration in minutes
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  medicalRecord MedicalRecord?
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  title     String
-  message   String   @db.Text
-  type      String
-  userId    String
-  relatedId String?
-  isRead    Boolean  @default(false)
-  link      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+model MedicalRecord {
+  id             String   @id @default(cuid())
+  patientId      String
+  providerId     String
+  consultationId String?
+  diagnosis      String?
+  notes          String?
+  prescriptions  Json?
+  attachments    Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider       Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 }
 
 model Availability {
@@ -203,123 +148,166 @@ model Availability {
   isAvailable Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  provider    Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, dayOfWeek, startTime])
 }
 
-model MedicalRecord {
-  id             String   @id @default(cuid())
-  patientId      String
-  providerId     String
-  consultationId String?  @unique
-  diagnosis      String?  @db.Text
-  notes          String?  @db.Text
-  prescriptions  Json?
-  attachments    Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+model Appointment {
+  id               String            @id @default(cuid())
+  patientId        String
+  providerId       String
+  appointmentDate  DateTime
+  reason           String?
+  duration         Int?
+  notes            String?
+  timezone         String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  consultationType ConsultationType  @default(VIDEO)
+  status           AppointmentStatus @default(SCHEDULED)
+  patient          Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider         Provider          @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  consultation     Consultation?
+  payment          Payment?
+}
 
-  patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  provider     Provider      @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  consultation Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+model Consultation {
+  id            String             @id @default(cuid())
+  appointmentId String             @unique
+  roomUrl       String
+  dailyRoomId   String?
+  dailyRoomName String?
+  notes         String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  videoEnabled  Boolean            @default(false)
+  sessionId     String?            @unique
+  status        ConsultationStatus @default(SCHEDULED)
+  appointment   Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String
+  userId    String
+  relatedId String?
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Payment {
-  id               String    @id @default(cuid())
-  patientId        String
-  appointmentId    String?   @unique
-  amount           Decimal   @db.Decimal(10, 2)
-  currency         String    @default("USD")
-  status           String    @default("PENDING") // PENDING, COMPLETED, FAILED, REFUNDED
-  paymentMethod    String    // STRIPE, PAYSTACK, PAYPAL, FLUTTERWAVE
-  paymentIntentId  String?
-  transactionId    String?
-  metadata         Json?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id              String        @id @default(cuid())
+  appointmentId   String        @unique
+  amount          Int
+  currency        String        @default("USD")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  provider        String
+  receiptUrl      String?
+  reference       String?
+  status          PaymentStatus @default(PENDING)
+  paymentMethod   PaymentMethod @default(STRIPE)
+  paymentIntentId String?       // For Stripe payment intent ID
+  transactionId   String?       // For transaction reference
+  metadata        Json?         // For storing additional payment metadata
+  appointment     Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
-  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  @@index([paymentMethod])
+  @@index([paymentIntentId])
+  @@index([transactionId])
 }
 
-model Allergy {
-  id          String   @id @default(cuid())
-  patientId   String
-  allergen    String   // Name of the allergen
-  severity    String   // MILD, MODERATE, SEVERE
-  reaction    String?  // Description of reaction
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
 }
 
-model Medication {
-  id          String   @id @default(cuid())
-  patientId   String
-  name        String   // Medication name
-  dosage      String?  // Dosage information
-  frequency   String?  // How often taken
-  startDate   DateTime?
-  endDate     DateTime?
-  prescriber  String?  // Who prescribed it
-  notes       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+enum ConsultationStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
-model Condition {
-  id          String   @id @default(cuid())
-  patientId   String
-  name        String   // Condition name
-  diagnosedDate DateTime?
-  status      String   @default("ACTIVE") // ACTIVE, RESOLVED, CHRONIC
-  severity    String?  // MILD, MODERATE, SEVERE
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+enum ConsultationType {
+  VIDEO
+  AUDIO
 }
 
-model Insurance {
-  id              String   @id @default(cuid())
-  patientId       String
-  provider        String   // Insurance provider name
-  policyNumber    String
-  groupNumber     String?
-  subscriberName  String
-  subscriberId    String?
-  relationship    String   @default("SELF") // SELF, SPOUSE, CHILD, OTHER
-  effectiveDate   DateTime?
-  expirationDate  DateTime?
-  copay           Decimal? @db.Decimal(10, 2)
-  deductible      Decimal? @db.Decimal(10, 2)
-  isPrimary       Boolean  @default(true)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+enum PaymentMethod {
+  STRIPE
+  PAYSTACK
+  PAYPAL
+  FLUTTERWAVE
+  CREDIT_CARD
+  BANK_TRANSFER
+}
 
-  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum Role {
+  PATIENT
+  PROVIDER
+  DOCTOR
+  ADMIN
 }
 
 model EmergencyContact {
-  id           String   @id @default(cuid())
-  patientId    String
-  name         String
-  relationship String   // SPOUSE, PARENT, CHILD, SIBLING, FRIEND, OTHER
-  phone        String
-  email        String?
-  address      String?
-  isPrimary    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String  @id @default(cuid())
+  patientId String
+  name      String
+  phone     String
+  relationship String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
 
-  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+model Allergy {
+  id        String  @id @default(cuid())
+  patientId String
+  allergen  String
+  severity  String?
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Medication {
+  id        String  @id @default(cuid())
+  patientId String
+  name      String
+  dosage    String?
+  frequency String?
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Condition {
+  id        String  @id @default(cuid())
+  patientId String
+  name      String
+  diagnosed DateTime?
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Insurance {
+  id        String  @id @default(cuid())
+  patientId String
+  provider  String
+  policyNumber String
+  groupNumber String?
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }

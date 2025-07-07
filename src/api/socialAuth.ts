@@ -49,7 +49,7 @@ export const socialAuthApi = {
   },
 
   // Get social auth configuration
-  async getProviderConfig(provider: string): Promise<ApiResponse<any>> {
+  async getProviderConfig(provider: string): Promise<ApiResponse<Record<string, unknown>>> {
     return apiClient.get(`${API_ENDPOINTS.AUTH.BASE}/social/config/${provider}`);
   },
 

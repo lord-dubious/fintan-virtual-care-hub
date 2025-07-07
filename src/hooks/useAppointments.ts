@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { appointmentsApi, Appointment, AppointmentFilters, CreateAppointmentData, UpdateAppointmentData } from '@/api/appointments';
+import { appointmentsApi, Appointment, AppointmentFilters, CreateAppointmentData, UpdateAppointmentData, ApiAppointment } from '@/api/appointments';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo } from 'react';
+import { AppointmentWithDetails } from '../../shared/domain'; // Import AppointmentWithDetails
 
 export const useAppointments = (filters?: AppointmentFilters) => {
   const serializedFilters = useMemo(
@@ -81,11 +82,11 @@ export const useAppointment = (id: string) => {
   return useQuery({
     queryKey: ['appointments', id],
     queryFn: async () => {
-      const response = await appointmentsApi.getAppointment(id);
+      const response = await appointmentsApi.getAppointment(id); // This now returns ApiAppointment
       if (!response.success) {
         throw new Error(response.error || 'Failed to fetch appointment');
       }
-      return response.data!;
+      return response.data! as AppointmentWithDetails; // Cast to AppointmentWithDetails
     },
     enabled: !!id,
   });
@@ -261,14 +262,6 @@ export const useAppointmentStats = () => {
       return response.data!;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to Load Statistics",
-        description: "There was an error loading appointment statistics.",
-        variant: "destructive",
-      });
-      console.error("[Appointment Stats Error]", error);
-    }
   });
 };
 

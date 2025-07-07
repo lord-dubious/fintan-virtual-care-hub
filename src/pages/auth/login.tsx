@@ -63,7 +63,7 @@ const LoginPage: React.FC = () => {
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    {formError || error}
+                    {formError || (error instanceof Error ? error.message : error)}
                   </AlertDescription>
                 </Alert>
               )}

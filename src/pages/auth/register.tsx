@@ -41,7 +41,7 @@ const RegisterPage: React.FC = () => {
 
     // Attempt registration
     try {
-      await register({ fullName: name, email, password, role });
+      await register({ name, email, password, confirmPassword: password, role });
       // Redirect to dashboard
       navigate('/dashboard');
     } catch (error) {
@@ -65,7 +65,7 @@ const RegisterPage: React.FC = () => {
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    {formError || error}
+                    {formError || (error instanceof Error ? error.message : error)}
                   </AlertDescription>
                 </Alert>
               )}

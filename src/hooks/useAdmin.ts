@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi, AdminSettings, User } from '@/api/admin';
+import { adminApi, AdminSettings } from '@/api/admin';
 import { useToast } from '@/hooks/use-toast';
+import { ApiAppointment } from '@/api/appointments'; // Import ApiAppointment
 
 // Hook to fetch all users
 export const useAdminUsers = (filters?: { role?: string; search?: string }) => {
@@ -18,7 +19,7 @@ export const useAdminUsers = (filters?: { role?: string; search?: string }) => {
 };
 
 // Hook to fetch all appointments for the admin panel
-export const useAdminAppointments = (filters?: any) => {
+export const useAdminAppointments = (filters?: Record<string, unknown>) => {
   return useQuery({
     queryKey: ['admin', 'appointments', filters],
     queryFn: async () => {
@@ -26,7 +27,7 @@ export const useAdminAppointments = (filters?: any) => {
       if (!response.success) {
         throw new Error(response.error || 'Failed to fetch appointments');
       }
-      return response.data!;
+      return response.data! as { appointments: ApiAppointment[], total: number }; // Cast to ApiAppointment[]
     },
     staleTime: 1 * 60 * 1000, // 1 minute
     refetchInterval: 30 * 1000, // Refetch every 30 seconds
@@ -120,4 +121,4 @@ export const useUpdateUser = () => {
       });
     },
   });
-}; 
+};

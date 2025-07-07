@@ -201,7 +201,7 @@ const Navbar: React.FC = () => {
             <div className="flex items-center space-x-3 border-r border-medical-border-light dark:border-medical-dark-border pr-4">
               <div className="flex items-center space-x-3">
                 <ProfilePicture
-                  user={user}
+                  user={user || undefined}
                   size="sm"
                   className="cursor-pointer hover:ring-2 hover:ring-medical-primary dark:hover:ring-medical-accent transition-all"
                 />
@@ -307,7 +307,7 @@ const Navbar: React.FC = () => {
                   <div className="text-center py-4 border-b border-medical-border-light dark:border-medical-dark-border mb-3">
                     <div className="flex flex-col items-center space-y-3">
                       <ProfilePicture
-                        user={user}
+                        user={user || undefined}
                         size="lg"
                         className="cursor-pointer hover:ring-2 hover:ring-medical-primary dark:hover:ring-medical-accent transition-all"
                       />

@@ -2,10 +2,8 @@ import { Response } from 'express';
 import { prisma } from '@/config/database';
 import logger from '@/config/logger';
 import { AuthenticatedRequest } from '@/types';
-import { 
-  completeOnboardingSchema, 
-  onboardingStepSchemas,
-  type CompleteOnboardingData 
+import {
+  onboardingStepSchemas
 } from '@/schemas/onboardingSchemas';
 
 /**
@@ -424,7 +422,7 @@ export const exportPatientData = async (req: AuthenticatedRequest, res: Response
             },
           },
         },
-        payments: true,
+
       },
     });
 
@@ -471,7 +469,6 @@ export const exportPatientData = async (req: AuthenticatedRequest, res: Response
         consultation: appointment.consultation ? {
           status: appointment.consultation.status,
           notes: appointment.consultation.notes,
-          duration: appointment.consultation.duration,
         } : null,
         payment: appointment.payment ? {
           amount: appointment.payment.amount,
@@ -487,14 +484,16 @@ export const exportPatientData = async (req: AuthenticatedRequest, res: Response
         notes: record.notes,
         prescriptions: record.prescriptions,
       })),
-      paymentHistory: patient.payments.map(payment => ({
-        id: payment.id,
-        date: payment.createdAt,
-        amount: payment.amount,
-        currency: payment.currency,
-        status: payment.status,
-        paymentMethod: payment.paymentMethod,
-      })),
+      paymentHistory: patient.appointments
+        .filter(appointment => appointment.payment)
+        .map(appointment => ({
+          id: appointment.payment!.id,
+          date: appointment.payment!.createdAt,
+          amount: appointment.payment!.amount,
+          currency: appointment.payment!.currency,
+          status: appointment.payment!.status,
+          paymentMethod: appointment.payment!.paymentMethod,
+        })),
     };
 
     res.json({

@@ -5,6 +5,7 @@ import DailyIframe, {
   DailyParticipant,
   DailyEventObjectParticipants,
 } from '@daily-co/daily-js';
+import { logger } from '../utils/monitoring';
 
 type ParticipantState = {
   video: boolean;
@@ -150,11 +151,12 @@ class DailyService {
       // Initialize with local participant
       const localParticipant = this.callObject.participants().local;
       if (localParticipant) {
-        this.updateParticipant(localParticipant as any);
+        this.updateParticipant(localParticipant);
       }
       return true;
-    } catch (err) {
-      console.error('Error initializing Daily call', err);
+    } catch (err: unknown) {
+      const errorData = err instanceof Error ? { message: err.message, stack: err.stack } : { message: String(err) };
+      logger.error('Error initializing Daily call', errorData);
       this.reset();
       return false;
     }
@@ -174,8 +176,9 @@ class DailyService {
       await this.callObject.setLocalAudio(!this.isAudioEnabled);
       this.isAudioEnabled = !this.isAudioEnabled;
       return true;
-    } catch (err) {
-      console.error('Error toggling audio', err);
+    } catch (err: unknown) {
+      const errorData = err instanceof Error ? { message: err.message, stack: err.stack } : { message: String(err) };
+      logger.error('Error toggling audio', errorData);
       return false;
     }
   }
@@ -186,8 +189,9 @@ class DailyService {
       await this.callObject.setLocalVideo(!this.isVideoEnabled);
       this.isVideoEnabled = !this.isVideoEnabled;
       return true;
-    } catch (err) {
-      console.error('Error toggling video', err);
+    } catch (err: unknown) {
+      const errorData = err instanceof Error ? { message: err.message, stack: err.stack } : { message: String(err) };
+      logger.error('Error toggling video', errorData);
       return false;
     }
   }
@@ -198,8 +202,9 @@ class DailyService {
       await this.callObject.setLocalVideo(true);
       this.isVideoEnabled = true;
       return true;
-    } catch (err) {
-      console.error('Error enabling video', err);
+    } catch (err: unknown) {
+      const errorData = err instanceof Error ? { message: err.message, stack: err.stack } : { message: String(err) };
+      logger.error('Error enabling video', errorData);
       return false;
     }
   }
@@ -216,8 +221,9 @@ class DailyService {
       }
       this.isScreenSharing = !isCurrentlySharing;
       return true;
-    } catch (err) {
-      console.error('Error toggling screen share', err);
+    } catch (err: unknown) {
+      const errorData = err instanceof Error ? { message: err.message, stack: err.stack } : { message: String(err) };
+      logger.error('Error toggling screen share', errorData);
       return false;
     }
   }
@@ -232,8 +238,9 @@ class DailyService {
     try {
       await this.callObject.sendAppMessage({ type: 'video-request' }, '*');
       return true;
-    } catch (err) {
-      console.error('Error sending video request', err);
+    } catch (err: unknown) {
+      const errorData = err instanceof Error ? { message: err.message, stack: err.stack } : { message: String(err) };
+      logger.error('Error sending video request', errorData);
       return false;
     }
   }
@@ -243,8 +250,9 @@ class DailyService {
     try {
       await this.callObject.sendAppMessage({ type: 'video-request-response', accepted }, '*');
       return true;
-    } catch (err) {
-      console.error('Error sending video request response', err);
+    } catch (err: unknown) {
+      const errorData = err instanceof Error ? { message: err.message, stack: err.stack } : { message: String(err) };
+      logger.error('Error sending video request response', errorData);
       return false;
     }
   }
@@ -271,8 +279,9 @@ class DailyService {
       try {
         await this.callObject.leave();
         await this.callObject.destroy();
-      } catch (err) {
-        console.error('Error ending call', err);
+      } catch (err: unknown) {
+        const errorData = err instanceof Error ? { message: err.message, stack: err.stack } : { message: String(err) };
+        logger.error('Error ending call', errorData);
       } finally {
         this.reset();
       }
@@ -296,4 +305,3 @@ class DailyService {
 }
 
 export const dailyService = new DailyService();
-

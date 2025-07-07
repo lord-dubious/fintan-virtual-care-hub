@@ -141,17 +141,46 @@ npm run build
 # Deploy dist folder to Netlify
 ```
 
-### **5.2 Backend Deployment (Railway/Render)**
+### **5.2 Backend Deployment**
 
 **Option A: Railway (Recommended)**
 1. Connect your GitHub repository to Railway
 2. Set environment variables in Railway dashboard
 3. Deploy the `server` directory
 
-**Option B: Render**
-1. Connect your GitHub repository to Render
-2. Set build command: `cd server && npm install`
-3. Set start command: `cd server && npm start`
+**Option B: Render (Detailed Instructions)**
+
+#### Setting Up Render
+1. Log in to your Render dashboard
+2. Click "New" and select "Web Service"
+3. Connect your Git repository
+4. Fill in the following details:
+   - **Name**: `fintan-virtual-care-hub` (or your preferred name)
+   - **Environment**: Node
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm run start`
+
+#### Configure Render Environment Variables
+Add the following environment variables in the Render dashboard:
+
+```
+NODE_ENV=production
+DATABASE_URL=postgres://[YOUR_USERNAME]:[YOUR_PASSWORD]@[YOUR_NEON_HOST].neon.tech/[YOUR_DATABASE]?pgbouncer=true&connect_timeout=10
+DIRECT_URL=postgres://[YOUR_USERNAME]:[YOUR_PASSWORD]@[YOUR_NEON_HOST].neon.tech/[YOUR_DATABASE]?connect_timeout=10
+PORT=3000
+API_BASE_URL=https://your-render-app-name.onrender.com/api
+FRONTEND_URL=https://your-render-app-name.onrender.com
+JWT_SECRET=[YOUR_JWT_SECRET]
+REFRESH_TOKEN_SECRET=[YOUR_REFRESH_TOKEN_SECRET]
+CORS_ORIGIN=https://your-render-app-name.onrender.com
+RUN_MIGRATIONS_ON_BUILD=true
+```
+Replace the placeholder values with your actual credentials and URLs.
+
+#### Deploy to Render
+1. Click "Create Web Service"
+2. Render will automatically build and deploy your application
+3. Once deployment is complete, you can access your application at the provided URL
 
 ### **5.3 Database (Already Configured)**
 Your Neon PostgreSQL database is already set up and configured.

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAvailability, useGenerateCalendarExport } from "@/hooks/useCalendar";
+import { logger } from "@/lib/utils/monitoring";
 
 interface BookingDate {
   date: string;
@@ -151,7 +152,9 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
           break;
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Failed to add to calendar:', errorData);
       toast({
         title: "Failed to add to calendar",
         description: "Please try again or add the appointment manually.",

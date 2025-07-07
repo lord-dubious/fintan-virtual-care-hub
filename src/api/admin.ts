@@ -1,6 +1,6 @@
 import { apiClient, ApiResponse } from './client';
 import { API_ENDPOINTS } from './config';
-import { Patient } from './patients';
+import { Patient } from '../../shared/domain';
 import { Appointment } from './appointments';
 
 export interface User {
@@ -10,6 +10,7 @@ export interface User {
   role: 'PATIENT' | 'PROVIDER' | 'ADMIN';
   createdAt: string;
   isActive: boolean;
+  phone?: string | null; // Added phone property
 }
 
 export interface SystemStats {
@@ -61,4 +62,4 @@ export const adminApi = {
   },
 };
 
-export default adminApi; 
+export default adminApi;

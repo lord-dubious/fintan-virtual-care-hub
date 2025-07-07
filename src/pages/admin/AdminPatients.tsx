@@ -30,23 +30,15 @@ import {
 } from "@/components/ui/dialog";
 import { useAdminUsers } from '@/hooks/useAdmin';
 import { usePatientMedicalHistory, usePatientAppointments } from '@/hooks/usePatients';
-import { PatientFilters, Patient } from '@/api/patients';
+import { PatientFilters } from '@/api/patients';
 import { User } from '@/api/admin';
-
-interface ApiMedicalRecord {
-  id: string;
-  date: string;
-  type: string;
-  notes: string;
-  diagnosis?: string;
-  prescription?: string;
-}
+import { MedicalRecord, AppointmentWithDetails, PatientAppointment as DomainPatientAppointment } from 'shared/domain'; // Import canonical types
 
 interface PatientUI {
   id: string;
   name: string;
   email: string;
-  phone: string;
+  phone: string; // User interface from admin has phone
   status: string;
   createdAt: string;
 }
@@ -55,7 +47,7 @@ const transformPatient = (user: User): PatientUI => ({
   id: user.id,
   name: user.name || 'Unknown Patient',
   email: user.email || '',
-  phone: '',
+  phone: user.phone || 'N/A', // Access phone from user
   status: user.isActive ? 'Active' : 'Inactive',
   createdAt: new Date(user.createdAt).toLocaleDateString(),
 });
@@ -65,31 +57,43 @@ const PatientDetails = ({ patient }: { patient: PatientUI }) => {
 
   // Fetch real medical history and appointments
   const { data: medicalHistory, isLoading: historyLoading } = usePatientMedicalHistory(patient.id);
-  const { data: appointments, isLoading: appointmentsLoading } = usePatientAppointments(patient.id);
+  const { data: appointmentsData, isLoading: appointmentsLoading } = usePatientAppointments(patient.id);
 
   // Transform medical history for display
   const transformedHistory = useMemo(() => {
     if (!medicalHistory) return [];
-    return medicalHistory.map((record: ApiMedicalRecord) => ({
-      date: new Date(record.date).toISOString().split('T')[0],
-      type: record.type,
-      notes: record.notes
-    }));
+    return medicalHistory.map((record: MedicalRecord) => { // Use MedicalRecord from shared/domain
+      // Derive type and title based on record content, similar to PatientDashboard
+      let recordType: string = 'Note';
+      let recordTitle: string = 'Medical Record';
+
+      if (record.diagnosis) {
+        recordType = 'Consultation';
+        recordTitle = record.diagnosis;
+      } else if (record.prescriptions) {
+        recordType = 'Prescription';
+        recordTitle = 'Prescription';
+      }
+      // Add more conditions for other types like 'lab_result' if applicable
+
+      return {
+        date: new Date(record.createdAt).toISOString().split('T')[0], // Use createdAt
+        type: recordType,
+        notes: record.notes || ''
+      };
+    });
   }, [medicalHistory]);
 
   // Calculate summary stats
   const summaryStats = useMemo(() => {
-    const totalConsultations = appointments?.length || 0;
-    const firstVisit = appointments?.length > 0
-      ? [...appointments].sort((a, b) =>
-          new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime()
-        )[0]
-      : null;
-    const lastVisit = appointments?.length > 0
-      ? [...appointments].sort((a, b) =>
-          new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()
-        )[0]
-      : null;
+    const appointments: DomainPatientAppointment[] = appointmentsData ?? []; // Ensure appointments is an array
+    const totalConsultations = appointments.length;
+    const sortedAppointments = [...appointments].sort((a, b) =>
+      new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime()
+    );
+
+    const firstVisit = totalConsultations > 0 ? sortedAppointments[0] : null;
+    const lastVisit = totalConsultations > 0 ? sortedAppointments[sortedAppointments.length - 1] : null;
 
     return {
       totalConsultations,
@@ -97,7 +101,7 @@ const PatientDetails = ({ patient }: { patient: PatientUI }) => {
       lastVisit: lastVisit ? new Date(lastVisit.appointmentDate).toLocaleDateString() : 'N/A',
       nextAppointment: 'Not scheduled' // You can implement logic for upcoming appointments
     };
-  }, [appointments]);
+  }, [appointmentsData]); // Depend on appointmentsData
 
   return (
     <div className="space-y-6">

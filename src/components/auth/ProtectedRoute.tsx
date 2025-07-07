@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'ADMIN' | 'PROVIDER' | 'PATIENT';
+  requiredRole?: 'ADMIN' | 'PROVIDER' | 'PATIENT' | 'DOCTOR';
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 

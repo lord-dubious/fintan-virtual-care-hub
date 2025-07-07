@@ -58,10 +58,11 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
         throw new Error(response.error || 'Upload failed');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload profile picture";
       toast({
         title: "Upload Failed",
-        description: error.message || "Failed to upload profile picture",
+        description: errorMessage,
         variant: "destructive"
       });
     },
@@ -86,10 +87,11 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
         throw new Error(response.error || 'Delete failed');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to remove profile picture";
       toast({
         title: "Delete Failed",
-        description: error.message || "Failed to remove profile picture",
+        description: errorMessage,
         variant: "destructive"
       });
     }

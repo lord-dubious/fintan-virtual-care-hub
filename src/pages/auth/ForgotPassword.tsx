@@ -14,7 +14,7 @@ const forgotPasswordSchema = z.object({
 });
 
 const ForgotPasswordPage: React.FC = () => {
-  const { mutate: requestReset, isLoading } = useRequestPasswordReset();
+  const { mutate: requestReset, isPending } = useRequestPasswordReset();
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -48,8 +48,8 @@ const ForgotPasswordPage: React.FC = () => {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Sending...' : 'Send Reset Link'}
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? 'Sending...' : 'Send Reset Link'}
               </Button>
             </form>
           </Form>
@@ -64,4 +64,4 @@ const ForgotPasswordPage: React.FC = () => {
   );
 };
 
-export default ForgotPasswordPage; 
+export default ForgotPasswordPage;

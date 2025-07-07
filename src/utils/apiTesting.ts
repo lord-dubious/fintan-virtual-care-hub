@@ -8,14 +8,14 @@ export interface ApiTestResult {
   statusCode?: number;
   responseTime: number;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 export interface ApiTestConfig {
   timeout?: number;
   expectedStatus?: number;
   headers?: Record<string, string>;
-  body?: any;
+  body?: Record<string, unknown>;
 }
 
 export class ApiTester {

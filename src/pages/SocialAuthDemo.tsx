@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSocialAuth } from '@/hooks/useSocialAuth';
 import { CheckCircle, User, Mail, Shield, Calendar, Apple } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { safeParseDate } from '@/utils/date';
 
 const SocialAuthDemo: React.FC = () => {
   const { isAuthenticated, user, logout, isLoading } = useAuth();
@@ -129,7 +130,7 @@ const SocialAuthDemo: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-500" />
-                      <span>Joined: {new Date(user.createdAt).toLocaleDateString()}</span>
+                      <span>Joined: {safeParseDate(user.createdAt)?.toLocaleDateString() ?? 'N/A'}</span>
                     </div>
                   </div>
                   <Button 

@@ -35,7 +35,7 @@ export const useAuth = () => {
 
       // Try to get profile from server
       const response = await authApi.getProfile();
-      if (response.success) {
+      if (response.success && response.data) {
         tokenManager.setUserData(response.data);
         return response.data;
       }

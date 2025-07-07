@@ -65,7 +65,7 @@ Authenticate a user and create a session.
   }
   ```
 
-### `/api/auth/reset-password`
+### `/api/auth/forgot-password`
 
 Initiate the password reset process.
 
@@ -80,46 +80,27 @@ Initiate the password reset process.
   ```json
   {
     "success": true,
-    "message": "Password reset email sent"
+    "message": "If an account with that email exists, a password reset link has been sent."
   }
   ```
 
-### `/api/auth/verify-reset-token`
+### `/api/auth/reset-password`
 
-Verify a password reset token.
-
-- **Method**: POST
-- **Request Body**:
-  ```json
-  {
-    "token": "reset-token"
-  }
-  ```
-- **Response**: 
-  ```json
-  {
-    "success": true,
-    "message": "Token is valid"
-  }
-  ```
-
-### `/api/auth/update-password`
-
-Update a user's password after reset.
+Reset a user's password using a token. This endpoint verifies the token and updates the password in a single step.
 
 - **Method**: POST
 - **Request Body**:
   ```json
   {
     "token": "reset-token",
-    "newPassword": "newSecurePassword123"
+    "password": "newSecurePassword123"
   }
   ```
 - **Response**: 
   ```json
   {
     "success": true,
-    "message": "Password updated successfully"
+    "message": "Password has been reset successfully"
   }
   ```
 
@@ -523,9 +504,9 @@ Get a consultation by appointment ID.
 - **URL Parameters**: `appointmentId` - Appointment's unique identifier
 - **Response**: Same as `/api/consultations/:id`
 
-### `/api/consultations/create-room/:appointmentId`
+### `/api/consultations/:appointmentId/join`
 
-Create a new consultation room.
+Join a consultation. This endpoint creates a new consultation room if one does not exist for the given appointment, and generates a secure token for the user to join the Daily.co video call.
 
 - **Method**: POST
 - **URL Parameters**: `appointmentId` - Appointment's unique identifier
@@ -533,23 +514,18 @@ Create a new consultation room.
   ```json
   {
     "success": true,
-    "roomUrl": "https://daily.co/room/uuid"
-  }
-  ```
-
-### `/api/consultations/:id/token/:userId`
-
-Generate a secure token for joining a consultation room.
-
-- **Method**: GET
-- **URL Parameters**: 
-  - `id` - Consultation's unique identifier
-  - `userId` - User's unique identifier
-- **Response**: 
-  ```json
-  {
-    "success": true,
-    "token": "room-token"
+    "roomUrl": "https://daily.co/room/uuid",
+    "token": "daily-co-token",
+    "consultation": {
+      "id": "uuid",
+      "appointmentId": "uuid",
+      "roomUrl": "https://daily.co/room/uuid",
+      "status": "IN_PROGRESS",
+      "videoEnabled": true,
+      "notes": "",
+      "createdAt": "2023-06-01T12:00:00Z",
+      "updatedAt": "2023-06-01T12:00:00Z"
+    }
   }
   ```
 
@@ -1068,4 +1044,3 @@ Get system statistics.
     }
   }
   ```
-

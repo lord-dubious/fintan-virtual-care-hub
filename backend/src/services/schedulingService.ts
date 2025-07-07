@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database';
 import logger from '@/config/logger';
-import { addDays, addWeeks, addMonths, format, parse, startOfDay, endOfDay } from 'date-fns';
-import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { addDays, addWeeks, addMonths, format, startOfDay, endOfDay } from 'date-fns';
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 export interface TimeSlot {
   startTime: Date;
@@ -69,7 +69,7 @@ export class SchedulingService {
             lte: endOfDayUTC,
           },
           status: {
-            in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'],
+            in: ['SCHEDULED', 'CONFIRMED'],
           },
         },
         orderBy: {
@@ -114,7 +114,7 @@ export class SchedulingService {
       const whereClause: any = {
         providerId,
         status: {
-          in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'],
+          in: ['SCHEDULED', 'CONFIRMED'],
         },
       };
 
@@ -186,7 +186,6 @@ export class SchedulingService {
         recurrencePattern,
         recurrenceCount,
         recurrenceEndDate,
-        timezone,
       } = request;
 
       const appointmentIds: string[] = [];
@@ -215,8 +214,6 @@ export class SchedulingService {
             consultationType,
             status: 'SCHEDULED',
             duration,
-            isRecurring: true,
-            recurrencePattern,
           });
         } else {
           logger.warn(`Skipping recurring appointment due to conflict:`, {

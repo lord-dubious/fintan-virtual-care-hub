@@ -1,3 +1,5 @@
+import { AppointmentWithDetails } from '../../shared/domain'; // Import the specific type
+import { logger } from '../lib/utils/monitoring';
 
 // Calendar Integration Service
 export interface CalendarEvent {
@@ -9,6 +11,7 @@ export interface CalendarEvent {
   attendees: string[];
   location?: string;
   meetingLink?: string;
+  [key: string]: unknown; // Add index signature
 }
 
 export interface CalendarProvider {
@@ -27,7 +30,7 @@ class CalendarService {
       case 'ics':
         return this.generateICSFile(event);
       default:
-        console.warn('Unsupported calendar provider:', provider.type);
+        logger.warn('Unsupported calendar provider', { type: provider.type });
         return null;
     }
   }
@@ -67,8 +70,9 @@ class CalendarService {
         const data = await response.json();
         return data.id;
       }
-    } catch (error) {
-      console.error('Failed to create Google Calendar event:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Failed to create Google Calendar event:', errorData);
     }
 
     return null;
@@ -114,8 +118,9 @@ class CalendarService {
         const data = await response.json();
         return data.id;
       }
-    } catch (error) {
-      console.error('Failed to create Outlook event:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Failed to create Outlook event:', errorData);
     }
 
     return null;
@@ -184,19 +189,19 @@ class CalendarService {
     return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   }
 
-  async syncWithCalendar(appointmentId: string, appointmentData: any): Promise<boolean> {
+  async syncWithCalendar(appointmentId: string, appointmentData: AppointmentWithDetails): Promise<boolean> {
     const event: CalendarEvent = {
       id: appointmentId,
       title: `Consultation with Dr. Fintan Ekochin`,
-      description: `Medical consultation session.\n\nReason: ${appointmentData.reason}\n\nJoin link will be provided before the appointment.`,
-      startTime: new Date(appointmentData.date + ' ' + appointmentData.time),
-      endTime: new Date(new Date(appointmentData.date + ' ' + appointmentData.time).getTime() + 30 * 60 * 1000), // 30 minutes
-      attendees: [appointmentData.patientEmail, 'dr.fintan@example.com'],
+      description: `Medical consultation session.\n\nReason: ${appointmentData.reason || 'N/A'}\n\nJoin link will be provided before the appointment.`,
+      startTime: appointmentData.appointmentDate,
+      endTime: new Date(appointmentData.appointmentDate.getTime() + 30 * 60 * 1000), // 30 minutes
+      attendees: [appointmentData.patient?.user.email || '', 'dr.fintan@example.com'], // Use patient's email
       location: 'Online Video Consultation'
     };
 
     // For now, provide multiple calendar options
-    console.log('Calendar event ready:', event);
+    logger.info('Calendar event ready', event); // Pass event directly as data
     return true;
   }
 }

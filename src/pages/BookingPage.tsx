@@ -12,6 +12,7 @@ import SimpleSignOn from '@/components/booking/SimpleSignOn';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePatientProfileForBooking } from '@/hooks/usePatientProfile';
 
 export interface BookingData {
   consultationType: 'video' | 'audio' | '';
@@ -36,9 +37,14 @@ const BookingPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user, isLoading } = useAuth();
 
+  // Get patient profile data for auto-population
+  const {
+    formData,
+    isProfileComplete
+  } = usePatientProfileForBooking();
+
   // Determine initial step based on authentication status
   const [currentStep, setCurrentStep] = useState(0);
-  const totalSteps = (isAuthenticated || bookingData.isAuthenticated) ? 4 : 5; // Dynamic based on auth state
 
   const [bookingData, setBookingData] = useState<BookingData>({
     consultationType: '',
@@ -57,6 +63,9 @@ const BookingPage: React.FC = () => {
     isAuthenticated: false,
     userEmail: ''
   });
+
+  // Calculate total steps based on authentication status
+  const totalSteps = (isAuthenticated || bookingData.isAuthenticated) ? 4 : 5; // Dynamic based on auth state
 
   // Update booking data when authentication state changes
   useEffect(() => {
@@ -93,6 +102,28 @@ const BookingPage: React.FC = () => {
       setCurrentStep(0);
     }
   }, [isAuthenticated, user, isLoading, currentStep]);
+
+  // Auto-populate patient info from profile when available
+  useEffect(() => {
+    if (formData && isProfileComplete && !bookingData.patientInfo.firstName) {
+      // Split the full name into first and last name
+      const nameParts = formData.patientName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      setBookingData(prev => ({
+        ...prev,
+        patientInfo: {
+          ...prev.patientInfo,
+          firstName,
+          lastName,
+          email: formData.patientEmail || prev.patientInfo.email,
+          phone: formData.patientPhone || prev.patientInfo.phone,
+          dateOfBirth: formData.dateOfBirth ? formData.dateOfBirth.toISOString().split('T')[0] : prev.patientInfo.dateOfBirth,
+        }
+      }));
+    }
+  }, [formData, isProfileComplete, bookingData.patientInfo.firstName]);
 
   // Get provider ID from environment or use default
   const providerId = import.meta.env.VITE_DEFAULT_PROVIDER_ID || "default-provider-id";

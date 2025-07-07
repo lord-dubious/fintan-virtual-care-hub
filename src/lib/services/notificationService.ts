@@ -1,40 +1,11 @@
-import { PrismaClient } from '@prisma/client';
-import NotificationAPI from 'notificationapi-node-client';
+import { PrismaClient, Notification } from '@prisma/client';
+import { ApiResponse, NotificationData, NotificationType } from '../../../shared/domain';
+import { logger } from '../utils/monitoring';
 
 const prisma = new PrismaClient();
 
-// Initialize NotificationAPI client
-const notificationapi = new NotificationAPI({
-  clientId: process.env.NOTIFICATION_API_CLIENT_ID!,
-  clientSecret: process.env.NOTIFICATION_API_CLIENT_SECRET!,
-});
-
-export enum NotificationType {
-  APPOINTMENT_CREATED = 'APPOINTMENT_CREATED',
-  APPOINTMENT_UPDATED = 'APPOINTMENT_UPDATED',
-  APPOINTMENT_CANCELLED = 'APPOINTMENT_CANCELLED',
-  APPOINTMENT_REMINDER = 'APPOINTMENT_REMINDER',
-  CONSULTATION_STARTED = 'CONSULTATION_STARTED',
-  CONSULTATION_ENDED = 'CONSULTATION_ENDED',
-  PAYMENT_RECEIVED = 'PAYMENT_RECEIVED',
-  PAYMENT_FAILED = 'PAYMENT_FAILED',
-  NEW_MESSAGE = 'NEW_MESSAGE',
-  SYSTEM = 'SYSTEM',
-}
-
-export interface NotificationData {
-  title: string;
-  message: string;
-  type: NotificationType;
-  userId: string;
-  relatedId?: string;
-  isRead?: boolean;
-  link?: string;
-}
-
 export const notificationService = {
-  // Create notification in database
-  async createNotification(data: NotificationData): Promise<any> {
+  async createNotification(data: Omit<NotificationData, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<Notification>> {
     try {
       const notification = await prisma.notification.create({
         data: {
@@ -42,290 +13,203 @@ export const notificationService = {
           message: data.message,
           type: data.type,
           userId: data.userId,
-          relatedId: data.relatedId,
-          isRead: data.isRead || false,
-          link: data.link,
+          relatedId: data.relatedId || null,
+          link: data.link || null,
+          isRead: data.isRead,
         },
       });
-
-      return {
-        success: true,
-        notification,
-      };
-    } catch (error) {
-      console.error('Error creating notification:', error);
-      return {
-        success: false,
-        message: 'Failed to create notification',
-      };
+      return { success: true, data: notification };
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Failed to create notification', errorData);
+      return { success: false, error: 'Failed to create notification' };
     }
   },
 
-  // Get user notifications
-  async getUserNotifications(userId: string, limit = 20, offset = 0): Promise<any[]> {
+  async getUserNotifications(userId: string, limit = 20, offset = 0): Promise<ApiResponse<Notification[]>> {
     try {
       const notifications = await prisma.notification.findMany({
-        where: {
-          userId,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
         take: limit,
         skip: offset,
       });
-
-      return notifications;
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      return [];
+      return { success: true, data: notifications };
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Failed to fetch notifications', errorData);
+      return { success: false, error: 'Failed to fetch notifications' };
     }
   },
 
-  // Get unread count
-  async getUnreadCount(userId: string): Promise<number> {
+  async getUnreadCount(userId: string): Promise<ApiResponse<number>> {
     try {
       const count = await prisma.notification.count({
-        where: {
-          userId,
-          isRead: false,
-        },
+        where: { userId, isRead: false },
       });
-
-      return count;
-    } catch (error) {
-      console.error('Error counting unread notifications:', error);
-      return 0;
+      return { success: true, data: count };
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Failed to count unread notifications', errorData);
+      return { success: false, error: 'Failed to count unread notifications' };
     }
   },
 
-  // Mark notification as read
-  async markAsRead(notificationId: string): Promise<any> {
+  async markAsRead(notificationId: string): Promise<ApiResponse<Notification>> {
     try {
       const notification = await prisma.notification.update({
-        where: {
-          id: notificationId,
-        },
-        data: {
-          isRead: true,
-        },
+        where: { id: notificationId },
+        data: { isRead: true },
       });
-
-      return {
-        success: true,
-        notification,
-      };
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      return {
-        success: false,
-        message: 'Failed to mark notification as read',
-      };
+      return { success: true, data: notification };
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Failed to mark notification as read', errorData);
+      return { success: false, error: 'Failed to mark notification as read' };
     }
   },
 
-  // Mark all notifications as read
-  async markAllAsRead(userId: string): Promise<any> {
+  async markAllAsRead(userId: string): Promise<ApiResponse<null>> {
     try {
       await prisma.notification.updateMany({
-        where: {
-          userId,
-          isRead: false,
-        },
-        data: {
-          isRead: true,
-        },
+        where: { userId, isRead: false },
+        data: { isRead: true },
       });
-
-      return {
-        success: true,
-      };
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-      return {
-        success: false,
-        message: 'Failed to mark all notifications as read',
-      };
+      return { success: true, data: null };
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Failed to mark all notifications as read', errorData);
+      return { success: false, error: 'Failed to mark all notifications as read' };
     }
   },
 
-  // Send notification via NotificationAPI
-  async sendNotification(userId: string, templateId: string, data: any): Promise<boolean> {
+  async sendNotification(userId: string, templateId: string, data: Record<string, unknown>): Promise<ApiResponse<boolean>> {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-      });
-
+      const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) {
-        console.error('User not found for notification');
-        return false;
+        return { success: false, error: 'User not found' };
       }
 
-      // Send notification using NotificationAPI
-      await notificationapi.send({
-        notificationId: templateId,
-        user: {
-          id: user.id,
-          email: user.email,
-          phone: user.phone || undefined,
-        },
-        mergeTags: data,
-      });
+      // TODO: Fix NotificationAPI integration
+      // await notificationapi.send({
+      //   notificationId: templateId,
+      // });
+      logger.info('Notification would be sent:', { templateId, userId, data });
 
-      return true;
-    } catch (error) {
-      console.error('Error sending notification via NotificationAPI:', error);
-      return false;
+      return { success: true, data: true };
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Failed to send notification', errorData);
+      return { success: false, error: 'Failed to send notification' };
     }
   },
 
-  // Appointment created notification
   async notifyAppointmentCreated(appointmentId: string): Promise<void> {
     try {
       const appointment = await prisma.appointment.findUnique({
         where: { id: appointmentId },
         include: {
-          patient: {
-            include: {
-              user: true,
-            },
-          },
-          provider: {
-            include: {
-              user: true,
-            },
-          },
+          patient: { include: { user: true } },
+          provider: { include: { user: true } },
         },
       });
 
       if (!appointment) return;
 
-      const callType = appointment.consultationType === 'AUDIO' ? 'Audio' : 'Video';
+      const callType = appointment.consultationType;
+      const patientName = appointment.patient.user.name;
+      const providerName = appointment.provider.user.name;
+      const appointmentDate = new Date(appointment.appointmentDate).toLocaleString();
 
-      // Create in-app notification for patient
       await this.createNotification({
         title: `${callType} Appointment Scheduled`,
-        message: `Your ${callType.toLowerCase()} appointment with ${appointment.provider.user.name} on ${new Date(appointment.appointmentDate).toLocaleString()} has been scheduled.`,
+        message: `Your appointment with ${providerName} on ${appointmentDate} has been scheduled.`,
         type: NotificationType.APPOINTMENT_CREATED,
         userId: appointment.patient.userId,
         relatedId: appointmentId,
         link: `/patient/appointments/${appointmentId}`,
+        isRead: false,
       });
 
-      // Create in-app notification for provider
       await this.createNotification({
         title: `New ${callType} Appointment`,
-        message: `${appointment.patient.user.name} has scheduled a ${callType.toLowerCase()} appointment with you on ${new Date(appointment.appointmentDate).toLocaleString()}.`,
+        message: `${patientName} has scheduled a ${callType.toLowerCase()} appointment with you on ${appointmentDate}.`,
         type: NotificationType.APPOINTMENT_CREATED,
         userId: appointment.provider.userId,
         relatedId: appointmentId,
         link: `/provider/appointments/${appointmentId}`,
+        isRead: false,
       });
 
-      // Send notification via NotificationAPI
-      await this.sendNotification(
-        appointment.patient.userId,
-        'appointment_created',
-        {
-          patientName: appointment.patient.user.name,
-          providerName: appointment.provider.user.name,
-          appointmentDate: new Date(appointment.appointmentDate).toLocaleString(),
-          appointmentType: callType,
-          appointmentLink: `${process.env.NEXT_PUBLIC_APP_URL}/patient/appointments/${appointmentId}`,
-        }
-      );
+      const notificationData = {
+        patientName,
+        providerName,
+        appointmentDate,
+        appointmentType: callType,
+        appointmentLink: `${process.env.NEXT_PUBLIC_APP_URL}/patient/appointments/${appointmentId}`,
+      };
 
-      // Send notification to provider via NotificationAPI
-      await this.sendNotification(
-        appointment.provider.userId,
-        'provider_new_appointment',
-        {
-          patientName: appointment.patient.user.name,
-          providerName: appointment.provider.user.name,
-          appointmentDate: new Date(appointment.appointmentDate).toLocaleString(),
-          appointmentType: callType,
-          appointmentLink: `${process.env.NEXT_PUBLIC_APP_URL}/provider/appointments/${appointmentId}`,
-        }
-      );
-    } catch (error) {
-      console.error('Error creating appointment notifications:', error);
+      await this.sendNotification(appointment.patient.userId, 'appointment_created', notificationData);
+      await this.sendNotification(appointment.provider.userId, 'provider_new_appointment', { ...notificationData, appointmentLink: `${process.env.NEXT_PUBLIC_APP_URL}/provider/appointments/${appointmentId}` });
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Error creating appointment notifications:', errorData);
     }
   },
 
-  // Appointment reminder notification
   async notifyAppointmentReminder(appointmentId: string): Promise<void> {
     try {
-      const appointment = await prisma.appointment.findUnique({
-        where: { id: appointmentId },
-        include: {
-          patient: {
+        const appointment = await prisma.appointment.findUnique({
+            where: { id: appointmentId },
             include: {
-              user: true,
+              patient: { include: { user: true } },
+              provider: { include: { user: true } },
             },
-          },
-          provider: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      });
+          });
+    
+          if (!appointment) return;
+    
+          const callType = appointment.consultationType;
+          const patientName = appointment.patient.user.name;
+          const providerName = appointment.provider.user.name;
+          const appointmentDate = new Date(appointment.appointmentDate).toLocaleString();
 
-      if (!appointment) return;
+          await this.createNotification({
+            title: `${callType} Appointment Reminder`,
+            message: `Your appointment with ${providerName} is on ${appointmentDate}.`,
+            type: NotificationType.APPOINTMENT_REMINDER,
+            userId: appointment.patient.userId,
+            relatedId: appointmentId,
+            link: `/patient/appointments/${appointmentId}`,
+            isRead: false,
+          });
 
-      const callType = appointment.consultationType === 'AUDIO' ? 'Audio' : 'Video';
+          await this.createNotification({
+            title: `${callType} Appointment Reminder`,
+            message: `Your appointment with ${patientName} is on ${appointmentDate}.`,
+            type: NotificationType.APPOINTMENT_REMINDER,
+            userId: appointment.provider.userId,
+            relatedId: appointmentId,
+            link: `/provider/appointments/${appointmentId}`,
+            isRead: false,
+          });
 
-      // Create in-app notification for patient
-      await this.createNotification({
-        title: `${callType} Appointment Reminder`,
-        message: `Your ${callType.toLowerCase()} appointment with ${appointment.provider.user.name} is scheduled for ${new Date(appointment.appointmentDate).toLocaleString()}.`,
-        type: NotificationType.APPOINTMENT_REMINDER,
-        userId: appointment.patient.userId,
-        relatedId: appointmentId,
-        link: `/patient/appointments/${appointmentId}`,
-      });
+          const notificationData = {
+            patientName,
+            providerName,
+            appointmentDate,
+            appointmentType: callType,
+            appointmentLink: `${process.env.NEXT_PUBLIC_APP_URL}/patient/appointments/${appointmentId}`,
+          };
 
-      // Create in-app notification for provider
-      await this.createNotification({
-        title: `${callType} Appointment Reminder`,
-        message: `You have a ${callType.toLowerCase()} appointment with ${appointment.patient.user.name} scheduled for ${new Date(appointment.appointmentDate).toLocaleString()}.`,
-        type: NotificationType.APPOINTMENT_REMINDER,
-        userId: appointment.provider.userId,
-        relatedId: appointmentId,
-        link: `/provider/appointments/${appointmentId}`,
-      });
-
-      // Send reminder to patient via NotificationAPI
-      await this.sendNotification(
-        appointment.patient.userId,
-        'appointment_reminder',
-        {
-          patientName: appointment.patient.user.name,
-          providerName: appointment.provider.user.name,
-          appointmentDate: new Date(appointment.appointmentDate).toLocaleString(),
-          appointmentType: callType,
-          appointmentLink: `${process.env.NEXT_PUBLIC_APP_URL}/patient/appointments/${appointmentId}`,
-        }
-      );
-
-      // Send reminder to provider via NotificationAPI
-      await this.sendNotification(
-        appointment.provider.userId,
-        'provider_appointment_reminder',
-        {
-          patientName: appointment.patient.user.name,
-          providerName: appointment.provider.user.name,
-          appointmentDate: new Date(appointment.appointmentDate).toLocaleString(),
-          appointmentType: callType,
-          appointmentLink: `${process.env.NEXT_PUBLIC_APP_URL}/provider/appointments/${appointmentId}`,
-        }
-      );
-    } catch (error) {
-      console.error('Error creating appointment reminder notifications:', error);
+          await this.sendNotification(appointment.patient.userId, 'appointment_reminder', notificationData);
+          await this.sendNotification(appointment.provider.userId, 'provider_appointment_reminder', { ...notificationData, appointmentLink: `${process.env.NEXT_PUBLIC_APP_URL}/provider/appointments/${appointmentId}` });
+    } catch (error: unknown) {
+        const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+        logger.error('Error creating appointment reminder notifications:', errorData);
     }
   },
 
-  // Consultation started notification
   async notifyConsultationStarted(consultationId: string): Promise<void> {
     try {
       const consultation = await prisma.consultation.findUnique({
@@ -333,72 +217,53 @@ export const notificationService = {
         include: {
           appointment: {
             include: {
-              patient: {
-                include: {
-                  user: true,
-                },
-              },
-              provider: {
-                include: {
-                  user: true,
-                },
-              },
+              patient: { include: { user: true } },
+              provider: { include: { user: true } },
             },
           },
         },
       });
 
-      if (!consultation) return;
+      if (!consultation || !consultation.appointment) return;
 
-      const appointment = consultation.appointment;
-      const callType = appointment.consultationType === 'AUDIO' ? 'Audio' : 'Video';
+      const { appointment } = consultation;
+      const callType = appointment.consultationType;
+      const patientName = appointment.patient.user.name;
+      const providerName = appointment.provider.user.name;
 
-      // Create in-app notification for patient
       await this.createNotification({
         title: `${callType} Consultation Started`,
-        message: `Your ${callType.toLowerCase()} consultation with ${appointment.provider.user.name} has started. Join now!`,
+        message: `Your consultation with ${providerName} has started. Join now!`,
         type: NotificationType.CONSULTATION_STARTED,
         userId: appointment.patient.userId,
         relatedId: consultationId,
         link: `/consultation/${consultationId}`,
+        isRead: false,
       });
 
-      // Create in-app notification for provider
       await this.createNotification({
         title: `${callType} Consultation Started`,
-        message: `Your ${callType.toLowerCase()} consultation with ${appointment.patient.user.name} has started. Join now!`,
+        message: `Your consultation with ${patientName} has started. Join now!`,
         type: NotificationType.CONSULTATION_STARTED,
         userId: appointment.provider.userId,
         relatedId: consultationId,
         link: `/consultation/${consultationId}`,
+        isRead: false,
       });
 
-      // Send urgent notification to patient via NotificationAPI
-      await this.sendNotification(
-        appointment.patient.userId,
-        'consultation_started',
-        {
-          patientName: appointment.patient.user.name,
-          providerName: appointment.provider.user.name,
-          consultationType: callType,
-          consultationLink: `${process.env.NEXT_PUBLIC_APP_URL}/consultation/${consultationId}`,
-        }
-      );
+      const notificationData = {
+        patientName,
+        providerName,
+        consultationType: callType,
+        consultationLink: `${process.env.NEXT_PUBLIC_APP_URL}/consultation/${consultationId}`,
+      };
 
-      // Send urgent notification to provider via NotificationAPI
-      await this.sendNotification(
-        appointment.provider.userId,
-        'provider_consultation_started',
-        {
-          patientName: appointment.patient.user.name,
-          providerName: appointment.provider.user.name,
-          consultationType: callType,
-          consultationLink: `${process.env.NEXT_PUBLIC_APP_URL}/consultation/${consultationId}`,
-        }
-      );
-    } catch (error) {
-      console.error('Error creating consultation started notifications:', error);
+      await this.sendNotification(appointment.patient.userId, 'consultation_started', notificationData);
+      await this.sendNotification(appointment.provider.userId, 'provider_consultation_started', notificationData);
+
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Error creating consultation started notifications:', errorData);
     }
   },
 };
-

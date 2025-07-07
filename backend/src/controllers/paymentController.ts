@@ -20,10 +20,10 @@ export const createPaymentIntent = async (req: AuthenticatedRequest, res: Respon
 
     const { appointmentId } = req.body;
 
-    if (!appointmentId) {
+    if (!appointmentId || typeof appointmentId !== 'string') {
       res.status(400).json({
         success: false,
-        error: 'Appointment ID is required',
+        error: 'Valid appointment ID is required',
       });
       return;
     }
@@ -96,10 +96,10 @@ export const createPaymentIntent = async (req: AuthenticatedRequest, res: Respon
     // Create payment record in database
     const payment = await prisma.payment.create({
       data: {
-        patientId: appointment.patientId,
         appointmentId,
         amount: consultationFee,
         currency: 'USD',
+        provider: 'STRIPE',
         status: 'PENDING',
         paymentMethod: 'STRIPE',
         paymentIntentId: paymentIntent.id,
@@ -157,10 +157,13 @@ export const confirmPayment = async (req: AuthenticatedRequest, res: Response): 
     const payment = await prisma.payment.findUnique({
       where: { id: paymentId },
       include: {
-        patient: {
-          include: { user: true }
+        appointment: {
+          include: {
+            patient: {
+              include: { user: true }
+            }
+          }
         },
-        appointment: true,
       },
     });
 
@@ -173,7 +176,7 @@ export const confirmPayment = async (req: AuthenticatedRequest, res: Response): 
     }
 
     // Check authorization
-    if (req.user.role !== 'PATIENT' || payment.patient.user.id !== req.user.id) {
+    if (req.user.role !== 'PATIENT' || payment.appointment.patient.user.id !== req.user.id) {
       res.status(403).json({
         success: false,
         error: 'Access denied',
@@ -182,7 +185,7 @@ export const confirmPayment = async (req: AuthenticatedRequest, res: Response): 
     }
 
     // Check if payment is already completed
-    if (payment.status === 'COMPLETED') {
+    if (payment.status === 'SUCCEEDED') {
       res.status(400).json({
         success: false,
         error: 'Payment is already completed',
@@ -201,7 +204,7 @@ export const confirmPayment = async (req: AuthenticatedRequest, res: Response): 
     const updatedPayment = await prisma.payment.update({
       where: { id: paymentId },
       data: {
-        status: confirmedPayment.status === 'succeeded' ? 'COMPLETED' : 'FAILED',
+        status: confirmedPayment.status === 'succeeded' ? 'SUCCEEDED' : 'FAILED',
         transactionId: confirmedPayment.id,
         metadata: {
           ...payment.metadata as any,
@@ -265,11 +268,11 @@ export const getPayment = async (req: AuthenticatedRequest, res: Response): Prom
     const payment = await prisma.payment.findUnique({
       where: { id },
       include: {
-        patient: {
-          include: { user: true }
-        },
         appointment: {
           include: {
+            patient: {
+              include: { user: true }
+            },
             provider: {
               include: { user: true }
             }
@@ -287,8 +290,8 @@ export const getPayment = async (req: AuthenticatedRequest, res: Response): Prom
     }
 
     // Check authorization
-    const isPatient = req.user.role === 'PATIENT' && payment.patient?.user.id === req.user.id;
-    const isProvider = req.user.role === 'PROVIDER' && payment.appointment?.provider?.user.id === req.user.id;
+    const isPatient = req.user.role === 'PATIENT' && payment.appointment.patient?.user.id === req.user.id;
+    const isProvider = req.user.role === 'PROVIDER' && payment.appointment.provider?.user.id === req.user.id;
     const isAdmin = req.user.role === 'ADMIN';
 
     if (!isPatient && !isProvider && !isAdmin) {
@@ -376,24 +379,20 @@ export const getPayments = async (req: AuthenticatedRequest, res: Response): Pro
       prisma.payment.findMany({
         where,
         include: {
-          patient: {
-            select: {
-              id: true,
-              user: {
+          appointment: {
+            include: {
+              patient: {
                 select: {
                   id: true,
-                  name: true,
-                  email: true,
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
                 },
               },
-            },
-          },
-          appointment: {
-            select: {
-              id: true,
-              appointmentDate: true,
-              reason: true,
-              status: true,
               provider: {
                 select: {
                   id: true,
@@ -405,6 +404,12 @@ export const getPayments = async (req: AuthenticatedRequest, res: Response): Pro
                   },
                 },
               },
+            },
+            select: {
+              id: true,
+              appointmentDate: true,
+              reason: true,
+              status: true,
             },
           },
         },
@@ -504,7 +509,7 @@ async function handlePaymentSucceeded(paymentIntent: any) {
       await prisma.payment.update({
         where: { id: payment.id },
         data: {
-          status: 'COMPLETED',
+          status: 'SUCCEEDED',
           transactionId: paymentIntent.id,
         },
       });
@@ -554,7 +559,7 @@ async function handlePaymentCanceled(paymentIntent: any) {
     if (payment) {
       await prisma.payment.update({
         where: { id: payment.id },
-        data: { status: 'CANCELLED' },
+        data: { status: 'FAILED' },
       });
 
       logger.info('Payment canceled and records updated:', { paymentId: payment.id });
@@ -580,10 +585,10 @@ export const createCheckoutSession = async (req: AuthenticatedRequest, res: Resp
 
     const { appointmentId, paymentMethod = 'STRIPE', amount, currency = 'USD' } = req.body;
 
-    if (!appointmentId) {
+    if (!appointmentId || typeof appointmentId !== 'string') {
       res.status(400).json({
         success: false,
-        error: 'Appointment ID is required',
+        error: 'Valid appointment ID is required',
       });
       return;
     }
@@ -651,10 +656,10 @@ export const createCheckoutSession = async (req: AuthenticatedRequest, res: Resp
       // Create payment record
       const payment = await prisma.payment.create({
         data: {
-          patientId: appointment.patientId,
           appointmentId,
           amount: consultationFee,
           currency,
+          provider: 'STRIPE',
           status: 'PENDING',
           paymentMethod: 'STRIPE',
           paymentIntentId: paymentIntent.id,
@@ -775,10 +780,10 @@ export const verifyPayment = async (req: AuthenticatedRequest, res: Response): P
         };
 
         // Update payment status if needed
-        if (paymentIntent.status === 'succeeded' && payment.status !== 'COMPLETED') {
+        if (paymentIntent.status === 'succeeded' && payment.status !== 'SUCCEEDED') {
           await prisma.payment.update({
             where: { id: payment.id },
-            data: { status: 'COMPLETED' },
+            data: { status: 'SUCCEEDED' },
           });
         }
       } catch (error) {
@@ -875,7 +880,7 @@ export const refundPayment = async (req: AuthenticatedRequest, res: Response): P
     }
 
     // Check if payment can be refunded
-    if (payment.status !== 'COMPLETED') {
+    if (payment.status !== 'SUCCEEDED') {
       res.status(400).json({
         success: false,
         error: 'Only completed payments can be refunded',

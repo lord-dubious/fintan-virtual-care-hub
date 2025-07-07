@@ -1,171 +1,146 @@
-import { PrismaClient, Patient, User, UserRole } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { PrismaClient } from '@prisma/client';
+import {
+  PatientWithUser,
+  PatientRegistrationFormData,
+  UpdatePatientRequest,
+  Role,
+  ApiResponse,
+  User,
+} from '../../../shared/domain';
+import { hashPassword } from '../../utils/authUtils';
 
 const prisma = new PrismaClient();
 
-export interface PatientCreateInput {
-  email: string;
-  password: string;
-  name: string;
-  phone?: string;
-  dateOfBirth?: Date;
-  address?: string;
-  emergencyContact?: string;
-}
-
-export interface PatientUpdateInput {
-  name?: string;
-  email?: string;
-  phone?: string;
-  dateOfBirth?: Date;
-  address?: string;
-  emergencyContact?: string;
-}
-
-export interface PatientWithUser extends Patient {
-  user: User;
-}
-
-async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 10;
-  return bcrypt.hash(password, saltRounds);
-}
-
 export const patientService = {
-  async create(data: PatientCreateInput): Promise<PatientWithUser> {
-    const hashedPassword = await hashPassword(data.password);
+  async create(data: PatientRegistrationFormData): Promise<ApiResponse<PatientWithUser>> {
+    try {
+      const hashedPassword = await hashPassword(data.password);
 
-    return prisma.$transaction(async (tx) => {
-      // Create user first
-      const user = await tx.user.create({
-        data: {
-          email: data.email,
-          password: hashedPassword,
-          name: data.name,
-          phone: data.phone,
-          role: UserRole.PATIENT,
-        },
+      const result = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email: data.email,
+            password: hashedPassword,
+            name: `${data.firstName} ${data.lastName}`.trim(),
+            phone: data.phone,
+            role: Role.PATIENT,
+          },
+        });
+
+        const patient = await tx.patient.create({
+          data: {
+            userId: user.id,
+            dateOfBirth: data.dateOfBirth,
+          },
+          include: { user: true },
+        });
+
+        return patient;
       });
 
-      // Then create patient profile
-      const patient = await tx.patient.create({
-        data: {
-          userId: user.id,
-          dateOfBirth: data.dateOfBirth,
-          address: data.address,
-          emergencyContact: data.emergencyContact,
-        },
-        include: {
-          user: true,
-        },
+      return { success: true, data: result as unknown as PatientWithUser };
+    } catch (error) {
+      return { success: false, error: 'Failed to create patient' };
+    }
+  },
+
+  async findById(id: string): Promise<ApiResponse<PatientWithUser | null>> {
+    try {
+      const patient = await prisma.patient.findUnique({
+        where: { id },
+        include: { user: true },
       });
-
-      return patient;
-    });
+      return { success: true, data: patient as unknown as PatientWithUser };
+    } catch (error) {
+      return { success: false, error: 'Failed to find patient' };
+    }
   },
 
-  async findById(id: string): Promise<PatientWithUser | null> {
-    return prisma.patient.findUnique({
-      where: { id },
-      include: {
-        user: true,
-      },
-    });
-  },
-
-  async getById(id: string): Promise<PatientWithUser | null> {
+  async getById(id: string): Promise<ApiResponse<PatientWithUser | null>> {
     return this.findById(id);
   },
 
-  async findByEmail(email: string): Promise<PatientWithUser | null> {
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+  async findByEmail(email: string): Promise<ApiResponse<PatientWithUser | null>> {
+    try {
+      const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user || user.role !== UserRole.PATIENT) {
-      return null;
+      if (!user || user.role !== Role.PATIENT) {
+        return { success: true, data: null };
+      }
+
+      const patient = await prisma.patient.findUnique({
+        where: { userId: user.id },
+        include: { user: true },
+      });
+
+      return { success: true, data: patient as unknown as PatientWithUser };
+    } catch (error) {
+      return { success: false, error: 'Failed to find patient by email' };
     }
-
-    return prisma.patient.findUnique({
-      where: { userId: user.id },
-      include: {
-        user: true,
-      },
-    });
   },
 
-  async getByEmail(email: string): Promise<PatientWithUser | null> {
+  async getByEmail(email: string): Promise<ApiResponse<PatientWithUser | null>> {
     return this.findByEmail(email);
   },
 
-  async findMany(): Promise<PatientWithUser[]> {
-    return prisma.patient.findMany({
-      include: {
-        user: true,
-      },
-    });
+  async findMany(): Promise<ApiResponse<PatientWithUser[]>> {
+    try {
+      const patients = await prisma.patient.findMany({
+        include: { user: true },
+      });
+      return { success: true, data: patients as unknown as PatientWithUser[] };
+    } catch (error) {
+      return { success: false, error: 'Failed to find patients' };
+    }
   },
 
-  async getAll(): Promise<PatientWithUser[]> {
+  async getAll(): Promise<ApiResponse<PatientWithUser[]>> {
     return this.findMany();
   },
 
-  async update(id: string, data: PatientUpdateInput): Promise<PatientWithUser> {
-    const patient = await prisma.patient.findUnique({
-      where: { id },
-      include: { user: true },
-    });
-
-    if (!patient) {
-      throw new Error(`Patient with ID ${id} not found`);
-    }
-
-    return prisma.$transaction(async (tx) => {
-      // Update user information
-      if (data.name || data.email || data.phone) {
-        await tx.user.update({
-          where: { id: patient.userId },
-          data: {
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-          },
-        });
-      }
-
-      // Update patient information
-      const updatedPatient = await tx.patient.update({
+  async update(id: string, data: UpdatePatientRequest): Promise<ApiResponse<PatientWithUser>> {
+    try {
+      const patient = await prisma.patient.findUnique({
         where: { id },
-        data: {
-          dateOfBirth: data.dateOfBirth,
-          address: data.address,
-          emergencyContact: data.emergencyContact,
-        },
-        include: {
-          user: true,
-        },
+        include: { user: true },
       });
 
-      return updatedPatient;
-    });
+      if (!patient) {
+        return { success: false, error: `Patient with ID ${id} not found` };
+      }
+
+      const result = await prisma.patient.update({
+        where: { id },
+        data: data,
+        include: { user: true },
+      });
+
+      return { success: true, data: result as unknown as PatientWithUser };
+    } catch (error) {
+      return { success: false, error: 'Failed to update patient' };
+    }
   },
 
-  async delete(id: string): Promise<PatientWithUser> {
-    const patient = await prisma.patient.findUnique({
-      where: { id },
-      include: { user: true },
-    });
+  async delete(id: string): Promise<ApiResponse<PatientWithUser>> {
+    try {
+      const patient = await prisma.patient.findUnique({
+        where: { id },
+        include: { user: true },
+      });
 
-    if (!patient) {
-      throw new Error(`Patient with ID ${id} not found`);
+      if (!patient) {
+        return { success: false, error: `Patient with ID ${id} not found` };
+      }
+
+      await prisma.user.delete({ where: { id: patient.userId } });
+
+      return { success: true, data: patient as unknown as PatientWithUser };
+    } catch (error) {
+      return { success: false, error: 'Failed to delete patient' };
     }
-
-    // Delete the user (will cascade delete the patient due to onDelete: Cascade)
-    await prisma.user.delete({
-      where: { id: patient.userId },
-    });
-
-    return patient;
   },
 };
 
+// Export types for use in hooks
+export type PatientCreateInput = PatientRegistrationFormData;
+export type PatientUpdateInput = UpdatePatientRequest;

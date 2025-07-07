@@ -47,7 +47,7 @@ const PaymentPage: React.FC = () => {
     appointmentId: appointment.id,
     amount: 5000, // This should come from the appointment or backend config
     currency: 'USD',
-    paymentMethod: selectedMethod as any,
+    paymentMethod: selectedMethod as 'STRIPE' | 'PAYSTACK' | 'PAYPAL' | 'FLUTTERWAVE' | 'CREDIT_CARD' | 'BANK_TRANSFER',
   };
 
   return (

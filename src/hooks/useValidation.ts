@@ -49,7 +49,7 @@ export function useValidation<T>({
   const validateField = useCallback((field: string, value: unknown): ValidationError | null => {
     try {
       // Try to validate just this field if the schema supports it
-      const fieldSchema = (schema as any).shape?.[field];
+      const fieldSchema = (schema as { shape?: Record<string, z.ZodType> }).shape?.[field];
       if (fieldSchema) {
         fieldSchema.parse(value);
         clearFieldError(field);
@@ -171,7 +171,7 @@ export function useFieldValidation<T>(
       // Debounce validation
       const timeoutId = setTimeout(() => {
         try {
-          const fieldSchema = (schema as any).shape?.[field];
+          const fieldSchema = (schema as { shape?: Record<string, z.ZodType> }).shape?.[field];
           if (fieldSchema) {
             fieldSchema.parse(value);
             setError(null);

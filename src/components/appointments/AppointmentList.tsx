@@ -7,27 +7,13 @@ import { Calendar, Clock, Video, Mic } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { consultationService } from '@/lib/services/consultationService';
 import { useToast } from '@/hooks/use-toast';
+import { ConsultationResponse, Consultation } from '@/types/consultation'; // Import Consultation as well
+import { logger } from '@/lib/utils/monitoring';
 
-interface Appointment {
-  id: string;
-  appointmentDate: string;
-  consultationType: 'VIDEO' | 'AUDIO' | string;
-  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | string;
-  reason?: string;
-  patient?: {
-    user: {
-      name: string;
-    };
-  };
-  provider?: {
-    user: {
-      name: string;
-    };
-  };
-}
+import type { Appointment, AppointmentWithDetails } from '../../../shared/domain'; // Import Appointment and AppointmentWithDetails
 
 interface AppointmentListProps {
-  appointments: Appointment[];
+  appointments: AppointmentWithDetails[]; // Change to AppointmentWithDetails
   isProvider?: boolean;
 }
 
@@ -37,26 +23,44 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isProvi
   const [consultationStatus, setConsultationStatus] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Check consultation status for each appointment
     const checkConsultationStatus = async () => {
-      const statusMap: Record<string, string> = {};
-      
-      for (const appointment of appointments) {
-        try {
-          // Check if consultation exists
-          const result = await consultationService.getConsultationByAppointmentId(appointment.id);
-          if (result.success && result.consultation) {
-            statusMap[appointment.id] = result.consultation.status;
-          } else {
-            statusMap[appointment.id] = 'NOT_CREATED';
-          }
-        } catch (error) {
-          console.error('Error checking consultation status:', error);
-          statusMap[appointment.id] = 'ERROR';
-        }
+      if (appointments.length === 0) {
+        setConsultationStatus({});
+        return;
       }
-      
-      setConsultationStatus(statusMap);
+
+      const appointmentIds = appointments.map(a => a.id);
+      try {
+        const result = await consultationService.getConsultationsByAppointmentIds(appointmentIds);
+        if (result.success && result.data) {
+          setConsultationStatus(result.data);
+        } else {
+          // Fallback if the batched call fails
+          const statusMap: Record<string, string> = {};
+          for (const appointment of appointments) {
+            try {
+              const singleResult = await consultationService.getConsultationByAppointmentId(appointment.id);
+              if (singleResult.success && singleResult.data) {
+                statusMap[appointment.id] = singleResult.data.status;
+              } else {
+                statusMap[appointment.id] = 'NOT_CREATED';
+              }
+            } catch (error: unknown) {
+              const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+              logger.error('Error checking single consultation status:', errorData);
+              statusMap[appointment.id] = 'ERROR';
+            }
+          }
+          setConsultationStatus(statusMap);
+        }
+      } catch (error: unknown) {
+        const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+        logger.error('Error checking batched consultation statuses:', errorData);
+        // If batched call fails entirely, set all to error or handle as needed
+        const statusMap: Record<string, string> = {};
+        appointments.forEach(a => statusMap[a.id] = 'ERROR');
+        setConsultationStatus(statusMap);
+      }
     };
     
     checkConsultationStatus();
@@ -68,26 +72,27 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isProvi
       let consultationId;
       const existingConsultation = await consultationService.getConsultationByAppointmentId(appointmentId);
       
-      if (existingConsultation.success && existingConsultation.consultation) {
-        consultationId = existingConsultation.consultation.id;
+      if (existingConsultation && existingConsultation.success && existingConsultation.data) { // Access consultation from data
+        consultationId = existingConsultation.data.id; // Access id directly from data
       } else {
         // Create a new consultation
         const result = await consultationService.createConsultation(appointmentId);
-        if (!result.success) {
+        if (!result || !result.success || !result.data) { // Access consultation from data
           toast({
             title: 'Error',
-            description: result.message || 'Failed to create consultation',
+            description: result?.message || 'Failed to create consultation',
             variant: 'destructive',
           });
           return;
         }
-        consultationId = result.consultation.id;
+        consultationId = result.data.id; // Access id directly from data
       }
       
       // Navigate to consultation room
       navigate(`/consultation/${consultationId}`);
-    } catch (error) {
-      console.error('Error joining consultation:', error);
+    } catch (error: unknown) {
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+      logger.error('Error joining consultation:', errorData);
       toast({
         title: 'Error',
         description: 'Failed to join consultation',
@@ -109,7 +114,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isProvi
     }
   };
 
-  const isAppointmentActive = (appointment: Appointment) => {
+  const isAppointmentActive = (appointment: AppointmentWithDetails) => { // Changed to AppointmentWithDetails
     const appointmentTime = new Date(appointment.appointmentDate).getTime();
     const now = new Date().getTime();
     const thirtyMinutesBefore = appointmentTime - 30 * 60 * 1000;
@@ -152,7 +157,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isProvi
             <div className="space-y-2">
               <div className="flex items-center text-sm text-gray-500">
                 <Calendar className="h-4 w-4 mr-2" />
-                {formatDate(appointment.appointmentDate)}
+                {formatDate(appointment.appointmentDate.toISOString())}
               </div>
               <div className="flex items-center text-sm text-gray-500">
                 <Clock className="h-4 w-4 mr-2" />
@@ -197,4 +202,3 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isProvi
 };
 
 export default AppointmentList;
-

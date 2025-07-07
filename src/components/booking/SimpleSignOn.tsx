@@ -96,6 +96,7 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
         name,
         email: formData.email,
         password: formData.password,
+        confirmPassword: formData.password,
         role: 'PATIENT',
       });
 

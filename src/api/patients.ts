@@ -1,121 +1,21 @@
 import { apiClient, ApiResponse } from './client';
 import { API_ENDPOINTS } from './config';
+import {
+  Patient,
+  MedicalRecord,
+  PatientFilters,
+  CreateInput,
+  UpdateInput,
+  PatientWithUser, // Added PatientWithUser
+  PatientAppointment as DomainPatientAppointment // Added DomainPatientAppointment
+} from '../../shared/domain';
 
-// Additional types
-interface PatientAppointment {
-  id: string;
-  date: string;
-  time: string;
-  type: string;
-  status: string;
-  providerId: string;
-  providerName: string;
-}
+// Type aliases for better readability
+export type CreatePatientData = CreateInput<Patient>;
+export type UpdatePatientData = UpdateInput<Patient>;
 
-// Patient types
-export interface Patient {
-  id: string;
-  userId: string;
-  emergencyContact?: {
-    name: string;
-    phone: string;
-    relationship: string;
-  };
-  insurance?: {
-    provider: string;
-    policyNumber: string;
-    groupNumber?: string;
-  };
-  medicalHistory?: string;
-  allergies?: string[];
-  medications?: string[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    dateOfBirth?: string;
-    address?: string;
-    avatar?: string;
-  };
-  appointments?: PatientAppointment[];
-  medicalRecords?: MedicalRecord[];
-}
-
-export interface MedicalRecord {
-  id: string;
-  patientId: string;
-  date: string;
-  type: string;
-  notes: string;
-  diagnosis?: string;
-  prescription?: string;
-  providerId?: string;
-  createdAt: string;
-  updatedAt: string;
-  provider?: {
-    id: string;
-    user: {
-      name: string;
-    };
-  };
-}
-
-export interface PatientFilters {
-  isActive?: boolean;
-  search?: string;
-  page?: number;
-  limit?: number;
-  sortBy?: 'name' | 'createdAt' | 'lastAppointment';
-  sortOrder?: 'asc' | 'desc';
-}
-
-export interface CreatePatientData {
-  name: string;
-  email: string;
-  phone?: string;
-  dateOfBirth?: string;
-  address?: string;
-  emergencyContact?: {
-    name: string;
-    phone: string;
-    relationship: string;
-  };
-  insurance?: {
-    provider: string;
-    policyNumber: string;
-    groupNumber?: string;
-  };
-  medicalHistory?: string;
-  allergies?: string[];
-  medications?: string[];
-}
-
-export interface UpdatePatientData {
-  name?: string;
-  email?: string;
-  phone?: string;
-  dateOfBirth?: string;
-  address?: string;
-  emergencyContact?: {
-    name: string;
-    phone: string;
-    relationship: string;
-  };
-  insurance?: {
-    provider: string;
-    policyNumber: string;
-    groupNumber?: string;
-  };
-  medicalHistory?: string;
-  allergies?: string[];
-  medications?: string[];
-}
-
-export interface PatientStats {
+// Additional local types for API responses that extend shared domain types
+interface PatientStats {
   total: number;
   active: number;
   inactive: number;
@@ -124,13 +24,15 @@ export interface PatientStats {
   totalAppointments: number;
 }
 
-export interface AddMedicalRecordData {
+interface AddMedicalRecordData {
   date: Date;
   type: string;
   notes: string;
   diagnosis?: string;
   prescription?: string;
 }
+
+// Removed local PatientAppointment interface, using type from shared/domain.ts
 
 // Patients API
 export const patientsApi = {
@@ -183,8 +85,8 @@ export const patientsApi = {
   },
 
   // Get patient appointments
-  async getPatientAppointments(patientId: string): Promise<ApiResponse<PatientAppointment[]>> {
-    return apiClient.get<PatientAppointment[]>(API_ENDPOINTS.PATIENTS.APPOINTMENTS(patientId));
+  async getPatientAppointments(patientId: string): Promise<ApiResponse<DomainPatientAppointment[]>> { // Changed to DomainPatientAppointment[]
+    return apiClient.get<DomainPatientAppointment[]>(API_ENDPOINTS.PATIENTS.APPOINTMENTS(patientId));
   },
 
   // Search patients
@@ -203,8 +105,8 @@ export const patientsApi = {
   },
 
   // Get current patient profile (for dashboard)
-  async getCurrentPatientProfile(): Promise<ApiResponse<Patient>> {
-    return apiClient.get<Patient>(`${API_ENDPOINTS.PATIENTS.BASE}/profile`);
+  async getCurrentPatientProfile(): Promise<ApiResponse<PatientWithUser>> { // Changed return type to PatientWithUser
+    return apiClient.get<PatientWithUser>(`${API_ENDPOINTS.PATIENTS.BASE}/profile`);
   },
 
   // Get merged medical records
@@ -212,5 +114,8 @@ export const patientsApi = {
     return apiClient.get<MedicalRecord[]>(API_ENDPOINTS.PATIENTS.MEDICAL_RECORDS(patientId));
   },
 };
+
+// Export types for use in other modules
+export type { Patient, PatientFilters, MedicalRecord, PatientAppointment as DomainPatientAppointment } from '../../shared/domain';
 
 export default patientsApi;

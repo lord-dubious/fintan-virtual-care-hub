@@ -1,16 +1,18 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
-import { CalendarIcon, Mic, MicOff, Play, Pause, Trash2 } from 'lucide-react';
+import { CalendarIcon, Mic, MicOff, Play, Pause, Trash2, CheckCircle, User, RefreshCw } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { usePatientProfileForBooking } from '@/hooks/usePatientProfile';
 
 interface PatientInfoStepProps {
   bookingData: {
@@ -42,6 +44,40 @@ const PatientInfoStep: React.FC<PatientInfoStepProps> = ({
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
+
+  // Get patient profile data for auto-population
+  const {
+    patientData,
+    formData,
+    isLoading: isLoadingProfile,
+    isProfileComplete,
+    canSkipPersonalInfo
+  } = usePatientProfileForBooking();
+
+  // Auto-populate form fields when profile data is available
+  useEffect(() => {
+    if (formData && !hasAutoPopulated && isProfileComplete) {
+      // Only auto-populate if the current fields are empty
+      const shouldPopulate = !bookingData.patientName && !bookingData.patientEmail && !bookingData.patientPhone;
+
+      if (shouldPopulate) {
+        updateBookingData({
+          patientName: formData.patientName || '',
+          patientEmail: formData.patientEmail || '',
+          patientPhone: formData.patientPhone || '',
+          dateOfBirth: formData.dateOfBirth || null,
+        });
+
+        setHasAutoPopulated(true);
+
+        toast({
+          title: "Information loaded",
+          description: "Your profile information has been automatically filled in.",
+        });
+      }
+    }
+  }, [formData, hasAutoPopulated, isProfileComplete, bookingData, updateBookingData, toast]);
 
   const startRecording = async () => {
     try {
@@ -115,11 +151,27 @@ const PatientInfoStep: React.FC<PatientInfoStepProps> = ({
       setCurrentAudio(null);
     }
     updateBookingData({ reasonAudio: undefined });
-    
+
     toast({
       title: "Recording deleted",
       description: "Voice recording has been removed"
     });
+  };
+
+  const loadFromProfile = () => {
+    if (formData) {
+      updateBookingData({
+        patientName: formData.patientName || '',
+        patientEmail: formData.patientEmail || '',
+        patientPhone: formData.patientPhone || '',
+        dateOfBirth: formData.dateOfBirth || null,
+      });
+
+      toast({
+        title: "Profile loaded",
+        description: "Your information has been updated from your profile.",
+      });
+    }
   };
 
   return (
@@ -132,6 +184,59 @@ const PatientInfoStep: React.FC<PatientInfoStepProps> = ({
           Please provide your details for the consultation
         </p>
       </div>
+
+      {/* Profile Status Indicator */}
+      {!isLoadingProfile && (
+        <div className="mb-6">
+          {isProfileComplete ? (
+            <Alert className="border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <AlertDescription className="text-green-800 dark:text-green-300">
+                <strong>Profile Complete!</strong> Your information has been automatically filled from your profile.
+                You can edit any field if needed.
+              </AlertDescription>
+            </Alert>
+          ) : canSkipPersonalInfo ? (
+            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
+              <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertDescription className="text-blue-800 dark:text-blue-300">
+                <strong>Quick Setup:</strong> Some information has been filled from your account.
+                Complete your profile after booking to save time on future appointments.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+              <User className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertDescription className="text-amber-800 dark:text-amber-300">
+                <strong>First Time Booking:</strong> Please fill in your information below.
+                You can complete your profile after booking to save time on future appointments.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
+
+      {isLoadingProfile && (
+        <div className="flex items-center justify-center py-4">
+          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+          <span className="text-sm text-gray-600 dark:text-gray-400">Loading your profile...</span>
+        </div>
+      )}
+
+      {/* Load from Profile Button */}
+      {formData && !isProfileComplete && (
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={loadFromProfile}
+            className="text-blue-600 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-600 dark:hover:bg-blue-900/20"
+          >
+            <User className="mr-2 h-4 w-4" />
+            Load from Profile
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">

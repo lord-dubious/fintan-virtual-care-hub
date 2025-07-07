@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { prisma } from '@/config/database';
-import logger from '@/config/logger';
-import { AuthenticatedRequest } from '@/types';
+import { prisma } from '../config/database';
+import logger from '../config/logger';
+import { AuthenticatedRequest } from '../types';
 
 /**
  * Get user profile with role-specific data

@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import {
   CreditCard,
-  Wallet,
   Shield,
   CheckCircle,
   Loader2
@@ -19,10 +17,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import PaymentMethodCard from './PaymentMethodCard';
-import { usePaymentMethodConfig, useStripePaymentIntent, usePaystackPayment, useProcessPayment } from '@/hooks/usePayments';
+import { usePaymentMethodConfig, useStripePaymentIntent, usePaystackPayment } from '@/hooks/usePayments';
 import { useToast } from '@/hooks/use-toast';
+
+// Stripe types
+interface StripeElements {
+  create: (type: string, options?: Record<string, unknown>) => StripeCardElement;
+}
+
+interface StripeCardElement {
+  mount: (selector: string) => void;
+  unmount: () => void;
+  on: (event: string, handler: (event: StripeEvent) => void) => void;
+}
+
+interface StripeEvent {
+  error?: {
+    message: string;
+  };
+  complete: boolean;
+}
+
+interface StripeInstance {
+  elements: () => StripeElements;
+  confirmCardPayment: (clientSecret: string, options: Record<string, unknown>) => Promise<{
+    error?: { message: string };
+    paymentIntent?: { status: string };
+  }>;
+}
+
+declare global {
+  interface Window {
+    Stripe?: (publishableKey: string) => StripeInstance;
+  }
+}
 
 interface PaymentStepProps {
   bookingData: {
@@ -51,9 +80,9 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   // Secure Stripe Elements implementation
-  const [stripeElements, setStripeElements] = useState<any>(null);
-  const [cardElement, setCardElement] = useState<any>(null);
-  const stripeInstanceRef = useRef<any>(null);
+  const [stripeElements, setStripeElements] = useState<StripeElements | null>(null);
+  const [cardElement, setCardElement] = useState<StripeCardElement | null>(null);
+  const stripeInstanceRef = useRef<StripeInstance | null>(null);
 
   // Fetch payment method configuration (must come before useEffect that uses it)
   const { data: paymentConfig, isLoading: configLoading } = usePaymentMethodConfig();
@@ -62,11 +91,13 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
   useEffect(() => {
     if (bookingData.paymentMethod === 'stripe' && paymentConfig?.stripe?.enabled) {
       const initializeStripe = async () => {
-        const stripe = (window as any).Stripe;
-        if (!stripe) {
+        const StripeConstructor = window.Stripe;
+        if (!StripeConstructor) {
           console.error('Stripe.js not loaded');
           return;
         }
+
+        const stripe = StripeConstructor(paymentConfig.stripe.publishableKey || '');
 
         // Store the Stripe instance in ref for reuse
         stripeInstanceRef.current = stripe;
@@ -105,14 +136,13 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
         setStripeElements(null);
       }
     };
-  }, [bookingData.paymentMethod, paymentConfig?.stripe?.enabled, cardElement]);
+  }, [bookingData.paymentMethod, paymentConfig?.stripe?.enabled, paymentConfig?.stripe?.publishableKey, cardElement]);
 
   const consultationPrice = bookingData.consultationType === 'video' ? 85 : 65;
 
   // Payment processing hooks
   const stripePaymentIntent = useStripePaymentIntent();
   const paystackPayment = usePaystackPayment();
-  const processPayment = useProcessPayment(bookingData.paymentMethod.toUpperCase() as any);
   
   // Filter payment methods based on configuration
   const paymentMethods = [
@@ -230,7 +260,7 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
             throw new Error(error.message);
           }
 
-          if (paymentIntent.status === 'succeeded') {
+          if (paymentIntent?.status === 'succeeded') {
             // Continue with the booking submission
             onSubmit();
           }
@@ -290,11 +320,12 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
           setIsProcessing(false);
           onSubmit(); // For demo/test, just proceed
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Payment error:", error);
+      const errorMessage = error instanceof Error ? error.message : "An error occurred during payment processing";
       toast({
         title: "Payment Failed",
-        description: error.message || "An error occurred during payment processing",
+        description: errorMessage,
         variant: "destructive",
       });
       setIsProcessing(false);

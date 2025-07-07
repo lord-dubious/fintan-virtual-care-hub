@@ -194,7 +194,7 @@ export const usePaymentMethodConfig = () => {
   });
 };
 
-export const usePaymentHistory = (filters?: any) => {
+export const usePaymentHistory = (filters?: Record<string, unknown>) => {
   return useQuery({
     queryKey: ['payments', 'history', filters],
     queryFn: async () => {

@@ -12,8 +12,9 @@ const envSchema = z.object({
   API_BASE_URL: z.string().default('http://localhost:3000/api'),
 
   // Frontend Configuration
-  FRONTEND_URL: z.string().default('http://localhost:10000'),
-  CORS_ORIGINS: z.string().default('http://localhost:10000,http://localhost:3000'),
+  FRONTEND_URL: z.string().optional(),
+  CORS_ORIGINS: z.string().optional(),
+  CORS_ALLOW_ALL: z.string().transform(val => val === 'true').default('false'),
 
   // Database Configuration
   DATABASE_URL: z.string(),
@@ -101,8 +102,9 @@ export const config = {
 
   // Frontend
   frontend: {
-    url: env.FRONTEND_URL,
-    corsOrigins: env.CORS_ORIGINS.split(',').map(origin => origin.trim()),
+    url: env.FRONTEND_URL || `http://localhost:${env.PORT + 7000}`, // Default to PORT + 7000
+    corsOrigins: env.CORS_ORIGINS?.split(',').map(origin => origin.trim()) || [],
+    corsAllowAll: env.CORS_ALLOW_ALL,
   },
 
   // Database

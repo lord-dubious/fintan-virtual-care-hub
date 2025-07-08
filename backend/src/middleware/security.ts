@@ -140,6 +140,11 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
 // CORS configuration
 export const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Check if CORS_ALLOW_ALL is enabled for development
+    if (process.env.CORS_ALLOW_ALL === 'true') {
+      return callback(null, true);
+    }
+
     // Get allowed origins from environment variables
     const envOrigins = process.env.CORS_ORIGINS?.split(',').map(origin => origin.trim()) || [];
     const allowedOrigins = [

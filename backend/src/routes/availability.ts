@@ -1,6 +1,6 @@
 import express from 'express';
 import { PrismaClient, DayOfWeek, ExceptionType } from '@prisma/client';
-import { authenticateToken, requireRole } from '../middleware/auth';
+import { authenticateToken, authorizeRoles } from '../middleware/auth';
 import { ConflictDetectionService } from '../services/conflictDetectionService';
 import { AvailabilityService } from '../services/availabilityService';
 import { z } from 'zod';
@@ -68,7 +68,7 @@ router.get('/slots', async (req, res) => {
 });
 
 // GET /api/availability/schedules - Get all schedules for a provider
-router.get('/schedules', authenticateToken, requireRole(['PROVIDER', 'DOCTOR']), async (req, res) => {
+router.get('/schedules', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'), async (req, res) => {
   try {
     const providerId = req.user?.provider?.id;
     if (!providerId) {
@@ -113,7 +113,7 @@ router.get('/schedules', authenticateToken, requireRole(['PROVIDER', 'DOCTOR']),
 });
 
 // GET /api/availability/schedules/:id - Get specific schedule
-router.get('/schedules/:id', authenticateToken, requireRole(['PROVIDER', 'DOCTOR']), async (req, res) => {
+router.get('/schedules/:id', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'), async (req, res) => {
   try {
     const { id } = req.params;
     const providerId = req.user?.provider?.id;
@@ -154,7 +154,7 @@ router.get('/schedules/:id', authenticateToken, requireRole(['PROVIDER', 'DOCTOR
 });
 
 // POST /api/availability/schedules - Create new schedule
-router.post('/schedules', authenticateToken, requireRole(['PROVIDER', 'DOCTOR']), async (req, res) => {
+router.post('/schedules', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'), async (req, res) => {
   try {
     const providerId = req.user?.provider?.id;
     if (!providerId) {
@@ -202,7 +202,7 @@ router.post('/schedules', authenticateToken, requireRole(['PROVIDER', 'DOCTOR'])
 });
 
 // PUT /api/availability/schedules/:id - Update schedule
-router.put('/schedules/:id', authenticateToken, requireRole(['PROVIDER', 'DOCTOR']), async (req, res) => {
+router.put('/schedules/:id', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'), async (req, res) => {
   try {
     const { id } = req.params;
     const providerId = req.user?.provider?.id;
@@ -300,7 +300,7 @@ router.put('/schedules/:id', authenticateToken, requireRole(['PROVIDER', 'DOCTOR
 });
 
 // DELETE /api/availability/schedules/:id - Delete schedule
-router.delete('/schedules/:id', authenticateToken, requireRole(['PROVIDER', 'DOCTOR']), async (req, res) => {
+router.delete('/schedules/:id', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'), async (req, res) => {
   try {
     const { id } = req.params;
     const providerId = req.user?.provider?.id;
@@ -329,7 +329,7 @@ router.delete('/schedules/:id', authenticateToken, requireRole(['PROVIDER', 'DOC
 });
 
 // POST /api/availability/schedules/:id/exceptions - Add schedule exception
-router.post('/schedules/:id/exceptions', authenticateToken, requireRole(['PROVIDER', 'DOCTOR']), async (req, res) => {
+router.post('/schedules/:id/exceptions', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'), async (req, res) => {
   try {
     const { id: scheduleId } = req.params;
     const providerId = req.user?.provider?.id;
@@ -370,7 +370,7 @@ router.post('/schedules/:id/exceptions', authenticateToken, requireRole(['PROVID
 });
 
 // DELETE /api/availability/exceptions/:id - Delete schedule exception
-router.delete('/exceptions/:id', authenticateToken, requireRole(['PROVIDER', 'DOCTOR']), async (req, res) => {
+router.delete('/exceptions/:id', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'), async (req, res) => {
   try {
     const { id } = req.params;
     const providerId = req.user?.provider?.id;
@@ -401,7 +401,7 @@ router.delete('/exceptions/:id', authenticateToken, requireRole(['PROVIDER', 'DO
 });
 
 // POST /api/availability/schedules/:id/copy - Copy schedule
-router.post('/schedules/:id/copy', authenticateToken, requireRole(['PROVIDER', 'DOCTOR']), async (req, res) => {
+router.post('/schedules/:id/copy', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'), async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
@@ -489,7 +489,7 @@ router.post('/check-conflicts', authenticateToken, async (req, res) => {
 });
 
 // POST /api/availability/validate-schedule - Validate schedule changes
-router.post('/validate-schedule', authenticateToken, requireRole(['PROVIDER', 'DOCTOR']), async (req, res) => {
+router.post('/validate-schedule', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'), async (req, res) => {
   try {
     const { scheduleId, weeklyAvailability, breakPeriods, exceptions } = req.body;
     const providerId = req.user?.provider?.id;
@@ -522,7 +522,7 @@ router.post('/validate-schedule', authenticateToken, requireRole(['PROVIDER', 'D
 });
 
 // POST /api/availability/check-double-booking - Check for double booking
-router.post('/check-double-booking', authenticateToken, requireRole(['PROVIDER', 'DOCTOR', 'ADMIN']), async (req, res) => {
+router.post('/check-double-booking', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR', 'ADMIN'), async (req, res) => {
   try {
     const { providerId, appointmentDate, duration, excludeAppointmentId } = req.body;
 

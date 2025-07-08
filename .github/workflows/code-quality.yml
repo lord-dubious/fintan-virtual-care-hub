@@ -1,0 +1,294 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+jobs:
+  code-analysis:
+    name: Code Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint with SARIF output
+        run: |
+          npx eslint . \
+            --format @microsoft/eslint-formatter-sarif \
+            --output-file eslint-results.sarif
+        continue-on-error: true
+
+      - name: Upload ESLint results to GitHub
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: eslint-results.sarif
+          wait-for-processing: true
+
+      - name: Run TypeScript compiler
+        run: npx tsc --noEmit --pretty
+
+      - name: Check code complexity
+        run: |
+          echo "Checking code complexity..."
+          npx complexity-report src/ --format json --output complexity-report.json || echo "Complexity report generated"
+        continue-on-error: true
+
+      - name: Upload complexity report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: complexity-report
+          path: complexity-report.json
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: |
+          npm audit --audit-level=moderate --json > npm-audit.json || true
+          if [ -s npm-audit.json ]; then
+            echo "Security vulnerabilities found:"
+            cat npm-audit.json
+          fi
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=medium --json > snyk-results.json
+        continue-on-error: true
+
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-scan-results
+          path: |
+            npm-audit.json
+            snyk-results.json
+
+      - name: Check for secrets in code
+        run: |
+          echo "Scanning for potential secrets..."
+          # Check for common secret patterns
+          if grep -r -E "(password|secret|key|token)\s*[:=]\s*['\"][^'\"]{8,}" src/ backend/src/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx"; then
+            echo "❌ Potential hardcoded secrets found!"
+            exit 1
+          else
+            echo "✅ No obvious secrets found in code"
+          fi
+
+  dependency-analysis:
+    name: Dependency Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Analyze bundle size
+        run: |
+          npm run build
+          echo "Bundle size analysis:"
+          du -sh dist/
+          find dist/ -name "*.js" -exec ls -lh {} \; | sort -k5 -hr | head -10
+
+      - name: Check for unused dependencies
+        run: |
+          npx depcheck --json > depcheck-results.json || true
+          if [ -s depcheck-results.json ]; then
+            echo "Dependency analysis results:"
+            cat depcheck-results.json
+          fi
+
+      - name: License compliance check
+        run: |
+          npx license-checker --json > license-report.json
+          echo "License compliance check completed"
+
+      - name: Upload dependency analysis
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: dependency-analysis
+          path: |
+            depcheck-results.json
+            license-report.json
+
+  performance-analysis:
+    name: Performance Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Analyze bundle
+        run: |
+          npx webpack-bundle-analyzer dist/assets/*.js --report --mode static --report-filename bundle-report.html || echo "Bundle analysis completed"
+
+      - name: Performance budget check
+        run: |
+          echo "Checking performance budget..."
+          BUNDLE_SIZE=$(du -sb dist/ | cut -f1)
+          MAX_SIZE=5242880  # 5MB in bytes
+          
+          if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
+            echo "❌ Bundle size ($BUNDLE_SIZE bytes) exceeds budget ($MAX_SIZE bytes)"
+            exit 1
+          else
+            echo "✅ Bundle size ($BUNDLE_SIZE bytes) is within budget"
+          fi
+
+      - name: Upload performance analysis
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-analysis
+          path: bundle-report.html
+
+  code-coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+
+      - name: Coverage threshold check
+        run: |
+          echo "Checking coverage thresholds..."
+          # Extract coverage percentage from coverage summary
+          if [ -f coverage/coverage-summary.json ]; then
+            COVERAGE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('coverage/coverage-summary.json')).total.lines.pct)")
+            MIN_COVERAGE=80
+            
+            if (( $(echo "$COVERAGE < $MIN_COVERAGE" | bc -l) )); then
+              echo "❌ Coverage ($COVERAGE%) is below minimum threshold ($MIN_COVERAGE%)"
+              exit 1
+            else
+              echo "✅ Coverage ($COVERAGE%) meets minimum threshold"
+            fi
+          fi
+
+  documentation-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check README
+        run: |
+          echo "Checking README completeness..."
+          if [ ! -f README.md ]; then
+            echo "❌ README.md not found"
+            exit 1
+          fi
+          
+          # Check for required sections
+          REQUIRED_SECTIONS=("Installation" "Usage" "Contributing" "License")
+          for section in "${REQUIRED_SECTIONS[@]}"; do
+            if ! grep -q "$section" README.md; then
+              echo "❌ Missing required section: $section"
+              exit 1
+            fi
+          done
+          echo "✅ README.md is complete"
+
+      - name: Check API documentation
+        run: |
+          echo "Checking API documentation..."
+          if [ -d "docs/api" ] || [ -f "docs/API.md" ]; then
+            echo "✅ API documentation found"
+          else
+            echo "⚠️ API documentation not found"
+          fi
+
+      - name: Validate markdown files
+        run: |
+          echo "Validating markdown files..."
+          find . -name "*.md" -not -path "./node_modules/*" -not -path "./backend/node_modules/*" | while read file; do
+            echo "Checking $file"
+            # Basic markdown validation
+            if [ ! -s "$file" ]; then
+              echo "❌ Empty markdown file: $file"
+              exit 1
+            fi
+          done
+          echo "✅ Markdown files validated"

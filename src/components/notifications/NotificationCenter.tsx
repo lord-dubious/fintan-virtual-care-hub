@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,37 @@ export const NotificationCenter: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Fetch notifications from the server
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const response = await notificationService.getUserNotifications(user.id);
+      if (response.success && response.data) {
+        setNotifications(response.data as unknown as Notification[]);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Fetch unread notification count
+  const fetchUnreadCount = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const response = await notificationService.getUnreadCount(user.id);
+      if (response.success && typeof response.data === 'number') {
+        setUnreadCount(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  }, [user]);
+
   // Fetch notifications when the component mounts or when the user changes
   useEffect(() => {
     if (user) {
@@ -37,34 +68,7 @@ export const NotificationCenter: React.FC = () => {
 
       return () => clearInterval(interval);
     }
-  }, [user]);
-
-  // Fetch notifications from the server
-  const fetchNotifications = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      const data = await notificationService.getUserNotifications(user.id);
-      setNotifications(data);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch unread notification count
-  const fetchUnreadCount = async () => {
-    if (!user) return;
-    
-    try {
-      const count = await notificationService.getUnreadCount(user.id);
-      setUnreadCount(count);
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
-  };
+  }, [user, fetchNotifications, fetchUnreadCount]);
 
   // Mark a notification as read
   const markAsRead = async (notificationId: string) => {

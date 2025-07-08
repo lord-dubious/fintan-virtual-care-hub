@@ -12,6 +12,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { usePatientProfileForBooking } from '@/hooks/usePatientProfile';
+import { CheckCircle, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { Mic, Video, Check, Info } from 'lucide-react';
 
@@ -30,6 +32,12 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ providerId, providerNa
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Get patient profile data for auto-population
+  const {
+    isLoading: isLoadingProfile,
+    isProfileComplete
+  } = usePatientProfileForBooking();
 
   // Handle date selection
   const handleDateSelect = (date: Date) => {
@@ -86,7 +94,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ providerId, providerNa
         reason,
       });
 
-      if (result.success && result.appointment) {
+      if (result.success && result.data) {
         toast({
           title: 'Appointment Booked',
           description: `Your ${consultationType.toLowerCase()} appointment with ${providerName} has been scheduled for ${format(
@@ -127,6 +135,27 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ providerId, providerNa
             ? 'Select a time slot for your appointment'
             : 'Provide details for your appointment'}
         </CardDescription>
+
+        {/* Profile Status Indicator */}
+        {user && !isLoadingProfile && (
+          <div className="mt-4">
+            {isProfileComplete ? (
+              <Alert className="border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  <strong>Profile Complete!</strong> Your personal information is saved and will be used for this appointment.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert className="border-blue-200 bg-blue-50">
+                <User className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  <strong>Quick Booking:</strong> Complete your profile after booking to save time on future appointments.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {step === 1 && (

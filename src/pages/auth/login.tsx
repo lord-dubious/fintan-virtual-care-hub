@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAuth } from '@/lib/auth/authProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Shield } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState('');
-  const { login, loading, error } = useAuth();
+  const { login, isLoggingIn, error } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get the redirect path from location state or default to dashboard
-  const from = location.state?.from?.pathname || '/dashboard';
+  // Get the redirect path from location state or default to patient dashboard
+  const from = location.state?.from?.pathname || '/patient/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +30,12 @@ const LoginPage: React.FC = () => {
     }
 
     // Attempt login
-    const success = await login(email, password);
-    if (success) {
+    try {
+      await login({ email, password });
       // Redirect to the page they were trying to access or dashboard
       navigate(from, { replace: true });
+    } catch (error) {
+      // Error is handled by the hook and displayed via toast
     }
   };
 
@@ -42,10 +44,18 @@ const LoginPage: React.FC = () => {
       <div className="w-full max-w-md p-4">
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+            <div className="flex items-center justify-center mb-4">
+              <Shield className="h-8 w-8 text-blue-600 mr-2" />
+              <CardTitle className="text-2xl font-bold text-center text-blue-600">Staff Login</CardTitle>
+            </div>
             <CardDescription className="text-center">
-              Enter your email and password to access your account
+              Staff access to Dr. Fintan Virtual Care Hub
             </CardDescription>
+            <div className="bg-blue-50 p-3 rounded-lg mt-4">
+              <p className="text-sm text-blue-700 text-center">
+                <strong>For Patients:</strong> Use the "Login" button on the homepage for patient access
+              </p>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -53,7 +63,7 @@ const LoginPage: React.FC = () => {
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    {formError || error}
+                    {formError || (error instanceof Error ? error.message : error)}
                   </AlertDescription>
                 </Alert>
               )}
@@ -86,8 +96,8 @@ const LoginPage: React.FC = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
+              <Button type="submit" className="w-full" disabled={isLoggingIn}>
+                {isLoggingIn ? (
                   <>
                     <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-b-transparent"></span>
                     Logging in...

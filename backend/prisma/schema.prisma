@@ -1,0 +1,413 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                   String         @id @default(cuid())
+  email                String?        @unique
+  password             String?
+  name                 String?
+  phone                String?
+  profilePicture       String?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  emailVerified        DateTime?
+  image                String?
+  role                 Role           @default(PATIENT)
+  accounts             Account[]
+  notifications        Notification[]
+  patient              Patient?
+  provider             Provider?
+  sessions             Session[]
+  refreshTokens        RefreshToken[]
+  activityLogs         ActivityLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Patient {
+  id                String        @id @default(cuid())
+  userId            String        @unique
+  dateOfBirth       DateTime?
+  address           String?
+  phone             String?
+  emergencyContact  Json?
+  medicalHistory    Json?
+  insurance         Json?
+  preferences       Json?
+  onboardingStatus  String        @default("INCOMPLETE")
+  onboardingStep    Int           @default(0)
+  consentGiven      Boolean       @default(false)
+  consentDate       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  appointments      Appointment[]
+  medicalRecords    MedicalRecord[]
+  emergencyContacts EmergencyContact[]
+  allergies         Allergy[]
+  medications       Medication[]
+  conditions        Condition[]
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Provider {
+  id             String          @id @default(cuid())
+  userId         String          @unique
+  specialization String?
+  bio            String?
+  education      String?
+  experience     String?
+  licenseNumber  String?         // Professional license number
+  consultationFee Decimal?
+  approvalStatus String          @default("PENDING")
+  approvedBy     String?
+  approvedAt     DateTime?
+  rejectionReason String?
+  isActive       Boolean         @default(true)
+  isVerified     Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  avatarUrl      String?
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  availability   Availability[]
+  schedules      ProviderSchedule[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MedicalRecord {
+  id             String   @id @default(cuid())
+  patientId      String
+  providerId     String
+  consultationId String?
+  diagnosis      String?
+  notes          String?
+  prescriptions  Json?
+  attachments    Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider       Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+}
+
+// Enhanced availability system with complex scheduling support
+model ProviderSchedule {
+  id          String   @id @default(cuid())
+  providerId  String
+  name        String   // e.g., "Default Schedule", "Summer Schedule"
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  timezone    String   @default("UTC")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  provider    Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  // Related models
+  weeklyAvailability WeeklyAvailability[]
+  scheduleExceptions ScheduleException[]
+  breakPeriods       BreakPeriod[]
+
+  @@index([providerId, isDefault])
+  @@index([providerId, isActive])
+}
+
+model WeeklyAvailability {
+  id         String          @id @default(cuid())
+  scheduleId String
+  dayOfWeek  DayOfWeek
+  isAvailable Boolean        @default(true)
+  startTime  String          // HH:MM format
+  endTime    String          // HH:MM format
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  schedule   ProviderSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, dayOfWeek, startTime])
+  @@index([scheduleId, dayOfWeek])
+}
+
+model BreakPeriod {
+  id         String          @id @default(cuid())
+  scheduleId String
+  dayOfWeek  DayOfWeek?      // null means applies to all days
+  startTime  String          // HH:MM format
+  endTime    String          // HH:MM format
+  title      String?         // e.g., "Lunch Break", "Admin Time"
+  isRecurring Boolean        @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  schedule   ProviderSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, dayOfWeek])
+}
+
+model ScheduleException {
+  id         String          @id @default(cuid())
+  scheduleId String
+  date       DateTime        // Specific date for the exception
+  type       ExceptionType
+  startTime  String?         // HH:MM format (for partial day exceptions)
+  endTime    String?         // HH:MM format (for partial day exceptions)
+  title      String          // e.g., "Vacation", "Conference", "Emergency"
+  notes      String?
+  isRecurring Boolean        @default(false)
+  recurrencePattern String? // JSON for recurring patterns
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  schedule   ProviderSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, date])
+  @@index([scheduleId, type])
+}
+
+// Legacy availability model - kept for backward compatibility
+model Availability {
+  id          String   @id @default(cuid())
+  providerId  String
+  dayOfWeek   String   // MONDAY, TUESDAY, etc.
+  startTime   String   // HH:MM format
+  endTime     String   // HH:MM format
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  provider    Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, dayOfWeek, startTime])
+}
+
+model Appointment {
+  id               String            @id @default(cuid())
+  patientId        String
+  providerId       String
+  appointmentDate  DateTime
+  reason           String?
+  duration         Int?
+  notes            String?
+  timezone         String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  consultationType ConsultationType  @default(VIDEO)
+  status           AppointmentStatus @default(SCHEDULED)
+  patient          Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider         Provider          @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  consultation     Consultation?
+  payment          Payment?
+}
+
+model Consultation {
+  id            String             @id @default(cuid())
+  appointmentId String             @unique
+  roomUrl       String
+  dailyRoomId   String?
+  dailyRoomName String?
+  notes         String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  videoEnabled  Boolean            @default(false)
+  sessionId     String?            @unique
+  status        ConsultationStatus @default(SCHEDULED)
+  appointment   Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String
+  userId    String
+  relatedId String?
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  appointmentId   String        @unique
+  amount          Int
+  currency        String        @default("USD")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  provider        String
+  receiptUrl      String?
+  reference       String?
+  status          PaymentStatus @default(PENDING)
+  paymentMethod   PaymentMethod @default(STRIPE)
+  paymentIntentId String?       // For Stripe payment intent ID
+  transactionId   String?       // For transaction reference
+  metadata        Json?         // For storing additional payment metadata
+  appointment     Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentMethod])
+  @@index([paymentIntentId])
+  @@index([transactionId])
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum ConsultationStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ConsultationType {
+  VIDEO
+  AUDIO
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYSTACK
+  PAYPAL
+  FLUTTERWAVE
+  CREDIT_CARD
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum Role {
+  PATIENT
+  PROVIDER
+  DOCTOR
+  ADMIN
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum ExceptionType {
+  UNAVAILABLE    // Provider not available (vacation, sick leave)
+  MODIFIED_HOURS // Different hours for this day
+  BREAK_CHANGE   // Different break schedule
+  HOLIDAY        // Public holiday
+  CONFERENCE     // Professional conference
+  EMERGENCY      // Emergency unavailability
+}
+
+model EmergencyContact {
+  id        String  @id @default(cuid())
+  patientId String
+  name      String
+  phone     String
+  relationship String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Allergy {
+  id        String  @id @default(cuid())
+  patientId String
+  allergen  String
+  severity  String?
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Medication {
+  id        String  @id @default(cuid())
+  patientId String
+  name      String
+  dosage    String?
+  frequency String?
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Condition {
+  id        String  @id @default(cuid())
+  patientId String
+  name      String
+  diagnosed DateTime?
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  title      String?
+  entityType String?
+  entityId   String?
+  description String?
+  details    String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

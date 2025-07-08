@@ -1,8 +1,11 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Users, Activity, Clock } from 'lucide-react';
+import { Calendar, Users, Activity, Clock, DollarSign } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAdminStatistics, useAdminAppointments } from '@/hooks/useAdmin';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
+import { ApiAppointment } from '@/api/appointments'; // Import ApiAppointment
 
 interface StatCardProps {
   title: string;
@@ -26,7 +29,13 @@ const StatCard = ({ title, value, description, icon }: StatCardProps) => {
   );
 };
 
-const AppointmentItem = ({ patient, time, type }: { patient: string; time: string; type: string }) => {
+interface AppointmentItemProps {
+  patient: string;
+  time: string;
+  type: string;
+}
+
+const AppointmentItem = ({ patient, time, type }: AppointmentItemProps) => {
   return (
     <div className="flex items-center justify-between rounded-lg border p-3">
       <div className="space-y-1">
@@ -44,34 +53,46 @@ const AppointmentItem = ({ patient, time, type }: { patient: string; time: strin
 const AdminDashboard = () => {
   const isMobile = useIsMobile();
 
-  // Mock data
-  const stats = [
-    { 
-      title: "Total Appointments", 
-      value: "38", 
-      description: "12% increase from last month", 
-      icon: <Calendar className="h-4 w-4 text-muted-foreground" /> 
-    },
-    { 
-      title: "New Patients", 
-      value: "14", 
-      description: "7% increase from last month", 
-      icon: <Users className="h-4 w-4 text-muted-foreground" /> 
-    },
-    { 
-      title: "Consultation Hours", 
-      value: "27.5", 
-      description: "Total hours this week", 
-      icon: <Activity className="h-4 w-4 text-muted-foreground" /> 
-    }
-  ];
+  // Fetch real data from admin hooks
+  const { data: adminStats, isLoading: statsLoading, error: statsError } = useAdminStatistics();
+  const { data: appointmentsData, isLoading: appointmentsLoading, error: appointmentsError } = useAdminAppointments({ limit: 4 });
 
-  const upcomingAppointments = [
-    { patient: "John Doe", time: "Today, 10:00 AM", type: "Video Consultation" },
-    { patient: "Jane Smith", time: "Today, 11:30 AM", type: "Audio Consultation" },
-    { patient: "Robert Johnson", time: "Today, 2:00 PM", type: "Video Consultation" },
-    { patient: "Emily Williams", time: "Tomorrow, 9:15 AM", type: "Audio Consultation" }
-  ];
+  // Transform API data to match UI expectations
+  const stats = React.useMemo(() => {
+    if (!adminStats) return [];
+
+    return [
+      {
+        title: "Total Appointments",
+        value: adminStats.totalAppointments.toString(),
+        description: 'All-time appointments',
+        icon: <Calendar className="h-4 w-4 text-muted-foreground" />
+      },
+      {
+        title: "New Patients",
+        value: adminStats.totalPatients.toString(),
+        description: 'Total registered patients',
+        icon: <Users className="h-4 w-4 text-muted-foreground" />
+      },
+      {
+        title: "Total Revenue",
+        value: `$${adminStats.totalRevenue.toLocaleString()}`,
+        description: 'All-time revenue',
+        icon: <DollarSign className="h-4 w-4 text-muted-foreground" />
+      }
+    ];
+  }, [adminStats]);
+
+  // Transform appointments data to match UI expectations
+  const formattedAppointments = React.useMemo(() => {
+    if (!appointmentsData?.appointments) return [];
+
+    return appointmentsData.appointments.map((appointment: ApiAppointment) => ({ // Use ApiAppointment
+      patient: appointment.patient?.user.name || 'Unknown Patient', // Access patient name via user object
+      time: format(appointment.appointmentDate, 'p'), // Use appointmentDate which is a Date object
+      type: `${appointment.consultationType.charAt(0).toUpperCase() + appointment.consultationType.slice(1).toLowerCase()} Consultation`
+    }));
+  }, [appointmentsData]);
 
   return (
     <div className="space-y-6">
@@ -88,32 +109,87 @@ const AdminDashboard = () => {
       </div>
 
       <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-3'}`}>
-        {stats.map((stat, index) => (
-          <StatCard
-            key={index}
-            title={stat.title}
-            value={stat.value}
-            description={stat.description}
-            icon={stat.icon}
-          />
-        ))}
+        {statsLoading ? (
+          // Loading skeletons
+          Array.from({ length: 3 }).map((_, index) => (
+            <Card key={index}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))
+        ) : statsError ? (
+          // Error state
+          <Card className="col-span-full">
+            <CardContent className="p-6 text-center">
+              <p className="text-muted-foreground">Failed to load dashboard statistics</p>
+            </CardContent>
+          </Card>
+        ) : (
+          // Real data
+          stats.map((stat, index) => (
+            <StatCard
+              key={index}
+              title={stat.title}
+              value={stat.value}
+              description={stat.description}
+              icon={stat.icon}
+            />
+          ))
+        )}
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Upcoming Appointments</CardTitle>
-          <CardDescription>You have {upcomingAppointments.length} consultations scheduled.</CardDescription>
+          <CardDescription>
+            {appointmentsLoading
+              ? "Loading appointments..."
+              : appointmentsError
+                ? "Failed to load appointments"
+                : `You have ${formattedAppointments.length} consultations scheduled.`
+            }
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {upcomingAppointments.map((appointment, index) => (
-              <AppointmentItem
-                key={index}
-                patient={appointment.patient}
-                time={appointment.time}
-                type={appointment.type}
-              />
-            ))}
+            {appointmentsLoading ? (
+              // Loading skeletons
+              Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-4" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+              ))
+            ) : appointmentsError ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">Failed to load upcoming appointments</p>
+              </div>
+            ) : formattedAppointments.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">No upcoming appointments</p>
+              </div>
+            ) : (
+              formattedAppointments.map((appointment, index) => (
+                <AppointmentItem
+                  key={index}
+                  patient={appointment.patient}
+                  time={appointment.time}
+                  type={appointment.type}
+                />
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

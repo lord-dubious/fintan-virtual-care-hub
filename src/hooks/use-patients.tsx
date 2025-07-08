@@ -14,13 +14,13 @@ export const usePatients = () => {
     queryFn: patientService.getAll,
   });
 
-  const patientById = (id: string) => useQuery({
+  const usePatientById = (id: string) => useQuery({
     queryKey: ['patients', id],
     queryFn: () => patientService.getById(id),
     enabled: !!id,
   });
 
-  const patientByEmail = (email: string) => useQuery({
+  const usePatientByEmail = (email: string) => useQuery({
     queryKey: ['patients', 'email', email],
     queryFn: () => patientService.getByEmail(email),
     enabled: !!email,
@@ -53,8 +53,8 @@ export const usePatients = () => {
 
   return {
     patients,
-    patientById,
-    patientByEmail,
+    usePatientById,
+    usePatientByEmail,
     createPatient,
     updatePatient,
     deletePatient

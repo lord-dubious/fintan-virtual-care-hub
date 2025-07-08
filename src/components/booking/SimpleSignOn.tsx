@@ -1,13 +1,13 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Lock, User, CheckCircle, Apple } from 'lucide-react';
+import { Mail, Lock, User, CheckCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SimpleSignOnProps {
   onAuthenticated: (email: string) => void;
@@ -22,14 +22,21 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [isLoading, setIsLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const { login, register, isLoggingIn, isRegistering, isAuthenticated: globalIsAuthenticated, user } = useAuth();
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     firstName: '',
     lastName: ''
   });
+
+  // Check if user is already authenticated globally
+  useEffect(() => {
+    if (globalIsAuthenticated && user && !isAuthenticated) {
+      onAuthenticated(user.email);
+    }
+  }, [globalIsAuthenticated, user, isAuthenticated, onAuthenticated]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -48,17 +55,20 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    
-    // Simulate authentication
-    setTimeout(() => {
+    try {
+      await login({ email: formData.email, password: formData.password });
       onAuthenticated(formData.email);
       toast({
         title: "Welcome!",
         description: "You've been signed in successfully",
       });
-      setIsLoading(false);
-    }, 1000);
+    } catch (error: unknown) {
+      toast({
+        title: "Sign In Failed",
+        description: error instanceof Error ? error.message : "An error occurred during sign in",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSignUp = async () => {
@@ -71,35 +81,37 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    
-    // Simulate registration
-    setTimeout(() => {
+    try {
+      const name = `${formData.firstName} ${formData.lastName}`.trim();
+      await register({
+        name,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.password,
+        role: 'PATIENT',
+      });
+
       onAuthenticated(formData.email);
       toast({
         title: "Account Created!",
         description: "Welcome to Dr. Fintan's practice",
       });
-      setIsLoading(false);
-    }, 1000);
-  };
-
-  const handleSocialSignIn = async (provider: string) => {
-    setSocialLoading(provider);
-    
-    // Simulate social authentication
-    setTimeout(() => {
-      const mockEmail = `user@${provider}.com`;
-      onAuthenticated(mockEmail);
+    } catch (error: unknown) {
       toast({
-        title: "Welcome!",
-        description: `Signed in with ${provider}`,
+        title: "Registration Failed",
+        description: error instanceof Error ? error.message : "An error occurred during registration",
+        variant: "destructive"
       });
-      setSocialLoading(null);
-    }, 1500);
+    }
   };
 
-  if (isAuthenticated) {
+
+
+  // Show authenticated state if user is logged in globally or locally
+  if (isAuthenticated || globalIsAuthenticated) {
+    const displayEmail = userEmail || user?.email || '';
+    const displayName = user?.name || '';
+
     return (
       <Card className="dark:bg-gray-800/50 border-green-200 dark:border-green-800">
         <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
@@ -111,8 +123,13 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
               <h4 className="font-medium text-green-800 dark:text-green-300">
                 Signed in successfully
               </h4>
+              {displayName && (
+                <p className="text-green-700 dark:text-green-300 text-sm font-medium">
+                  Welcome, {displayName}
+                </p>
+              )}
               <p className="text-green-600 dark:text-green-400 text-sm">
-                {userEmail}
+                {displayEmail}
               </p>
             </div>
           </div>
@@ -132,78 +149,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
         </p>
       </div>
 
-      {/* Social Sign-On Buttons */}
+      {/* Email/Password Authentication */}
       <div className="space-y-3">
-        <div className="text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-            Continue with
-          </p>
-        </div>
-        
-        <div className="grid gap-3">
-          <Button
-            variant="outline"
-            onClick={() => handleSocialSignIn('Google')}
-            disabled={!!socialLoading}
-            className={`w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 ${isMobile ? 'h-11' : 'h-12'}`}
-          >
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              <span className={`font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
-                {socialLoading === 'Google' ? 'Connecting...' : 'Continue with Google'}
-              </span>
-            </div>
-          </Button>
 
-          <Button
-            variant="outline"
-            onClick={() => handleSocialSignIn('Apple')}
-            disabled={!!socialLoading}
-            className={`w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 ${isMobile ? 'h-11' : 'h-12'}`}
-          >
-            <div className="flex items-center gap-3">
-              <Apple className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <span className={`font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
-                {socialLoading === 'Apple' ? 'Connecting...' : 'Continue with Apple'}
-              </span>
-            </div>
-          </Button>
 
-          <Button
-            variant="outline"
-            onClick={() => handleSocialSignIn('Microsoft')}
-            disabled={!!socialLoading}
-            className={`w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 ${isMobile ? 'h-11' : 'h-12'}`}
-          >
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#F25022" d="M11.4 11.4H0V0h11.4v11.4z"/>
-                <path fill="#00A4EF" d="M24 11.4H12.6V0H24v11.4z"/>
-                <path fill="#7FBA00" d="M11.4 24H0V12.6h11.4V24z"/>
-                <path fill="#FFB900" d="M24 24H12.6V12.6H24V24z"/>
-              </svg>
-              <span className={`font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
-                {socialLoading === 'Microsoft' ? 'Connecting...' : 'Continue with Microsoft'}
-              </span>
-            </div>
-          </Button>
-        </div>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-gray-300 dark:border-gray-600"></span>
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white dark:bg-gray-800 px-2 text-gray-500 dark:text-gray-400">
-              Or continue with email
-            </span>
-          </div>
-        </div>
       </div>
 
       <Tabs defaultValue="signin" className="w-full">
@@ -255,10 +204,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 
               <Button
                 onClick={handleSignIn}
-                disabled={isLoading}
+                disabled={isLoggingIn}
                 className={`w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoggingIn ? "Signing in..." : "Sign In"}
               </Button>
             </CardContent>
           </Card>
@@ -334,10 +283,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 
               <Button
                 onClick={handleSignUp}
-                disabled={isLoading}
+                disabled={isRegistering}
                 className={`w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
               >
-                {isLoading ? "Creating account..." : "Create Account"}
+                {isRegistering ? "Creating account..." : "Create Account"}
               </Button>
             </CardContent>
           </Card>

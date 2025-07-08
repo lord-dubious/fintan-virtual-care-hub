@@ -25,7 +25,7 @@ vi.mock('@daily-co/daily-js', () => {
 });
 
 describe('dailyService', () => {
-  let mockCallObject: any;
+  let mockCallObject: ReturnType<typeof vi.fn>;
   
   beforeEach(() => {
     // Reset mocks before each test
@@ -109,7 +109,8 @@ describe('dailyService', () => {
       await dailyService.initializeCall('https://example.daily.co/room123', 'token');
       
       // Mock current state (audio is off)
-      (dailyService as any).isAudioEnabled = false;
+      // @ts-expect-error - Accessing private property for testing
+      dailyService.isAudioEnabled = false;
       
       // Execute
       const result = await dailyService.toggleAudio();
@@ -124,7 +125,8 @@ describe('dailyService', () => {
       await dailyService.initializeCall('https://example.daily.co/room123', 'token');
       
       // Mock current state (audio is on)
-      (dailyService as any).isAudioEnabled = true;
+      // @ts-expect-error - Accessing private property for testing
+      dailyService.isAudioEnabled = true;
       
       // Execute
       const result = await dailyService.toggleAudio();
@@ -136,7 +138,8 @@ describe('dailyService', () => {
 
     it('should return false if call object is not initialized', async () => {
       // Force call object to be null
-      (dailyService as any).callObject = null;
+      // @ts-expect-error - Accessing private property for testing
+      dailyService.callObject = null;
       
       const result = await dailyService.toggleAudio();
       
@@ -150,7 +153,8 @@ describe('dailyService', () => {
       await dailyService.initializeCall('https://example.daily.co/room123', 'token');
       
       // Mock current state (video is off)
-      (dailyService as any).isVideoEnabled = false;
+      // @ts-expect-error - Accessing private property for testing
+      dailyService.isVideoEnabled = false;
       
       // Execute
       const result = await dailyService.toggleVideo();
@@ -165,7 +169,8 @@ describe('dailyService', () => {
       await dailyService.initializeCall('https://example.daily.co/room123', 'token');
       
       // Mock current state (video is on)
-      (dailyService as any).isVideoEnabled = true;
+      // @ts-expect-error - Accessing private property for testing
+      dailyService.isVideoEnabled = true;
       
       // Execute
       const result = await dailyService.toggleVideo();
@@ -313,7 +318,8 @@ describe('dailyService', () => {
 
     it('should handle when call object is null', async () => {
       // Force call object to be null
-      (dailyService as any).callObject = null;
+      // @ts-expect-error - Accessing private property for testing
+      dailyService.callObject = null;
       
       // This should not throw an error
       await expect(dailyService.endCall()).resolves.not.toThrow();

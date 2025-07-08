@@ -1,5 +1,5 @@
 
-import React from 'react';
+// import React from 'react'; // Not needed with modern React
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useIsMobile } from '@/hooks/use-mobile';

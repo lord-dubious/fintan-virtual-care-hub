@@ -18,7 +18,7 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
-  role          String    @default("PATIENT")
+  role          Role    @default(PATIENT)
   phone         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -28,6 +28,7 @@ model User {
   patient       Patient?
   provider      Provider?
   notifications Notification[]
+  activityLogs  ActivityLog[]
 }
 
 model Account {
@@ -68,11 +69,16 @@ model VerificationToken {
 model Patient {
   id        String   @id @default(cuid())
   userId    String   @unique
+  firstName  String?
+  lastName   String?
+  dateOfBirth DateTime?
+  phone      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
 }
 
 model Provider {
@@ -80,11 +86,13 @@ model Provider {
   userId         String   @unique
   specialization String?
   bio            String?  @db.Text
+  avatarUrl      String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments   Appointment[]
+  availabilities Availability[]
 }
 
 model Appointment {
@@ -93,27 +101,33 @@ model Appointment {
   patientId       String
   appointmentDate DateTime
   reason          String?  @db.Text
-  status          String   @default("SCHEDULED")
-  consultationType String   @default("VIDEO") // VIDEO or AUDIO
+  status          AppointmentStatus   @default(SCHEDULED)
+  consultationType ConsultationType @default(VIDEO) // VIDEO or AUDIO
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   provider     Provider      @relation(fields: [providerId], references: [id], onDelete: Cascade)
   patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   consultation Consultation?
+  payment      Payment?
 }
 
 model Consultation {
-  id           String   @id @default(cuid())
-  appointmentId String   @unique
-  roomUrl      String
-  status       String   @default("SCHEDULED")
-  videoEnabled Boolean  @default(false) // Tracks if video was enabled in an audio call
-  notes        String?  @db.Text
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id           String            @id @default(cuid())
+  appointmentId String           @unique
+  sessionId    String?          @unique
+  roomUrl      String?
+  status       ConsultationStatus @default(SCHEDULED)
+  videoEnabled Boolean          @default(false) // Tracks if video was enabled in an audio call
+  notes        String?          @db.Text
+  startTime    DateTime?
+  endTime      DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
 }
 
 model Notification {
@@ -129,4 +143,119 @@ model Notification {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MedicalRecord {
+  id          String   @id @default(cuid())
+  patientId   String
+  title       String
+  description String?  @db.Text
+  recordType  String   @default("GENERAL")
+  attachments String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Availability {
+  id          String   @id @default(cuid())
+  providerId  String
+  dayOfWeek   String   // Day name: MONDAY, TUESDAY, etc.
+  startTime   String   // HH:MM format
+  endTime     String   // HH:MM format
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+}
+
+// ---------------- Enums ----------------
+enum Role {
+  PATIENT
+  PROVIDER
+  DOCTOR
+  ADMIN
+}
+
+enum ConsultationType {
+  VIDEO
+  AUDIO
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum ConsultationStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYSTACK
+  PAYPAL
+  FLUTTERWAVE
+  CREDIT_CARD
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+// ---------------- Payment Model ----------------
+model Payment {
+  id            String        @id @default(cuid())
+  appointmentId String        @unique
+  amount        Int
+  currency      String        @default("USD")
+  provider      String
+  status        PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod @default(STRIPE)
+  reference     String?
+  transactionId String?
+  receiptUrl    String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  appointment   Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentMethod])
+}
+
+// Health Metrics removed - focusing on core features
+
+// Activity Log for comprehensive activity tracking
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String   // e.g., "appointment_booked", "payment_made", "message_sent"
+  entityType String   // e.g., "appointment", "payment", "message"
+  entityId   String?  // ID of the related entity
+  title      String   // Human-readable title
+  description String? // Detailed description
+  metadata   Json?    // Additional data as JSON
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([action])
 }

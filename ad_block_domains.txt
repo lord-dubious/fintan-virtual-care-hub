@@ -1,0 +1,144 @@
+# Ad Blocking Domains List for Squid Proxy
+# Common advertising and tracking domains
+
+# Google Ads
+googleads.g.doubleclick.net
+googlesyndication.com
+googleadservices.com
+google-analytics.com
+googletagmanager.com
+googletagservices.com
+
+# Facebook/Meta Ads
+facebook.com/tr
+connect.facebook.net
+facebook.com/plugins
+
+# Amazon Ads
+amazon-adsystem.com
+amazonaax.com
+
+# Microsoft Ads
+ads.msn.com
+bing.com/ads
+
+# Yahoo Ads
+ads.yahoo.com
+yimg.com/ads
+
+# Twitter/X Ads
+ads-twitter.com
+analytics.twitter.com
+
+# Common Ad Networks
+doubleclick.net
+adsystem.com
+googlesyndication.com
+amazon-adsystem.com
+facebook.com/tr
+scorecardresearch.com
+quantserve.com
+outbrain.com
+taboola.com
+criteo.com
+adsystem.com
+2mdn.net
+adsystem.com
+advertising.com
+adsystem.com
+adnxs.com
+adsystem.com
+rubiconproject.com
+adsystem.com
+openx.net
+adsystem.com
+pubmatic.com
+adsystem.com
+contextweb.com
+adsystem.com
+casalemedia.com
+adsystem.com
+turn.com
+adsystem.com
+bluekai.com
+adsystem.com
+exelator.com
+adsystem.com
+addthis.com
+adsystem.com
+sharethis.com
+adsystem.com
+
+# Tracking and Analytics
+google-analytics.com
+googletagmanager.com
+hotjar.com
+fullstory.com
+loggly.com
+bugsnag.com
+sentry.io
+mixpanel.com
+segment.com
+amplitude.com
+intercom.io
+zendesk.com
+freshworks.com
+drift.com
+olark.com
+livechatinc.com
+tawk.to
+crisp.chat
+uservoice.com
+surveymonkey.com
+typeform.com
+mailchimp.com
+constantcontact.com
+aweber.com
+getresponse.com
+convertkit.com
+activecampaign.com
+hubspot.com
+salesforce.com
+marketo.com
+pardot.com
+eloqua.com
+silverpop.com
+exacttarget.com
+responsys.com
+cheetahmail.com
+campaignmonitor.com
+mailgun.com
+sendgrid.com
+mandrill.com
+postmark.com
+sparkpost.com
+ses.amazonaws.com
+
+# Social Media Widgets (optional - may break functionality)
+# facebook.com/plugins
+# twitter.com/widgets
+# linkedin.com/widgets
+# instagram.com/embed
+# youtube.com/embed
+# vimeo.com/api
+
+# Popup and Notification Services
+onesignal.com
+pusher.com
+pushwoosh.com
+urbanairship.com
+firebase.com/fcm
+googleapis.com/fcm
+
+# CDN and Third-party Scripts (be careful)
+# cdnjs.cloudflare.com
+# ajax.googleapis.com
+# code.jquery.com
+# maxcdn.bootstrapcdn.com
+
+# Malware and Suspicious Domains
+malware.com
+phishing.com
+suspicious-site.com
+fake-bank.com
+scam-site.com

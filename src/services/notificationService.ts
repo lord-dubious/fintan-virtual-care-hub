@@ -14,7 +14,7 @@ export interface NotificationPayload {
   scheduledFor?: Date;
   channels: ('email' | 'sms' | 'push' | 'in_app')[];
   templateId?: string;
-  templateParams?: Record<string, any>;
+  templateParams?: Record<string, unknown>;
 }
 
 export interface ScheduledNotification {
@@ -24,6 +24,16 @@ export interface ScheduledNotification {
   scheduledFor: Date;
   status: 'pending' | 'sent' | 'failed' | 'cancelled';
   notificationApiId?: string;
+}
+
+export interface ApiScheduledNotification {
+  id: string;
+  notificationId: string;
+  userId: string;
+  scheduledDate: string;
+  status: 'pending' | 'sent' | 'failed' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
 }
 
 class NotificationService {
@@ -269,7 +279,7 @@ class NotificationService {
     }
   }
 
-  async getScheduledNotifications(): Promise<any[]> {
+  async getScheduledNotifications(): Promise<ApiScheduledNotification[]> {
     if (!this.config?.apiKey) {
       console.warn('NotificationAPI not configured');
       return [];

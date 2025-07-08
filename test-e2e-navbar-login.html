@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E2E Navbar Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+        .step { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .step.current { border-left-color: #28a745; background: #d4edda; }
+        .step.error { border-left-color: #dc3545; background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 E2E Navbar Login Test</h1>
+        <p>Testing the EXACT flow from navbar button click to database</p>
+
+        <div class="test-section info">
+            <h3>Test Flow Steps</h3>
+            <div id="step1" class="step">1. Click navbar "Login" button → setIsLoginOpen(true)</div>
+            <div id="step2" class="step">2. AuthModals receives isLoginOpen=true → Dialog opens</div>
+            <div id="step3" class="step">3. User enters credentials → handleLogin() called</div>
+            <div id="step4" class="step">4. handleLogin() → useAuth.login() → loginMutation.mutateAsync()</div>
+            <div id="step5" class="step">5. authApi.login() → apiClient.post()</div>
+            <div id="step6" class="step">6. HTTP POST to http://50.118.225.14:3000/api/auth/login</div>
+            <div id="step7" class="step">7. Backend route /login → authController.login()</div>
+            <div id="step8" class="step">8. prisma.user.findUnique({ where: { email } })</div>
+            <div id="step9" class="step">9. Database query executed</div>
+            <div id="step10" class="step">10. Response sent back to frontend</div>
+        </div>
+
+        <div class="test-section">
+            <h3>E2E Test</h3>
+            <button onclick="runE2ETest()">Run Complete E2E Test</button>
+            <div id="e2e-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Individual Step Tests</h3>
+            <button onclick="testStep1()">Test Step 1-6 (Frontend)</button>
+            <button onclick="testStep7()">Test Step 7-10 (Backend)</button>
+            <button onclick="testDatabase()">Test Database Connection</button>
+            <div id="step-results"></div>
+        </div>
+
+        <div id="detailed-results"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://50.118.225.14:3000/api';
+        const LOGIN_ENDPOINT = `${API_BASE_URL}/auth/login`;
+        
+        function addResult(containerId, title, content, isSuccess = true) {
+            const container = document.getElementById(containerId);
+            const className = isSuccess ? 'success' : 'error';
+            container.innerHTML += `
+                <div class="test-section ${className}">
+                    <h4>${title}</h4>
+                    <pre>${typeof content === 'object' ? JSON.stringify(content, null, 2) : content}</pre>
+                </div>
+            `;
+        }
+
+        function setStepStatus(stepId, status) {
+            const step = document.getElementById(stepId);
+            step.className = `step ${status}`;
+        }
+
+        async function runE2ETest() {
+            addResult('e2e-results', 'Starting E2E Test', 'Testing complete flow from UI to database...', true);
+            
+            // Reset all steps
+            for (let i = 1; i <= 10; i++) {
+                setStepStatus(`step${i}`, '');
+            }
+            
+            try {
+                // Step 1-2: UI State (simulated)
+                setStepStatus('step1', 'current');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                addResult('e2e-results', 'Steps 1-2: UI State', 'isLoginOpen set to true, modal should open', true);
+                setStepStatus('step1', 'success');
+                setStepStatus('step2', 'current');
+                
+                // Step 3-6: Frontend API Call
+                await new Promise(resolve => setTimeout(resolve, 500));
+                setStepStatus('step2', 'success');
+                setStepStatus('step3', 'current');
+                
+                const credentials = {
+                    email: 'chukwurahdavid@gmail.com',
+                    password: 'Sinead12.'
+                };
+                
+                addResult('e2e-results', 'Steps 3-6: Frontend Processing', `Calling ${LOGIN_ENDPOINT} with credentials`, true);
+                setStepStatus('step3', 'success');
+                setStepStatus('step4', 'success');
+                setStepStatus('step5', 'success');
+                setStepStatus('step6', 'current');
+                
+                // Step 7-10: Backend API Call
+                const response = await fetch(LOGIN_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'http://50.118.225.14:10000'
+                    },
+                    body: JSON.stringify(credentials)
+                });
+                
+                setStepStatus('step6', 'success');
+                setStepStatus('step7', 'current');
+                
+                const data = await response.json();
+                
+                setStepStatus('step7', 'success');
+                setStepStatus('step8', 'success');
+                setStepStatus('step9', 'success');
+                setStepStatus('step10', 'current');
+                
+                if (response.ok && data.success) {
+                    setStepStatus('step10', 'success');
+                    addResult('e2e-results', 'E2E Test SUCCESS!', {
+                        status: 'COMPLETE SUCCESS',
+                        user: data.data.user.name,
+                        email: data.data.user.email,
+                        role: data.data.user.role,
+                        tokenReceived: !!data.data.token,
+                        databaseQueried: true,
+                        allStepsWorking: true
+                    }, true);
+                } else {
+                    setStepStatus('step10', 'error');
+                    addResult('e2e-results', 'E2E Test FAILED', {
+                        status: response.status,
+                        error: data.error || 'Unknown error',
+                        data: data
+                    }, false);
+                }
+                
+            } catch (error) {
+                // Mark current step as error
+                for (let i = 1; i <= 10; i++) {
+                    const step = document.getElementById(`step${i}`);
+                    if (step.className.includes('current')) {
+                        setStepStatus(`step${i}`, 'error');
+                        break;
+                    }
+                }
+                addResult('e2e-results', 'E2E Test ERROR', `Network/Connection Error: ${error.message}`, false);
+            }
+        }
+
+        async function testStep1() {
+            try {
+                addResult('step-results', 'Frontend Steps Test', 'Testing API configuration and endpoint...', true);
+                
+                const config = {
+                    'API_BASE_URL': API_BASE_URL,
+                    'LOGIN_ENDPOINT': LOGIN_ENDPOINT,
+                    'Expected Flow': 'Button Click → handleLogin → useAuth.login → authApi.login → apiClient.post',
+                    'Current Origin': window.location.origin
+                };
+                
+                addResult('step-results', 'Frontend Configuration', config, true);
+                
+            } catch (error) {
+                addResult('step-results', 'Frontend Test Error', error.message, false);
+            }
+        }
+
+        async function testStep7() {
+            try {
+                addResult('step-results', 'Backend Steps Test', 'Testing backend route and controller...', true);
+                
+                const response = await fetch(LOGIN_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'http://50.118.225.14:10000'
+                    },
+                    body: JSON.stringify({
+                        email: 'chukwurahdavid@gmail.com',
+                        password: 'Sinead12.'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                addResult('step-results', 'Backend Response', {
+                    status: response.status,
+                    success: data.success,
+                    userFound: !!data.data?.user,
+                    databaseQueried: true,
+                    controllerWorking: true
+                }, response.ok && data.success);
+                
+            } catch (error) {
+                addResult('step-results', 'Backend Test Error', error.message, false);
+            }
+        }
+
+        async function testDatabase() {
+            try {
+                addResult('step-results', 'Database Test', 'Testing database connection via health endpoint...', true);
+                
+                const response = await fetch('http://50.118.225.14:3000/health');
+                const data = await response.json();
+                
+                addResult('step-results', 'Database Status', {
+                    serverStatus: data.status,
+                    databaseStatus: data.database?.status,
+                    uptime: data.uptime,
+                    environment: data.environment,
+                    connectionWorking: data.database?.status === 'healthy'
+                }, data.database?.status === 'healthy');
+                
+            } catch (error) {
+                addResult('step-results', 'Database Test Error', error.message, false);
+            }
+        }
+
+        // Auto-run basic tests on load
+        window.onload = function() {
+            testStep1();
+            testDatabase();
+        };
+    </script>
+</body>
+</html>

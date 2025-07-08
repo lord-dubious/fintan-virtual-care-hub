@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import EnhancedBookingCalendar from './EnhancedBookingCalendar';
+import BookingCalendar from './BookingCalendar';
 
 interface DateTimeStepProps {
   bookingData: {
@@ -9,9 +9,10 @@ interface DateTimeStepProps {
     consultationType?: string;
   };
   updateBookingData: (data: { date?: Date | null; time?: string }) => void;
+  providerId?: string;
 }
 
-const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingData }) => {
+const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingData, providerId }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     bookingData.date ? new Date(bookingData.date) : undefined
   );
@@ -36,12 +37,14 @@ const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingD
         </p>
       </div>
       
-      <EnhancedBookingCalendar 
-        selectedDate={selectedDate} 
-        selectedTime={bookingData.time}
-        onDateSelect={handleDateSelect}
-        onTimeSelect={handleTimeSelect}
-        consultationType={bookingData.consultationType || 'consultation'}
+      <BookingCalendar
+        providerId={providerId || 'default-provider-id'}
+        consultationType={bookingData.consultationType === 'video' ? 'VIDEO' : 'AUDIO'}
+        onSlotSelected={(date: string, time: string) => {
+          const selectedDate = new Date(date);
+          handleDateSelect(selectedDate);
+          handleTimeSelect(time);
+        }}
       />
     </div>
   );

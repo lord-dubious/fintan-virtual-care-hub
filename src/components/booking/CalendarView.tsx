@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useCallback } from 'react';
 import { format, addDays, isPast } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ interface CalendarViewProps {
   onTimeSelect: (time: string) => void;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({
+const CalendarView: React.FC<CalendarViewProps> = React.memo(({
   selectedDate,
   selectedTime,
   availableSlots,
@@ -31,7 +30,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onDateSelect,
   onTimeSelect
 }) => {
-  const getAvailableTimesForDate = (date: Date) => {
+  const getAvailableTimesForDate = useCallback((date: Date) => {
     const dateKey = format(date, 'yyyy-MM-dd');
     const slots = availableSlots[dateKey] || [];
     return slots.filter(slot => {
@@ -49,7 +48,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         default: return true;
       }
     });
-  };
+  }, [availableSlots, timeFilter]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -65,12 +64,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             mode="single"
             selected={selectedDate}
             onSelect={onDateSelect}
-            disabled={(date) => {
+            disabled={useCallback((date: Date) => {
               if (isPast(date)) return true;
               const dateKey = format(date, 'yyyy-MM-dd');
               const slots = availableSlots[dateKey] || [];
               return !slots.some(slot => slot.available);
-            }}
+            }, [availableSlots])}
             fromDate={new Date()}
             toDate={addDays(new Date(), 30)}
             className="rounded-md border-0"
@@ -129,6 +128,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       </Card>
     </div>
   );
-};
+});
 
 export default CalendarView;

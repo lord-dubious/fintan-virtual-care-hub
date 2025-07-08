@@ -1,12 +1,15 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { authService } from '@/services/authService';
+import { useAuth } from '@/hooks/useAuth';
+import { usePatientDashboard, usePatientMedicalRecords } from '@/hooks/usePatients';
+import { useAppointments } from '@/hooks/useAppointments';
+import { usePatientActivity } from '@/hooks/usePatientActivity';
 import { Navigate, Link } from 'react-router-dom';
+
 import {
   Calendar,
   Clock,
@@ -20,13 +23,22 @@ import {
   Bell,
   MessageSquare,
   Activity,
-  Heart,
-  TrendingUp,
   ChevronRight
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { DashboardSkeleton, ErrorState, NetworkStatus, InlineLoader } from '@/components/LoadingStates';
+import { usePerformanceMonitor } from '@/hooks/usePerformance';
+import { screenReader } from '@/utils/accessibility';
+import { AppointmentStatus, MedicalRecord } from '../../shared/domain'; // Import canonical types
+import { ApiAppointment } from '@/api/appointments'; // Explicitly import ApiAppointment
+import ActivityFeed from '@/components/dashboard/ActivityFeed';
+import UpcomingAppointments from '@/components/dashboard/UpcomingAppointments';
 
-interface Appointment {
+// Lazy load heavy components for better performance
+const PatientSettings = React.lazy(() => import('@/components/dashboard/PatientSettings'));
+
+// Define UI-specific appointment type
+interface AppointmentUI {
   id: string;
   date: Date;
   time: string;
@@ -34,9 +46,11 @@ interface Appointment {
   status: 'scheduled' | 'completed' | 'cancelled';
   doctor: string;
   notes?: string;
+  reason?: string; // Add reason to UI type
 }
 
-interface Prescription {
+// Define UI-specific prescription type
+interface PrescriptionUI {
   id: string;
   medication: string;
   dosage: string;
@@ -47,7 +61,8 @@ interface Prescription {
   instructions: string;
 }
 
-interface HealthRecord {
+// Define UI-specific health record type
+interface HealthRecordUI {
   id: string;
   date: Date;
   type: 'consultation' | 'lab_result' | 'prescription' | 'note';
@@ -56,88 +71,227 @@ interface HealthRecord {
   attachments?: string[];
 }
 
+
 const PatientDashboard: React.FC = () => {
   const isMobile = useIsMobile();
-  const user = authService.getCurrentUser();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
+  const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
-  useEffect(() => {
-    // Load mock data
-    const mockAppointments: Appointment[] = [
-      {
-        id: '1',
-        date: new Date(2024, 5, 15),
-        time: '10:00 AM',
-        type: 'video',
-        status: 'scheduled',
-        doctor: 'Dr. Fintan Ekochin',
-        notes: 'Follow-up consultation for ongoing treatment'
-      },
-      {
-        id: '2',
-        date: new Date(2024, 5, 8),
-        time: '2:00 PM',
-        type: 'audio',
-        status: 'completed',
-        doctor: 'Dr. Fintan Ekochin',
-        notes: 'Initial consultation completed successfully'
-      }
-    ];
+  // Performance monitoring
+  // const { logPerformance } = usePerformanceMonitor('PatientDashboard'); // Commented out as not used
+  usePerformanceMonitor('PatientDashboard'); // Keep the hook call for side effects
+  // const { prefetchOnHover } = usePrefetch(); // Commented out as not currently used
 
-    const mockPrescriptions: Prescription[] = [
-      {
-        id: '1',
-        medication: 'Omega-3 Fish Oil',
-        dosage: '1000mg',
-        frequency: 'Twice daily',
-        startDate: new Date(2024, 4, 1),
-        endDate: new Date(2024, 7, 1),
-        status: 'active',
-        instructions: 'Take with meals to improve absorption'
-      },
-      {
-        id: '2',
-        medication: 'Vitamin D3',
-        dosage: '2000 IU',
-        frequency: 'Once daily',
-        startDate: new Date(2024, 4, 1),
-        endDate: new Date(2024, 10, 1),
-        status: 'active',
-        instructions: 'Take in the morning with breakfast'
-      }
-    ];
+  // Announce tab changes to screen readers
+  React.useEffect(() => {
+    const tabNames = {
+      overview: 'Overview',
+      appointments: 'Appointments',
+      prescriptions: 'Prescriptions',
+      records: 'Health Records',
+      settings: 'Settings',
+      more: 'More options'
+    };
 
-    const mockHealthRecords: HealthRecord[] = [
-      {
-        id: '1',
-        date: new Date(2024, 5, 8),
-        type: 'consultation',
-        title: 'Initial Consultation',
-        content: 'Comprehensive health assessment completed. Discussed lifestyle factors and natural treatment options.',
-      },
-      {
-        id: '2',
-        date: new Date(2024, 5, 1),
-        type: 'lab_result',
-        title: 'Blood Work Results',
-        content: 'Vitamin D levels: 25 ng/ml (slightly low). B12 levels: Normal. Recommended supplementation.',
-      }
-    ];
+    if (activeTab && tabNames[activeTab as keyof typeof tabNames]) {
+      screenReader.announce(`Switched to ${tabNames[activeTab as keyof typeof tabNames]} section`);
+    }
+  }, [activeTab]);
+  
+  // Get data from real API
+  const { data: dashboardData, isLoading: isLoadingDashboard, error: dashboardError } = usePatientDashboard();
+  const { data: appointmentsResponse, isLoading: isLoadingAppointments } = useAppointments({ status: 'all' as AppointmentStatus }); // Cast "all"
+  const { data: medicalRecords, isLoading: isLoadingRecords } = usePatientMedicalRecords();
+  const { activities, isLoading: isLoadingActivity } = usePatientActivity();
 
-    setAppointments(mockAppointments);
-    setPrescriptions(mockPrescriptions);
-    setHealthRecords(mockHealthRecords);
-  }, []);
+  // Memoized data processing for performance
+  const upcomingAppointments = React.useMemo(() => {
+    // const startTime = Date.now(); // Performance tracking commented out
+    // let result; // Unused variable commented out
+    if (dashboardData?.upcomingAppointments) {
+      return dashboardData.upcomingAppointments.map(apt => ({
+        id: apt.id,
+        date: new Date(apt.date),
+        time: format(new Date(apt.date), 'h:mm a'),
+        type: apt.consultationType.toLowerCase() as 'video' | 'audio',
+        status: apt.status.toLowerCase() as 'scheduled' | 'completed' | 'cancelled',
+        doctor: apt.provider.name,
+        notes: apt.reason || '',
+        reason: apt.reason
+      }));
+    }
 
-  if (!authService.isAuthenticated()) {
+    // Fallback to old API
+    const apiAppointments = appointmentsResponse?.appointments || [];
+    return apiAppointments
+      .filter((apt: ApiAppointment) => apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED')
+      .slice(0, 3)
+      .map((apt: ApiAppointment) => ({
+        id: apt.id,
+        date: apt.appointmentDate,
+        time: format(apt.appointmentDate, 'h:mm a'),
+        type: (apt.consultationType || 'VIDEO').toLowerCase() as 'video' | 'audio',
+        status: (apt.status || 'SCHEDULED').toLowerCase() as 'scheduled' | 'completed' | 'cancelled',
+        doctor: apt.provider?.user?.name || 'Dr. Fintan Ekochin',
+        notes: apt.consultation?.notes || apt.reason || '',
+        reason: apt.reason
+      }));
+  }, [dashboardData, appointmentsResponse]);
+
+  const recentAppointments = React.useMemo(() => {
+    if (dashboardData?.recentAppointments) {
+      return dashboardData.recentAppointments.map(apt => ({
+        id: apt.id,
+        date: new Date(apt.date),
+        time: format(new Date(apt.date), 'h:mm a'),
+        type: apt.consultationType.toLowerCase() as 'video' | 'audio',
+        status: apt.status.toLowerCase() as 'scheduled' | 'completed' | 'cancelled',
+        doctor: apt.provider.name,
+        notes: apt.reason || '',
+        reason: apt.reason
+      }));
+    }
+
+    // Fallback to old API
+    const apiAppointments = appointmentsResponse?.appointments || [];
+    return apiAppointments
+      .filter((apt: ApiAppointment) => apt.status === 'COMPLETED')
+      .slice(0, 5)
+      .map((apt: ApiAppointment) => ({
+        id: apt.id,
+        date: apt.appointmentDate,
+        time: format(apt.appointmentDate, 'h:mm a'),
+        type: (apt.consultationType || 'VIDEO').toLowerCase() as 'video' | 'audio',
+        status: (apt.status || 'SCHEDULED').toLowerCase() as 'scheduled' | 'completed' | 'cancelled',
+        doctor: apt.provider?.user?.name || 'Dr. Fintan Ekochin',
+        notes: apt.consultation?.notes || apt.reason || '',
+        reason: apt.reason
+      }));
+  }, [dashboardData, appointmentsResponse]);
+
+  // Combine for legacy compatibility
+  const appointments: AppointmentUI[] = React.useMemo(() => {
+    return [...upcomingAppointments, ...recentAppointments].map(apt => ({
+      ...apt,
+      reason: apt.reason || undefined // Convert null to undefined
+    }));
+  }, [upcomingAppointments, recentAppointments]);
+  
+  const prescriptions: PrescriptionUI[] = React.useMemo(() => {
+    // Use dashboard data if available
+    if (dashboardData?.medicalRecords) {
+      return dashboardData.medicalRecords
+        .filter(record => record.prescription)
+        .map(record => ({
+          id: record.id,
+          medication: record.prescription || 'Prescription',
+          dosage: '1 tablet',
+          frequency: 'Daily',
+          startDate: new Date(record.createdAt),
+          endDate: new Date(new Date(record.createdAt).getTime() + 30 * 24 * 60 * 60 * 1000),
+          status: 'active' as const,
+          instructions: record.notes || ''
+        }));
+    }
+
+    // Fallback to old API
+    if (!medicalRecords) return [];
+    return medicalRecords
+      .filter((record: MedicalRecord) => record.prescriptions)
+      .map((record: MedicalRecord) => ({
+        id: record.id,
+        medication: record.diagnosis || 'Prescription',
+        dosage: record.prescriptions?.dosage || '',
+        frequency: record.prescriptions?.frequency || '',
+        startDate: record.createdAt,
+        endDate: record.prescriptions?.endDate || new Date(record.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000),
+        status: record.prescriptions?.status || 'active',
+        instructions: record.prescriptions?.instructions || record.notes || ''
+      }));
+  }, [dashboardData, medicalRecords]);
+
+  const healthRecords: HealthRecordUI[] = React.useMemo(() => {
+    // Use dashboard data if available
+    if (dashboardData?.medicalRecords) {
+      return dashboardData.medicalRecords.map(record => ({
+        id: record.id,
+        date: new Date(record.createdAt),
+        type: (record.diagnosis ? 'consultation' : 'note') as 'consultation' | 'lab_result' | 'prescription' | 'note',
+        title: record.diagnosis || 'Medical Record',
+        content: record.notes || '',
+        attachments: []
+      }));
+    }
+
+    // Fallback to old API
+    if (!medicalRecords) return [];
+    return medicalRecords.map((record: MedicalRecord) => ({
+      id: record.id,
+      date: record.createdAt,
+      type: (record.diagnosis ? 'consultation' : 'note') as 'consultation' | 'lab_result' | 'prescription' | 'note',
+      title: record.diagnosis || 'Medical Record',
+      content: record.notes || '',
+      attachments: record.attachments || []
+    }));
+  }, [dashboardData, medicalRecords]);
+
+  // Use dashboard statistics if available - must be before early returns
+  const stats = React.useMemo(() => {
+    if (dashboardData?.statistics) {
+      return {
+        upcomingCount: dashboardData.upcomingAppointments?.length || 0,
+        totalAppointments: dashboardData.statistics.totalAppointments,
+        completedAppointments: dashboardData.statistics.completedAppointments,
+        totalRecords: dashboardData.statistics.totalMedicalRecords,
+        activePrescriptions: prescriptions.filter(rx => rx.status === 'active').length,
+      };
+    }
+
+    // Fallback to computed values
+    return {
+      upcomingCount: appointments.filter(apt => apt.status === 'scheduled').length,
+      totalAppointments: appointments.length,
+      completedAppointments: appointments.filter(apt => apt.status === 'completed').length,
+      totalRecords: healthRecords.length,
+      activePrescriptions: prescriptions.filter(rx => rx.status === 'active').length,
+    };
+  }, [dashboardData, appointments, prescriptions, healthRecords]);
+
+  const upcomingAppointmentsList = appointments.filter(apt => apt.status === 'scheduled');
+  const activePrescriptions = prescriptions.filter(rx => rx.status === 'active');
+
+  if (!isAuthenticated) {
     return <Navigate to="/booking" replace />;
   }
 
-  const upcomingAppointments = appointments.filter(apt => apt.status === 'scheduled');
-  const activePrescriptions = prescriptions.filter(rx => rx.status === 'active');
+  // Loading state - prioritize dashboard data
+  const isLoading = isLoadingDashboard || (isLoadingAppointments && !dashboardData) || isLoadingRecords || isLoadingActivity;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-blue-900">
+        <div className={`${isMobile ? 'mobile-content p-4' : 'container mx-auto px-4 py-8'}`}>
+          <DashboardSkeleton />
+        </div>
+        <NetworkStatus />
+      </div>
+    );
+  }
+
+  // Error state
+  if (dashboardError && !dashboardData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-blue-900">
+        <div className={`${isMobile ? 'mobile-content p-4' : 'container mx-auto px-4 py-8'}`}>
+          <ErrorState
+            title="Dashboard Unavailable"
+            message="We're having trouble loading your dashboard. Please check your connection and try again."
+            onRetry={() => window.location.reload()}
+          />
+        </div>
+        <NetworkStatus />
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-blue-900 ${isMobile ? 'mobile-app-container' : ''}`}>
@@ -145,10 +299,17 @@ const PatientDashboard: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 dark:text-gray-100`}>
+            <h1
+              className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 dark:text-gray-100`}
+              id="dashboard-title"
+              aria-label={`Welcome back, ${user?.name || 'Patient'}. Patient Dashboard`}
+            >
               Welcome back, {user?.name || 'Patient'}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p
+              className="text-gray-600 dark:text-gray-400"
+              aria-describedby="dashboard-title"
+            >
               Your health journey with Dr. Fintan Ekochin
             </p>
           </div>
@@ -158,24 +319,82 @@ const PatientDashboard: React.FC = () => {
           </Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            {!isMobile && <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>}
-            {!isMobile && <TabsTrigger value="records">Health Records</TabsTrigger>}
-            {isMobile && <TabsTrigger value="more">More</TabsTrigger>}
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-6"
+          aria-label="Patient Dashboard Navigation"
+        >
+          <TabsList
+            className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-5'}`}
+            role="tablist"
+            aria-label="Dashboard sections"
+          >
+            <TabsTrigger
+              value="overview"
+              aria-controls="overview-panel"
+              aria-label="Overview - Quick stats and summary"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="appointments"
+              aria-controls="appointments-panel"
+              aria-label="Appointments - View and manage your appointments"
+            >
+              Appointments
+            </TabsTrigger>
+            {!isMobile && (
+              <TabsTrigger
+                value="prescriptions"
+                aria-controls="prescriptions-panel"
+                aria-label="Prescriptions - View your active prescriptions"
+              >
+                Prescriptions
+              </TabsTrigger>
+            )}
+            {!isMobile && (
+              <TabsTrigger
+                value="records"
+                aria-controls="records-panel"
+                aria-label="Health Records - View your medical records"
+              >
+                Health Records
+              </TabsTrigger>
+            )}
+            <TabsTrigger
+              value="settings"
+              aria-controls="settings-panel"
+              aria-label="Settings - Manage your account settings"
+            >
+              Settings
+            </TabsTrigger>
+            {isMobile && (
+              <TabsTrigger
+                value="more"
+                aria-controls="more-panel"
+                aria-label="More options - Additional features"
+              >
+                More
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent
+            value="overview"
+            className="space-y-6"
+            id="overview-panel"
+            role="tabpanel"
+            aria-labelledby="overview-tab"
+          >
             {/* Quick Stats */}
             <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-4`}>
               <Card>
                 <CardContent className="p-4 text-center">
                   <Calendar className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                   <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {upcomingAppointments.length}
+                    {stats.upcomingCount}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
                     Upcoming
@@ -187,7 +406,7 @@ const PatientDashboard: React.FC = () => {
                 <CardContent className="p-4 text-center">
                   <Pill className="h-8 w-8 text-green-600 mx-auto mb-2" />
                   <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {activePrescriptions.length}
+                    {stats.activePrescriptions}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
                     Active Rx
@@ -201,31 +420,20 @@ const PatientDashboard: React.FC = () => {
                     <CardContent className="p-4 text-center">
                       <FileText className="h-8 w-8 text-purple-600 mx-auto mb-2" />
                       <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {healthRecords.length}
+                        {stats.totalRecords}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
                         Records
                       </div>
                     </CardContent>
                   </Card>
-                  
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <Heart className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                      <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        95%
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Health Score
-                      </div>
-                    </CardContent>
-                  </Card>
+
                 </>
               )}
             </div>
 
             {/* Next Appointment */}
-            {upcomingAppointments.length > 0 && (
+            {(dashboardData?.nextAppointment || upcomingAppointmentsList.length > 0) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -237,13 +445,20 @@ const PatientDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="font-semibold text-lg">
-                        {format(upcomingAppointments[0].date, 'EEEE, MMMM d')}
+                        {dashboardData?.nextAppointment
+                          ? format(new Date(dashboardData.nextAppointment.date), 'EEEE, MMMM d')
+                          : format(upcomingAppointmentsList[0].date, 'EEEE, MMMM d')
+                        }
                       </div>
                       <div className="text-gray-600 dark:text-gray-400">
-                        {upcomingAppointments[0].time} • {upcomingAppointments[0].doctor}
+                        {dashboardData?.nextAppointment
+                          ? `${format(new Date(dashboardData.nextAppointment.date), 'h:mm a')} • ${dashboardData.nextAppointment.provider}`
+                          : `${upcomingAppointmentsList[0].time} • ${upcomingAppointmentsList[0].doctor}`
+                        }
                       </div>
                       <Badge variant="secondary" className="mt-2">
-                        {upcomingAppointments[0].type === 'video' ? (
+                        {(dashboardData?.nextAppointment?.consultationType || upcomingAppointmentsList[0]?.type) === 'VIDEO' ||
+                         (dashboardData?.nextAppointment?.consultationType || upcomingAppointmentsList[0]?.type) === 'video' ? (
                           <><Video className="h-3 w-3 mr-1" /> Video Call</>
                         ) : (
                           <><Phone className="h-3 w-3 mr-1" /> Audio Call</>
@@ -289,6 +504,39 @@ const PatientDashboard: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Enhanced Dashboard Components */}
+            <div className="w-full">
+              {/* Activity Feed */}
+              <ActivityFeed
+                activities={activities}
+                isLoading={isLoadingActivity}
+                maxItems={8}
+              />
+            </div>
+
+            {/* Enhanced Upcoming Appointments */}
+            <UpcomingAppointments
+              appointments={appointments.map(apt => ({
+                id: apt.id,
+                appointmentDate: apt.date,
+                reason: apt.reason || 'General consultation',
+                consultationType: apt.type === 'video' ? 'VIDEO' : 'AUDIO',
+                status: apt.status === 'scheduled' ? 'SCHEDULED' :
+                       apt.status === 'completed' ? 'COMPLETED' : 'CANCELLED',
+                provider: {
+                  id: 'provider-1',
+                  name: apt.doctor,
+                  specialization: 'General Medicine'
+                },
+                notes: apt.notes,
+                duration: 30,
+                canJoin: apt.status === 'scheduled',
+                canReschedule: apt.status === 'scheduled',
+                canCancel: apt.status === 'scheduled'
+              }))}
+              maxItems={3}
+            />
           </TabsContent>
 
           {/* Appointments Tab */}
@@ -479,10 +727,20 @@ const PatientDashboard: React.FC = () => {
               ))}
             </div>
           </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings">
+            <React.Suspense fallback={<InlineLoader message="Loading settings..." />}>
+              <PatientSettings />
+            </React.Suspense>
+          </TabsContent>
         </Tabs>
       </div>
+      <NetworkStatus />
     </div>
   );
 };
+
+
 
 export default PatientDashboard;

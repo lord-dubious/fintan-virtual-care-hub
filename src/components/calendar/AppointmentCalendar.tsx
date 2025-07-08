@@ -4,6 +4,13 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { calendarService } from '@/lib/services/calendarService';
 
+interface DayAvailability {
+  date: Date;
+  isAvailable: boolean;
+  startTime?: string;
+  endTime?: string;
+}
+
 interface AppointmentCalendarProps {
   providerId: string;
   onDateSelect: (date: Date) => void;
@@ -16,7 +23,7 @@ export const AppointmentCalendar: React.FC<AppointmentCalendarProps> = ({
   selectedDate,
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [weekDates, setWeekDates] = useState<any[]>([]);
+  const [weekDates, setWeekDates] = useState<DayAvailability[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Load provider availability for the current week

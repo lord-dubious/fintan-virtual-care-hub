@@ -137,32 +137,24 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
   next();
 };
 
-// CORS configuration
+// CORS configuration - Defaults to allow all origins unless CORS_ORIGIN is set
 export const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // Check if CORS_ALLOW_ALL is enabled for development
-    if (process.env.CORS_ALLOW_ALL === 'true') {
-      return callback(null, true);
-    }
+    // If CORS_ORIGIN is set, only allow that specific origin
+    if (process.env.CORS_ORIGIN) {
+      const allowedOrigins = process.env.CORS_ORIGIN.split(',').map(origin => origin.trim());
 
-    // Get allowed origins from environment variables
-    const envOrigins = process.env.CORS_ORIGINS?.split(',').map(origin => origin.trim()) || [];
-    const allowedOrigins = [
-      ...envOrigins,
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://localhost:10000',
-      'https://app.drfintan.com',
-      'https://admin.drfintan.com',
-    ];
+      // Allow requests with no origin (mobile apps, etc.)
+      if (!origin) return callback(null, true);
 
-    // Allow requests with no origin (mobile apps, etc.)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'), false);
+      }
     } else {
-      callback(new Error('Not allowed by CORS'), false);
+      // Default: Allow all origins (good for development and flexible deployment)
+      callback(null, true);
     }
   },
   credentials: true,

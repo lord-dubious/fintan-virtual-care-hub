@@ -1,20 +1,21 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from root directory
+dotenv.config({ path: '../.env' });
 
 // Environment validation schema
 const envSchema = z.object({
   // Server Configuration
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().transform(Number).default('3000'),
-  API_BASE_URL: z.string().default('http://localhost:3000/api'),
+  HOST: z.string().default('0.0.0.0'), // Bind address
+  BACKEND_HOST: z.string().optional(), // External host for URL construction
 
   // Frontend Configuration
-  FRONTEND_URL: z.string().optional(),
-  CORS_ORIGINS: z.string().optional(),
-  CORS_ALLOW_ALL: z.string().transform(val => val === 'true').default('false'),
+  FRONTEND_HOST: z.string().optional(),
+  FRONTEND_PORT: z.string().transform(Number).optional(),
+  CORS_ORIGIN: z.string().optional(), // If set, restricts CORS to specific origins
 
   // Database Configuration
   DATABASE_URL: z.string(),
@@ -88,13 +89,77 @@ const envSchema = z.object({
 // Validate and parse environment variables
 const env = envSchema.parse(process.env);
 
+// Dynamic URL construction helpers
+const getServerHost = () => {
+  // Always use BACKEND_HOST if set, regardless of environment
+  if (env.BACKEND_HOST) {
+    return env.BACKEND_HOST;
+  }
+
+  // In production, try to detect the host
+  if (env.NODE_ENV === 'production') {
+    return process.env.RENDER_EXTERNAL_HOSTNAME ||
+           process.env.RAILWAY_PUBLIC_DOMAIN ||
+           process.env.VERCEL_URL ||
+           'localhost';
+  }
+
+  // Default to localhost for development
+  return 'localhost';
+};
+
+const getProtocol = () => {
+  const host = getServerHost();
+  return (host === 'localhost' || host.includes('127.0.0.1') || /^\d+\.\d+\.\d+\.\d+$/.test(host))
+    ? 'http'
+    : 'https';
+};
+
+const getFrontendHost = () => {
+  if (env.FRONTEND_HOST) {
+    return env.FRONTEND_HOST;
+  }
+  return getServerHost(); // Default to same as backend
+};
+
+// Helper to construct URLs - always include port for backend services
+const getBackendURL = () => {
+  const host = getServerHost();
+  const protocol = getProtocol();
+
+  // Always include port for backend services (they support custom ports)
+  return `${protocol}://${host}:${env.PORT}`;
+};
+
+const getFrontendURL = () => {
+  const host = getFrontendHost();
+  const protocol = getProtocol();
+  const port = env.FRONTEND_PORT || env.PORT + 7000;
+
+  // For localhost/IP addresses, always include port
+  if (host === 'localhost' || host.includes('127.0.0.1') || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+    return `${protocol}://${host}:${port}`;
+  }
+
+  // For hosted services, include port if FRONTEND_PORT is explicitly set
+  if (env.FRONTEND_PORT) {
+    return `${protocol}://${host}:${port}`;
+  }
+
+  // For hosted services without explicit port, assume standard ports
+  return `${protocol}://${host}`;
+};
+
 // Configuration object
 export const config = {
   // Server
   server: {
     nodeEnv: env.NODE_ENV,
     port: env.PORT,
-    apiBaseUrl: env.API_BASE_URL,
+    host: env.HOST,
+    backendHost: getServerHost(),
+    protocol: getProtocol(),
+    apiBaseUrl: `${getBackendURL()}/api`,
     isDevelopment: env.NODE_ENV === 'development',
     isProduction: env.NODE_ENV === 'production',
     isTest: env.NODE_ENV === 'test',
@@ -102,9 +167,10 @@ export const config = {
 
   // Frontend
   frontend: {
-    url: env.FRONTEND_URL || `http://localhost:${env.PORT + 7000}`, // Default to PORT + 7000
-    corsOrigins: env.CORS_ORIGINS?.split(',').map(origin => origin.trim()) || [],
-    corsAllowAll: env.CORS_ALLOW_ALL,
+    host: getFrontendHost(),
+    port: env.FRONTEND_PORT || env.PORT + 7000,
+    url: getFrontendURL(),
+    corsOrigin: env.CORS_ORIGIN, // If undefined, allows all origins
   },
 
   // Database

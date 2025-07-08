@@ -1,9 +1,28 @@
 // API Configuration for Dr. Fintan Virtual Care Hub
 // This file centralizes all API-related configuration
 
-// Backend API Base URL - Streamlined configuration
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api`;
+// Dynamic API URL construction
+const getBackendURL = () => {
+  const host = import.meta.env.VITE_BACKEND_HOST || 'localhost';
+  const port = import.meta.env.VITE_BACKEND_PORT || '3000';
+  const protocol = (host === 'localhost' || host.includes('127.0.0.1') || /^\d+\.\d+\.\d+\.\d+$/.test(host)) ? 'http' : 'https';
+
+  // If host already includes protocol, use as-is
+  if (host.startsWith('http')) {
+    return host;
+  }
+
+  // For localhost/IP addresses, include port. For hosted services, assume standard ports
+  if (host === 'localhost' || host.includes('127.0.0.1') || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+    return `${protocol}://${host}:${port}`;
+  }
+
+  // For hosted services (render.com, railway.app, etc.), don't include port
+  return `${protocol}://${host}`;
+};
+
+// Backend API Base URL - Automatically constructs /api endpoint
+export const API_BASE_URL = `${getBackendURL()}/api`;
 
 // Environment detection
 export const isDevelopment = import.meta.env.DEV;

@@ -1,8 +1,24 @@
 // Simple API utility for making HTTP requests
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api`;
+// Dynamic API URL construction
+const getAPIBaseURL = () => {
+  const host = import.meta.env.VITE_BACKEND_HOST || 'localhost';
+  const port = import.meta.env.VITE_BACKEND_PORT || '3000';
+  const protocol = (host === 'localhost' || host.includes('127.0.0.1') || /^\d+\.\d+\.\d+\.\d+$/.test(host)) ? 'http' : 'https';
+
+  if (host.startsWith('http')) {
+    return `${host}/api`;
+  }
+
+  if (host === 'localhost' || host.includes('127.0.0.1') || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+    return `${protocol}://${host}:${port}/api`;
+  }
+
+  return `${protocol}://${host}/api`;
+};
+
+const API_BASE_URL = getAPIBaseURL();
 
 // Create axios instance with default config
 const apiClient = axios.create({

@@ -368,12 +368,13 @@ const startServer = async () => {
   logger.info(`🚀 Starting server on port ${port}...`);
 
   // Start server with Socket.IO
-  server = httpServer.listen(port, '0.0.0.0', async () => {
+  server = httpServer.listen(port, config.server.host, async () => {
     logger.info(`🚀 Dr. Fintan Virtual Care Hub Backend API Server started`);
     logger.info(`📍 Environment: ${config.server.nodeEnv}`);
-    logger.info(`🌐 Server running on port ${port}`);
+    logger.info(`🌐 Server running on ${config.server.host}:${port}`);
+    logger.info(`🔗 Backend Host: ${config.server.backendHost}`);
     logger.info(`📊 API Base URL: ${config.server.apiBaseUrl}`);
-    logger.info(`🔗 Frontend URL: ${config.frontend.url}`);
+    logger.info(`🎯 Frontend URL: ${config.frontend.url}`);
     logger.info(`🔌 Socket.IO enabled for real-time communication`);
 
     // Check database connection

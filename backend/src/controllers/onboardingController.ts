@@ -198,11 +198,8 @@ export const getOnboardingStatus = async (req: AuthenticatedRequest, res: Respon
     const patient = await prisma.patient.findUnique({
       where: { userId: req.user.id },
       include: {
+        user: true,
         emergencyContacts: true,
-        allergies: true,
-        medications: true,
-        conditions: true,
-        insuranceRecords: true,
       },
     });
 
@@ -234,11 +231,11 @@ export const getOnboardingStatus = async (req: AuthenticatedRequest, res: Respon
             phone: patient.phone,
             address: patient.address,
           },
-          emergencyContacts: patient.emergencyContacts,
-          allergies: patient.allergies,
-          medications: patient.medications,
-          conditions: patient.conditions,
-          insurance: patient.insuranceRecords,
+          emergencyContacts: patient.emergencyContact,
+          allergies: (patient.medicalHistory as any)?.allergies || [],
+          medications: (patient.medicalHistory as any)?.medications || [],
+          conditions: (patient.medicalHistory as any)?.conditions || [],
+          insurance: [],
           medicalHistory: patient.medicalHistory,
           preferences: patient.preferences,
         },
@@ -323,20 +320,13 @@ async function processStepData(patientId: string, step: number, data: any): Prom
       break;
 
     case 4: // Insurance
-      // Delete existing insurance records
-      await prisma.insurance.deleteMany({
-        where: { patientId },
+      // Update insurance information in patient record
+      await prisma.patient.update({
+        where: { id: patientId },
+        data: {
+          insurance: data.insurance || [],
+        },
       });
-      
-      // Create new insurance records
-      if (data.insurance?.length > 0) {
-        await prisma.insurance.createMany({
-          data: data.insurance.map((insurance: any) => ({
-            ...insurance,
-            patientId,
-          })),
-        });
-      }
       break;
 
     case 5: // Preferences

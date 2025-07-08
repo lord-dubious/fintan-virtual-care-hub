@@ -5,7 +5,7 @@ import { usePaymentMethodConfig } from '@/hooks/usePayments';
 import PaymentGateway from '@/components/payments/PaymentGateway';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+// import { Button } from '@/components/ui/button'; // Unused import
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
@@ -21,7 +21,7 @@ const PaymentPage: React.FC = () => {
     navigate(`/payment/success?paymentId=${paymentId}`);
   };
 
-  const handlePaymentFailure = (error: string) => {
+  const handlePaymentFailure = (_error: string) => {
     // Error is already shown in a toast, can add more logic here if needed
   };
 

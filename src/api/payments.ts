@@ -1,11 +1,28 @@
 import { apiClient, ApiResponse } from './client';
 import { API_ENDPOINTS } from './config';
-import { PaymentSchema, CreatePaymentSchema, PaymentIntentSchema } from '@/lib/validation/schemas';
-import type { Payment, CreatePaymentData } from '@/lib/validation/schemas';
-import { PaymentStatus, PaymentMethod } from '@/lib/types/enums';
+// import { PaymentSchema, CreatePaymentSchema, PaymentIntentSchema } from '@/lib/validation/schemas';
+// import type { Payment, CreatePaymentData } from '@/lib/validation/schemas';
+// import { PaymentStatus, PaymentMethod } from '@/lib/types/enums';
 
-// Use types from validation schemas for consistency
-export type { Payment, CreatePaymentData } from '@/lib/validation/schemas';
+// Define Payment types locally for API use
+interface Payment {
+  id: string;
+  appointmentId: string;
+  amount: number;
+  currency: string;
+  status: string;
+  paymentMethod: string;
+  reference?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface CreatePaymentData {
+  appointmentId: string;
+  amount: number;
+  currency?: string;
+  paymentMethod: string;
+}
 
 export interface PaymentMethodConfig {
   stripe: {

@@ -3,7 +3,7 @@ import { calendarApi, AvailabilityRequest, DayAvailability, CalendarEvent } from
 import { useToast } from '@/hooks/use-toast';
 
 export const useAvailability = (request: AvailabilityRequest) => {
-  return useQuery({
+  return useQuery<DayAvailability[], Error>({
     queryKey: ['calendar', 'availability', request],
     queryFn: async () => {
       const response = await calendarApi.getAvailability(request);
@@ -12,7 +12,7 @@ export const useAvailability = (request: AvailabilityRequest) => {
       }
       return response.data!;
     },
-    enabled: !!(request.dateFrom && request.dateTo),
+    enabled: !!(request.providerId && request.dateFrom && request.dateTo),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };

@@ -1,30 +1,21 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+// Frontend Payment Service
+// This service handles payment functionality using API calls
+
 import {
-  AppointmentStatus,
   Payment,
   PaymentWithAppointment,
-  ApiResponse,
-  PaymentFilters,
   CreatePaymentRequest,
+  PaymentFilters,
+  ApiResponse,
   PaymentStatus,
 } from '../../../shared/domain';
-
-const prisma = new PrismaClient();
+import { apiClient } from '@/api/client';
 
 export const paymentService = {
   async create(data: CreatePaymentRequest): Promise<ApiResponse<Payment>> {
     try {
-      const payment = await prisma.payment.create({
-        data: {
-          appointmentId: data.appointmentId,
-          amount: data.amount,
-          currency: data.currency || 'USD',
-          paymentMethod: data.paymentMethod,
-          status: PaymentStatus.PENDING,
-          provider: 'STRIPE',
-        },
-      });
-      return { success: true, data: payment as unknown as Payment };
+      const response = await apiClient.post('/api/payments', data);
+      return response;
     } catch (error) {
       return { success: false, error: 'Failed to create payment' };
     }
@@ -32,20 +23,8 @@ export const paymentService = {
 
   async findById(id: string): Promise<ApiResponse<PaymentWithAppointment | null>> {
     try {
-      const payment = await prisma.payment.findUnique({
-        where: { id },
-        include: {
-          appointment: {
-            include: {
-              patient: { include: { user: true } },
-              provider: { include: { user: true } },
-              consultation: true,
-              payment: true,
-            },
-          },
-        },
-      });
-      return { success: true, data: payment as unknown as PaymentWithAppointment };
+      const response = await apiClient.get(`/api/payments/${id}`);
+      return response;
     } catch (error) {
       return { success: false, error: 'Failed to find payment' };
     }
@@ -57,22 +36,10 @@ export const paymentService = {
 
   async findByAppointmentId(appointmentId: string): Promise<ApiResponse<PaymentWithAppointment | null>> {
     try {
-      const payment = await prisma.payment.findFirst({
-        where: { appointmentId },
-        include: {
-          appointment: {
-            include: {
-              patient: { include: { user: true } },
-              provider: { include: { user: true } },
-              consultation: true,
-              payment: true,
-            },
-          },
-        },
-      });
-      return { success: true, data: payment as unknown as PaymentWithAppointment };
+      const response = await apiClient.get(`/api/payments/appointment/${appointmentId}`);
+      return response;
     } catch (error) {
-      return { success: false, error: 'Failed to find payment' };
+      return { success: false, error: 'Failed to find payment by appointment' };
     }
   },
 
@@ -82,22 +49,10 @@ export const paymentService = {
 
   async findByTransactionId(transactionId: string): Promise<ApiResponse<PaymentWithAppointment | null>> {
     try {
-      const payment = await prisma.payment.findFirst({
-        where: { reference: transactionId },
-        include: {
-          appointment: {
-            include: {
-              patient: { include: { user: true } },
-              provider: { include: { user: true } },
-              consultation: true,
-              payment: true,
-            },
-          },
-        },
-      });
-      return { success: true, data: payment as unknown as PaymentWithAppointment };
+      const response = await apiClient.get(`/api/payments/transaction/${transactionId}`);
+      return response;
     } catch (error) {
-      return { success: false, error: 'Failed to find payment' };
+      return { success: false, error: 'Failed to find payment by transaction ID' };
     }
   },
 
@@ -107,33 +62,21 @@ export const paymentService = {
 
   async findMany(filters?: PaymentFilters): Promise<ApiResponse<PaymentWithAppointment[]>> {
     try {
-      const where: Prisma.PaymentWhereInput = {};
-
+      const params = new URLSearchParams();
+      
       if (filters?.status) {
-        where.status = { in: Array.isArray(filters.status) ? filters.status : [filters.status] };
+        const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
+        statuses.forEach(status => params.append('status', status));
       }
+      
+      if (filters?.appointmentId) params.append('appointmentId', filters.appointmentId);
+      if (filters?.fromDate) params.append('fromDate', filters.fromDate.toISOString());
+      if (filters?.toDate) params.append('toDate', filters.toDate.toISOString());
+      if (filters?.minAmount) params.append('minAmount', filters.minAmount.toString());
+      if (filters?.maxAmount) params.append('maxAmount', filters.maxAmount.toString());
 
-      if (filters?.paymentMethod) {
-        where.paymentMethod = { in: Array.isArray(filters.paymentMethod) ? filters.paymentMethod : [filters.paymentMethod] };
-      }
-
-      const payments = await prisma.payment.findMany({
-        where,
-        include: {
-          appointment: {
-            include: {
-              patient: { include: { user: true } },
-              provider: { include: { user: true } },
-              consultation: true,
-              payment: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
-      return { success: true, data: payments as unknown as PaymentWithAppointment[] };
+      const response = await apiClient.get(`/api/payments?${params.toString()}`);
+      return response;
     } catch (error) {
       return { success: false, error: 'Failed to find payments' };
     }
@@ -143,85 +86,77 @@ export const paymentService = {
     return this.findMany();
   },
 
-  async update(id: string, data: Partial<CreatePaymentRequest>): Promise<ApiResponse<Payment>> {
-    try {
-      const payment = await prisma.payment.update({
-        where: { id },
-        data: {
-          ...data,
-          paymentMethod: data.paymentMethod,
-        },
-      });
-      return { success: true, data: payment };
-    } catch (error) {
-      return { success: false, error: 'Failed to update payment' };
-    }
-  },
-
   async completePayment(id: string, transactionId: string): Promise<ApiResponse<PaymentWithAppointment>> {
     try {
-      const payment = await prisma.$transaction(async (tx) => {
-        const updatedPayment = await tx.payment.update({
-          where: { id },
-          data: {
-            status: PaymentStatus.SUCCEEDED,
-            reference: transactionId,
-          },
-          include: {
-            appointment: {
-              include: {
-                patient: { include: { user: true } },
-                provider: { include: { user: true } },
-                consultation: true,
-                payment: true,
-              },
-            },
-          },
-        });
-
-        if (updatedPayment.appointment!.status === AppointmentStatus.SCHEDULED) {
-          await tx.appointment.update({
-            where: { id: updatedPayment.appointmentId },
-            data: {
-              status: AppointmentStatus.CONFIRMED,
-            },
-          });
-        }
-
-        return updatedPayment;
+      const response = await apiClient.post(`/api/payments/${id}/complete`, {
+        transactionId,
       });
-      return { success: true, data: payment as unknown as PaymentWithAppointment };
+      return response;
     } catch (error) {
       return { success: false, error: 'Failed to complete payment' };
     }
   },
 
-  async failPayment(id: string): Promise<ApiResponse<Payment>> {
+  async updateStatus(id: string, status: PaymentStatus): Promise<ApiResponse<PaymentWithAppointment>> {
     try {
-      const payment = await prisma.payment.update({
-        where: { id },
-        data: {
-          status: PaymentStatus.FAILED,
-        },
+      const response = await apiClient.put(`/api/payments/${id}/status`, {
+        status,
       });
-      return { success: true, data: payment };
+      return response;
     } catch (error) {
-      return { success: false, error: 'Failed to fail payment' };
+      return { success: false, error: 'Failed to update payment status' };
     }
   },
 
-  async refundPayment(id: string): Promise<ApiResponse<Payment>> {
+  async refund(id: string, reason?: string): Promise<ApiResponse<PaymentWithAppointment>> {
     try {
-      const payment = await prisma.payment.update({
-        where: { id },
-        data: {
-          status: PaymentStatus.REFUNDED,
-        },
+      const response = await apiClient.post(`/api/payments/${id}/refund`, {
+        reason,
       });
-      return { success: true, data: payment };
+      return response;
     } catch (error) {
       return { success: false, error: 'Failed to refund payment' };
     }
   },
-};
 
+  async delete(id: string): Promise<ApiResponse<boolean>> {
+    try {
+      const response = await apiClient.delete(`/api/payments/${id}`);
+      return response;
+    } catch (error) {
+      return { success: false, error: 'Failed to delete payment' };
+    }
+  },
+
+  // Payment intent methods for Stripe/Paystack
+  async createPaymentIntent(amount: number, currency: string = 'USD', metadata?: Record<string, any>): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post('/api/payments/intent', {
+        amount,
+        currency,
+        metadata,
+      });
+      return response;
+    } catch (error) {
+      return { success: false, error: 'Failed to create payment intent' };
+    }
+  },
+
+  async confirmPaymentIntent(paymentIntentId: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post(`/api/payments/intent/${paymentIntentId}/confirm`);
+      return response;
+    } catch (error) {
+      return { success: false, error: 'Failed to confirm payment intent' };
+    }
+  },
+
+  async cancelPaymentIntent(paymentIntentId: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post(`/api/payments/intent/${paymentIntentId}/cancel`);
+      return response;
+    } catch (error) {
+      return { success: false, error: 'Failed to cancel payment intent' };
+    }
+  },
+};

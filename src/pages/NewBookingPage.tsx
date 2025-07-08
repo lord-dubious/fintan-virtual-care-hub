@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Clock, Video, Phone } from 'lucide-react';
-import NewBookingCalendar from '@/components/booking/NewBookingCalendar';
+import BookingCalendar from '@/components/booking/BookingCalendar';
 import { useToast } from '@/hooks/use-toast';
 
 const NewBookingPage: React.FC = () => {
@@ -101,7 +101,7 @@ const NewBookingPage: React.FC = () => {
         </Card>
 
         {/* Booking Calendar */}
-        <NewBookingCalendar
+        <BookingCalendar
           providerId={providerId}
           consultationType={consultationType}
           onSlotSelected={handleSlotSelected}

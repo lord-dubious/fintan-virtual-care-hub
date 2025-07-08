@@ -60,3 +60,4 @@ Thumbs.db
 # Task files
 # tasks.json
 # tasks/ 
+docker-compose.production.yml

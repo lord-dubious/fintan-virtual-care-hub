@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import * as bcrypt from 'bcryptjs';
-import * as jwt from 'jsonwebtoken';
+// import * as jwt from 'jsonwebtoken'; // Unused import
 import * as crypto from 'crypto';
 import { prisma } from '@/config/database';
 import { config } from '@/config';
@@ -11,7 +11,7 @@ import {
   generateRefreshToken,
   generateAccessToken,
   hashToken,
-  verifyPasswordResetToken,
+  // verifyPasswordResetToken, // Unused import
   isTokenExpired,
   generateTokenExpiration,
   generateRefreshTokenExpiration
@@ -614,7 +614,7 @@ export const setCookies = async (req: AuthenticatedRequest, res: Response): Prom
  * Get CSRF token
  * GET /api/auth/csrf-token
  */
-export const getCSRFToken = async (req: Request, res: Response): Promise<void> => {
+export const getCSRFToken = async (_req: Request, res: Response): Promise<void> => {
   try {
     const csrfToken = generateCSRFToken();
 

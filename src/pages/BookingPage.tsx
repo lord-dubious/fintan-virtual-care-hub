@@ -9,7 +9,7 @@ import DateTimeStep from '@/components/booking/DateTimeStep';
 import PatientInfoStep from '@/components/booking/PatientInfoStep';
 import PaymentStep from '@/components/booking/PaymentStep';
 import SimpleSignOn from '@/components/booking/SimpleSignOn';
-import NewBookingCalendar from '@/components/booking/NewBookingCalendar';
+import BookingCalendar from '@/components/booking/BookingCalendar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -314,7 +314,7 @@ const BookingPage: React.FC = () => {
           </div>
 
           {/* New Booking Calendar */}
-          <NewBookingCalendar
+          <BookingCalendar
             providerId={providerId}
             consultationType={bookingData.consultationType === 'video' ? 'VIDEO' : 'AUDIO'}
             onBookingComplete={handleNewBookingComplete}

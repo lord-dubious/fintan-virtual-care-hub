@@ -132,6 +132,11 @@ const Messages: React.FC = () => {
   const handleSendMessage = (text: string, attachments?: File[], replyTo?: string) => {
     console.log('Sending message:', { text, attachments, replyTo });
     // In real app, this would send the message via API
+
+    // If it's a simple text message from the input field
+    if (typeof text === 'string' && text.trim()) {
+      setNewMessage('');
+    }
   };
 
   const handleMarkAsRead = (messageId: string) => {
@@ -150,14 +155,6 @@ const Messages: React.FC = () => {
   };
 
   const otherParticipant = selectedConversationData?.participants.find(p => p.id !== user?.id);
-
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      // In real app, send message via API
-      console.log('Sending message:', newMessage);
-      setNewMessage('');
-    }
-  };
 
   const ConversationList = () => (
     <div className="space-y-2">

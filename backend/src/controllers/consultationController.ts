@@ -70,7 +70,9 @@ export const createConsultationRoom = async (req: AuthenticatedRequest, res: Res
         success: true,
         data: {
           consultation: appointment.consultation,
-          roomUrl: `https://${config.daily.domain}/${appointment.consultation.dailyRoomName}`,
+          roomUrl: process.env.DAILY_CO_BASE_URL
+            ? `${process.env.DAILY_CO_BASE_URL}/${appointment.consultation.dailyRoomName}`
+            : `https://${config.daily.domain}/${appointment.consultation.dailyRoomName}`,
         },
         message: 'Consultation room already exists',
       });
@@ -115,11 +117,16 @@ export const createConsultationRoom = async (req: AuthenticatedRequest, res: Res
       },
     });
 
+    // Use environment-configured URL or fallback to Daily.co response
+    const roomUrl = process.env.DAILY_CO_BASE_URL
+      ? `${process.env.DAILY_CO_BASE_URL}/${roomName}`
+      : dailyRoom.url;
+
     res.status(201).json({
       success: true,
       data: {
         consultation,
-        roomUrl: dailyRoom.url,
+        roomUrl,
         expiresAt: new Date(dailyRoom.exp * 1000),
       },
       message: 'Consultation room created successfully',

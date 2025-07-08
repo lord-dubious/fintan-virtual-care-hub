@@ -1,6 +1,6 @@
 import { apiClient, ApiResponse } from './client';
 import { API_ENDPOINTS, REFRESH_TOKEN_STORAGE_KEY } from './config';
-import { LoginSchema, RegisterSchema, UserSchema } from '@/lib/validation/schemas';
+import { LoginSchema, RegisterSchema } from '@/lib/validation/schemas';
 import type { LoginData, RegisterData, User } from '@/lib/validation/schemas';
 
 // Use types from validation schemas for consistency and validation

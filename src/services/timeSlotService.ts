@@ -1,4 +1,4 @@
-import { format, parseISO, addMinutes, isBefore, isAfter } from 'date-fns';
+import { addMinutes, isBefore } from 'date-fns';
 
 export interface TimeSlot {
   time: string;
@@ -17,7 +17,12 @@ export interface AvailabilityData {
 export interface SlotValidationResult {
   isValid: boolean;
   reason?: string;
-  conflictingAppointment?: any;
+  conflictingAppointment?: {
+    id: string;
+    appointmentDate: string;
+    status: string;
+    [key: string]: unknown;
+  };
 }
 
 export class TimeSlotService {
@@ -106,7 +111,8 @@ export class TimeSlotService {
       
       // Create the appointment datetime
       const appointmentDateTime = new Date(`${date}T${time}:00.000Z`);
-      const endDateTime = addMinutes(appointmentDateTime, duration);
+      // End time calculation for future use
+      addMinutes(appointmentDateTime, duration);
       
       // Check if the slot is in the past
       if (isBefore(appointmentDateTime, new Date())) {

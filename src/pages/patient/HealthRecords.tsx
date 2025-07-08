@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,12 +16,30 @@ import {
   User,
   Pill,
   Activity,
-  Heart,
   Eye,
   Share,
   Lock,
 } from 'lucide-react';
 import { InlineLoader, ErrorState, EmptyState } from '@/components/LoadingStates';
+
+// Extended interface for medical records with additional properties
+interface ExtendedMedicalRecord {
+  id: string;
+  diagnosis?: string;
+  notes?: string;
+  treatment?: string;
+  type?: 'consultation' | 'prescription' | 'lab_result' | 'imaging';
+  title?: string;
+  prescription?: string;
+  provider?: {
+    user?: {
+      name?: string;
+    };
+    name?: string;
+  };
+  createdAt: string;
+  [key: string]: unknown;
+}
 
 const HealthRecords: React.FC = () => {
   const isMobile = useIsMobile();
@@ -75,14 +93,14 @@ const HealthRecords: React.FC = () => {
     }
   };
 
-  const RecordCard: React.FC<{ record: any }> = ({ record }) => (
+  const RecordCard: React.FC<{ record: ExtendedMedicalRecord }> = ({ record }) => (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <div className="font-semibold text-lg">
-                {record.diagnosis || record.title || 'Medical Record'}
+{record.diagnosis || record.title || 'Medical Record'}
               </div>
               <Badge className={getRecordTypeColor(record.type || 'consultation')}>
                 {getRecordTypeIcon(record.type || 'consultation')}
@@ -140,20 +158,20 @@ const HealthRecords: React.FC = () => {
     </Card>
   );
 
-  const filteredRecords = records.filter(record => 
-    !searchTerm || 
+  const filteredRecords = records.filter(record =>
+    !searchTerm ||
     record.diagnosis?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.treatment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (record as unknown as ExtendedMedicalRecord).treatment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     record.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.provider?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    (record as unknown as ExtendedMedicalRecord).provider?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const recordsByType = {
     all: filteredRecords,
-    consultation: filteredRecords.filter(r => r.type === 'consultation' || !r.type),
-    prescription: filteredRecords.filter(r => r.type === 'prescription'),
-    lab_result: filteredRecords.filter(r => r.type === 'lab_result'),
-    imaging: filteredRecords.filter(r => r.type === 'imaging'),
+    consultation: filteredRecords.filter(r => (r as unknown as ExtendedMedicalRecord).type === 'consultation' || !(r as unknown as ExtendedMedicalRecord).type),
+    prescription: filteredRecords.filter(r => (r as unknown as ExtendedMedicalRecord).type === 'prescription'),
+    lab_result: filteredRecords.filter(r => (r as unknown as ExtendedMedicalRecord).type === 'lab_result'),
+    imaging: filteredRecords.filter(r => (r as unknown as ExtendedMedicalRecord).type === 'imaging'),
   };
 
   return (
@@ -241,7 +259,7 @@ const HealthRecords: React.FC = () => {
             {typeRecords.length > 0 ? (
               <div className="space-y-4">
                 {typeRecords.map((record) => (
-                  <RecordCard key={record.id} record={record} />
+                  <RecordCard key={record.id} record={record as unknown as ExtendedMedicalRecord} />
                 ))}
               </div>
             ) : (

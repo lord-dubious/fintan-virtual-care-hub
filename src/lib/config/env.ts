@@ -6,7 +6,9 @@ export const config = {
     version: '1.0.0',
   },
   api: {
-    baseUrl: import.meta.env.VITE_API_URL || 'http://50.118.225.14:3000/api',
+    baseUrl: import.meta.env.VITE_API_URL ||
+      import.meta.env.VITE_API_BASE_URL ||
+      `http://localhost:${import.meta.env.VITE_BACKEND_PORT || '3000'}/api`,
     timeout: 30000,
   },
   features: {

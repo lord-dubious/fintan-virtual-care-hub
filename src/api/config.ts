@@ -1,8 +1,10 @@
 // API Configuration for Dr. Fintan Virtual Care Hub
 // This file centralizes all API-related configuration
 
-// Backend API Base URL
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL + '/api' : null) || 'http://50.118.225.14:3000/api';
+// Backend API Base URL - Uses environment variables with localhost fallback
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL + '/api' : null) ||
+  `http://localhost:${import.meta.env.VITE_BACKEND_PORT || '3000'}/api`;
 
 // Environment detection
 export const isDevelopment = import.meta.env.DEV;

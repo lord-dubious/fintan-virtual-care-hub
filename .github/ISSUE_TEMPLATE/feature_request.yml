@@ -1,0 +1,170 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["type: feature", "status: needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched existing issues to ensure this feature hasn't been requested
+          required: true
+        - label: I have considered if this fits the project's scope and goals
+          required: true
+        - label: I have provided all required information below
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve?
+      placeholder: Describe the problem or need this feature addresses...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature you'd like to see implemented
+      placeholder: Describe your proposed solution...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Have you considered any alternative solutions?
+      placeholder: Describe any alternative solutions you've considered...
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature?
+      options:
+        - Critical (Essential for core functionality)
+        - High (Important for user experience)
+        - Medium (Nice to have, improves workflow)
+        - Low (Minor enhancement)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which component would this feature affect?
+      options:
+        - Authentication
+        - Booking System
+        - Dashboard
+        - Payments
+        - Video Calls
+        - Messaging
+        - Admin Panel
+        - Database
+        - API
+        - UI/UX
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: user-type
+    attributes:
+      label: User Type
+      description: Which users would benefit from this feature?
+      options:
+        - label: Patients
+        - label: Healthcare Providers/Doctors
+        - label: Administrators
+        - label: All Users
+        - label: Developers/Maintainers
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      description: Write a user story for this feature
+      placeholder: |
+        As a [user type],
+        I want [feature],
+        So that [benefit/goal].
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What criteria must be met for this feature to be considered complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups/Wireframes
+      description: If applicable, add mockups, wireframes, or design ideas
+      placeholder: Drag and drop images here or paste URLs...
+
+  - type: textarea
+    id: technical-considerations
+    attributes:
+      label: Technical Considerations
+      description: Any technical considerations or constraints?
+      placeholder: Describe any technical aspects to consider...
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact Assessment
+      description: What impact would this feature have?
+      options:
+        - label: Improves user experience significantly
+        - label: Reduces manual work/improves efficiency
+        - label: Addresses security concerns
+        - label: Improves performance
+        - label: Enables new use cases
+        - label: Competitive advantage
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Estimated Effort
+      description: How much effort do you think this would require?
+      options:
+        - Small (Few hours to 1 day)
+        - Medium (2-5 days)
+        - Large (1-2 weeks)
+        - Extra Large (More than 2 weeks)
+        - Unknown
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Are there any dependencies or prerequisites for this feature?
+      placeholder: List any dependencies or prerequisites...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context or information about the feature request
+      placeholder: Add any other context here...

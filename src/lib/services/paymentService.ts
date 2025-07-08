@@ -1,21 +1,61 @@
 // Frontend Payment Service
 // This service handles payment functionality using API calls
 
-import {
-  Payment,
-  PaymentWithAppointment,
-  CreatePaymentRequest,
-  PaymentFilters,
-  ApiResponse,
-  PaymentStatus,
-} from '../../../shared/domain';
 import { apiClient } from '@/api/client';
+
+// Define payment types locally since shared/domain doesn't exist
+interface Payment {
+  id: string;
+  amount: number;
+  status: PaymentStatus;
+  transactionId?: string;
+  appointmentId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PaymentWithAppointment extends Payment {
+  appointment: {
+    id: string;
+    appointmentDate: string;
+    patient: {
+      user: {
+        name: string;
+        email: string;
+      };
+    };
+  };
+}
+
+interface CreatePaymentRequest {
+  appointmentId: string;
+  amount: number;
+  currency?: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface PaymentFilters {
+  status?: PaymentStatus[];
+  appointmentId?: string;
+  fromDate?: Date;
+  toDate?: Date;
+  minAmount?: number;
+  maxAmount?: number;
+}
+
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
 
 export const paymentService = {
   async create(data: CreatePaymentRequest): Promise<ApiResponse<Payment>> {
     try {
       const response = await apiClient.post('/api/payments', data);
-      return response;
+      return response.data as ApiResponse<Payment>;
     } catch (error) {
       return { success: false, error: 'Failed to create payment' };
     }
@@ -24,7 +64,7 @@ export const paymentService = {
   async findById(id: string): Promise<ApiResponse<PaymentWithAppointment | null>> {
     try {
       const response = await apiClient.get(`/api/payments/${id}`);
-      return response;
+      return response.data as ApiResponse<PaymentWithAppointment | null>;
     } catch (error) {
       return { success: false, error: 'Failed to find payment' };
     }
@@ -37,7 +77,7 @@ export const paymentService = {
   async findByAppointmentId(appointmentId: string): Promise<ApiResponse<PaymentWithAppointment | null>> {
     try {
       const response = await apiClient.get(`/api/payments/appointment/${appointmentId}`);
-      return response;
+      return response.data as ApiResponse<PaymentWithAppointment | null>;
     } catch (error) {
       return { success: false, error: 'Failed to find payment by appointment' };
     }
@@ -50,7 +90,7 @@ export const paymentService = {
   async findByTransactionId(transactionId: string): Promise<ApiResponse<PaymentWithAppointment | null>> {
     try {
       const response = await apiClient.get(`/api/payments/transaction/${transactionId}`);
-      return response;
+      return response.data as ApiResponse<PaymentWithAppointment | null>;
     } catch (error) {
       return { success: false, error: 'Failed to find payment by transaction ID' };
     }
@@ -76,7 +116,7 @@ export const paymentService = {
       if (filters?.maxAmount) params.append('maxAmount', filters.maxAmount.toString());
 
       const response = await apiClient.get(`/api/payments?${params.toString()}`);
-      return response;
+      return response.data as ApiResponse<PaymentWithAppointment[]>;
     } catch (error) {
       return { success: false, error: 'Failed to find payments' };
     }
@@ -91,7 +131,7 @@ export const paymentService = {
       const response = await apiClient.post(`/api/payments/${id}/complete`, {
         transactionId,
       });
-      return response;
+      return response.data as ApiResponse<PaymentWithAppointment>;
     } catch (error) {
       return { success: false, error: 'Failed to complete payment' };
     }
@@ -102,7 +142,7 @@ export const paymentService = {
       const response = await apiClient.put(`/api/payments/${id}/status`, {
         status,
       });
-      return response;
+      return response.data as ApiResponse<PaymentWithAppointment>;
     } catch (error) {
       return { success: false, error: 'Failed to update payment status' };
     }
@@ -113,7 +153,7 @@ export const paymentService = {
       const response = await apiClient.post(`/api/payments/${id}/refund`, {
         reason,
       });
-      return response;
+      return response.data as ApiResponse<PaymentWithAppointment>;
     } catch (error) {
       return { success: false, error: 'Failed to refund payment' };
     }
@@ -122,39 +162,39 @@ export const paymentService = {
   async delete(id: string): Promise<ApiResponse<boolean>> {
     try {
       const response = await apiClient.delete(`/api/payments/${id}`);
-      return response;
+      return response.data as ApiResponse<boolean>;
     } catch (error) {
       return { success: false, error: 'Failed to delete payment' };
     }
   },
 
   // Payment intent methods for Stripe/Paystack
-  async createPaymentIntent(amount: number, currency: string = 'USD', metadata?: Record<string, any>): Promise<ApiResponse<any>> {
+  async createPaymentIntent(amount: number, currency: string = 'USD', metadata?: Record<string, unknown>): Promise<ApiResponse<unknown>> {
     try {
       const response = await apiClient.post('/api/payments/intent', {
         amount,
         currency,
         metadata,
       });
-      return response;
+      return response.data as ApiResponse<unknown>;
     } catch (error) {
       return { success: false, error: 'Failed to create payment intent' };
     }
   },
 
-  async confirmPaymentIntent(paymentIntentId: string): Promise<ApiResponse<any>> {
+  async confirmPaymentIntent(paymentIntentId: string): Promise<ApiResponse<unknown>> {
     try {
       const response = await apiClient.post(`/api/payments/intent/${paymentIntentId}/confirm`);
-      return response;
+      return response.data as ApiResponse<unknown>;
     } catch (error) {
       return { success: false, error: 'Failed to confirm payment intent' };
     }
   },
 
-  async cancelPaymentIntent(paymentIntentId: string): Promise<ApiResponse<any>> {
+  async cancelPaymentIntent(paymentIntentId: string): Promise<ApiResponse<unknown>> {
     try {
       const response = await apiClient.post(`/api/payments/intent/${paymentIntentId}/cancel`);
-      return response;
+      return response.data as ApiResponse<unknown>;
     } catch (error) {
       return { success: false, error: 'Failed to cancel payment intent' };
     }

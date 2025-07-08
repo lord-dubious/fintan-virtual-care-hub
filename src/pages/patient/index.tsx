@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { usePatientDashboard, usePatientMedicalRecords } from '@/hooks/usePatients';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
-import { Loader2, FileText, Calendar, User, Download } from 'lucide-react';
-import { PatientWithUser, MedicalRecord, ProviderWithUser } from 'shared/domain'; // Import PatientWithUser and MedicalRecord, and ProviderWithUser
+import { Loader2, FileText, User, Download } from 'lucide-react';
+import { PatientWithUser, MedicalRecord } from 'shared/domain'; // Import PatientWithUser and MedicalRecord
 
 const PatientProfile = () => {
   const { data: patient, isLoading } = usePatientDashboard();
@@ -21,7 +21,7 @@ const PatientProfile = () => {
   }
   
   // Cast patient to PatientWithUser for correct type inference
-  const patientData: PatientWithUser | undefined = patient;
+  const patientData = patient as unknown as PatientWithUser | undefined;
 
   return (
     <div className="container mx-auto py-8">

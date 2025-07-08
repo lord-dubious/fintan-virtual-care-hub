@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 // Debounce hook for search and input optimization
@@ -19,7 +19,7 @@ export const useDebounce = <T>(value: T, delay: number): T => {
 };
 
 // Throttle hook for scroll and resize events
-export const useThrottle = <T extends (...args: any[]) => any>(
+export const useThrottle = <T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
 ): T => {
@@ -125,7 +125,7 @@ export const useOptimisticUpdate = <T>(
   );
 
   const revertUpdate = useCallback(() => {
-    queryClient.invalidateQueries(queryKey);
+    queryClient.invalidateQueries({ queryKey });
   }, [queryClient, queryKey]);
 
   return { optimisticUpdate, revertUpdate };
@@ -136,7 +136,7 @@ export const usePrefetch = () => {
   const queryClient = useQueryClient();
 
   const prefetchQuery = useCallback(
-    (queryKey: string[], queryFn: () => Promise<any>, options?: any) => {
+    (queryKey: string[], queryFn: () => Promise<unknown>, options?: Record<string, unknown>) => {
       queryClient.prefetchQuery({
         queryKey,
         queryFn,
@@ -148,7 +148,7 @@ export const usePrefetch = () => {
   );
 
   const prefetchOnHover = useCallback(
-    (queryKey: string[], queryFn: () => Promise<any>) => {
+    (queryKey: string[], queryFn: () => Promise<unknown>) => {
       return {
         onMouseEnter: () => prefetchQuery(queryKey, queryFn),
       };
@@ -173,7 +173,7 @@ export const useMemoryOptimization = () => {
     
     queryClient.getQueryCache().getAll().forEach((query) => {
       if (query.state.dataUpdatedAt < tenMinutesAgo) {
-        queryClient.removeQueries(query.queryKey);
+        queryClient.removeQueries({ queryKey: query.queryKey });
       }
     });
   }, [queryClient]);
@@ -182,8 +182,7 @@ export const useMemoryOptimization = () => {
   useEffect(() => {
     return () => {
       // Cleanup on unmount
-      const cleanup = setTimeout(optimizeMemory, 1000);
-      return () => clearTimeout(cleanup);
+      setTimeout(optimizeMemory, 1000);
     };
   }, [optimizeMemory]);
 

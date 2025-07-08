@@ -6,29 +6,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useProviderDashboard, useProviderAppointments } from '@/hooks/useProviderDashboard';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import {
   Calendar,
-  Clock,
   FileText,
   Users,
   Video,
-  Phone,
   Settings,
   Bell,
   MessageSquare,
-  Activity,
   Stethoscope,
   TrendingUp,
   ChevronRight,
-  Plus,
-  Search,
-  Filter,
-  Loader2
+  Plus
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { DashboardSkeleton, ErrorState, NetworkStatus, InlineLoader } from '@/components/LoadingStates';
-import { usePerformanceMonitor, usePrefetch } from '@/hooks/usePerformance';
+import { DashboardSkeleton, NetworkStatus } from '@/components/LoadingStates';
+
+// Define types for appointment data
+interface AppointmentData {
+  id: string;
+  appointmentDate: string;
+  status: string;
+  consultationType?: string;
+  reason?: string;
+  patient?: {
+    user?: {
+      name?: string;
+    };
+  };
+}
+
+interface AppointmentsResponse {
+  appointments: AppointmentData[];
+}
 
 // Lazy load heavy components
 const DoctorSettings = React.lazy(() => import('@/components/dashboard/DoctorSettings'));
@@ -38,16 +49,64 @@ const DoctorDashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Performance monitoring
-  const { logPerformance } = usePerformanceMonitor('DoctorDashboard');
-  const { prefetchOnHover } = usePrefetch();
+  // Performance monitoring would go here if needed
 
   // Fetch real dashboard data
   const { data: dashboardData, isLoading: isLoadingDashboard, error: dashboardError } = useProviderDashboard();
-  const { data: appointmentsData, isLoading: isLoadingAppointments } = useProviderAppointments({
+  const { data: appointmentsData } = useProviderAppointments({
     status: 'SCHEDULED,CONFIRMED',
     limit: 20
   });
+
+  // Process real dashboard data - moved before conditional returns
+  const todayStats = React.useMemo(() => {
+    if (dashboardData?.statistics) {
+      return {
+        appointments: dashboardData.statistics.todaysAppointmentCount,
+        patients: dashboardData.statistics.totalPatients,
+        consultations: dashboardData.statistics.completedAppointments,
+        revenue: dashboardData.provider.consultationFee ?
+          dashboardData.statistics.completedAppointments * dashboardData.provider.consultationFee : 0
+      };
+    }
+
+    // Fallback mock data
+    return {
+      appointments: 0,
+      patients: 0,
+      consultations: 0,
+      revenue: 0
+    };
+  }, [dashboardData]);
+
+  const upcomingAppointments = React.useMemo(() => {
+    if (dashboardData?.todaysAppointments) {
+      return dashboardData.todaysAppointments.map(apt => ({
+        id: apt.id,
+        patient: apt.patient.name,
+        time: format(new Date(apt.date), 'h:mm a'),
+        type: apt.consultationType === 'VIDEO' ? 'Video Consultation' : 'Audio Consultation',
+        status: apt.status.toLowerCase(),
+        reason: apt.reason
+      }));
+    }
+
+    // Fallback to appointments data
+    if (appointmentsData && typeof appointmentsData === 'object' && 'appointments' in appointmentsData) {
+      return (appointmentsData as AppointmentsResponse).appointments.slice(0, 5).map((apt: AppointmentData) => ({
+        id: apt.id,
+        patient: apt.patient?.user?.name || 'Unknown Patient',
+        time: format(new Date(apt.appointmentDate), 'h:mm a'),
+        type: apt.consultationType === 'VIDEO' ? 'Video Consultation' : 'Audio Consultation',
+        status: apt.status.toLowerCase(),
+        reason: apt.reason
+      }));
+    }
+
+    return [];
+  }, [dashboardData, appointmentsData]);
+
+  // Recent patients data would be processed here if needed
 
   // Debug logging
   console.log('🏥 DoctorDashboard Debug:', {
@@ -94,68 +153,6 @@ const DoctorDashboard: React.FC = () => {
       </div>
     );
   }
-
-  // Process real dashboard data
-  const todayStats = React.useMemo(() => {
-    if (dashboardData?.statistics) {
-      return {
-        appointments: dashboardData.statistics.todaysAppointmentCount,
-        patients: dashboardData.statistics.totalPatients,
-        consultations: dashboardData.statistics.completedAppointments,
-        revenue: dashboardData.provider.consultationFee ?
-          dashboardData.statistics.completedAppointments * dashboardData.provider.consultationFee : 0
-      };
-    }
-
-    // Fallback mock data
-    return {
-      appointments: 0,
-      patients: 0,
-      consultations: 0,
-      revenue: 0
-    };
-  }, [dashboardData]);
-
-  const upcomingAppointments = React.useMemo(() => {
-    if (dashboardData?.todaysAppointments) {
-      return dashboardData.todaysAppointments.map(apt => ({
-        id: apt.id,
-        patient: apt.patient.name,
-        time: format(new Date(apt.date), 'h:mm a'),
-        type: apt.consultationType === 'VIDEO' ? 'Video Consultation' : 'Audio Consultation',
-        status: apt.status.toLowerCase(),
-        reason: apt.reason
-      }));
-    }
-
-    // Fallback to appointments data
-    if (appointmentsData?.appointments) {
-      return appointmentsData.appointments.slice(0, 5).map((apt: any) => ({
-        id: apt.id,
-        patient: apt.patient?.user?.name || 'Unknown Patient',
-        time: format(new Date(apt.appointmentDate), 'h:mm a'),
-        type: apt.consultationType === 'VIDEO' ? 'Video Consultation' : 'Audio Consultation',
-        status: apt.status.toLowerCase(),
-        reason: apt.reason
-      }));
-    }
-
-    return [];
-  }, [dashboardData, appointmentsData]);
-
-  const recentPatients = React.useMemo(() => {
-    if (dashboardData?.recentPatients) {
-      return dashboardData.recentPatients.map(patient => ({
-        id: patient.patientId,
-        name: patient.name,
-        lastVisit: format(new Date(patient.lastVisit), 'MMM d, yyyy'),
-        condition: 'General Care', // This would come from medical records
-        status: 'stable'
-      }));
-    }
-
-    return [];
-  }, [dashboardData]);
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-green-900 ${isMobile ? 'mobile-app-container' : ''}`}>
@@ -411,7 +408,7 @@ const DoctorDashboard: React.FC = () => {
 
           {/* Settings Tab */}
           <TabsContent value="settings">
-            <React.Suspense fallback={<InlineLoader message="Loading settings..." />}>
+            <React.Suspense fallback={<div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
               <DoctorSettings />
             </React.Suspense>
           </TabsContent>

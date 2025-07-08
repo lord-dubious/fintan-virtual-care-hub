@@ -140,9 +140,13 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
 // CORS configuration
 export const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Get allowed origins from environment variables
+    const envOrigins = process.env.CORS_ORIGINS?.split(',').map(origin => origin.trim()) || [];
     const allowedOrigins = [
+      ...envOrigins,
       'http://localhost:3000',
       'http://localhost:5173',
+      'http://localhost:10000',
       'https://app.drfintan.com',
       'https://admin.drfintan.com',
     ];

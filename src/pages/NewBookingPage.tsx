@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, Clock, Video, Phone } from 'lucide-react';
+import { ArrowLeft, Video, Phone } from 'lucide-react';
 import BookingCalendar from '@/components/booking/BookingCalendar';
 import { useToast } from '@/hooks/use-toast';
 
@@ -22,7 +22,7 @@ const NewBookingPage: React.FC = () => {
     console.log('🎯 Slot selected:', { date, time });
   };
 
-  const handleBookingComplete = (appointmentData: any) => {
+  const handleBookingComplete = (appointmentData: { id: string; appointmentDate: string; status: string }) => {
     console.log('✅ Booking completed:', appointmentData);
     
     toast({

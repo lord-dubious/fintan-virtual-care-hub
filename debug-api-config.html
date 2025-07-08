@@ -89,9 +89,12 @@
             await testAPI('http://localhost:3000/api/auth/login', 'Localhost API');
         }
 
-        // Test remote IP API
-        async function testRemoteIP() {
-            await testAPI('http://50.118.225.14:3000/api/auth/login', 'Remote IP API');
+        // Test configured API (from environment)
+        async function testConfiguredAPI() {
+            const apiUrl = window.location.hostname === 'localhost'
+                ? 'http://localhost:3000/api/auth/login'
+                : `http://${window.location.hostname}:3000/api/auth/login`;
+            await testAPI(apiUrl, 'Configured API');
         }
 
         // Generic API test
@@ -180,12 +183,13 @@
         // Show frontend configuration
         function showFrontendConfig() {
             const configDiv = document.getElementById('frontend-config');
-            
+
             // Try to access the frontend's API configuration
+            const hostname = window.location.hostname;
             const config = {
                 'Window Location': window.location.href,
-                'Expected Frontend': 'http://50.118.225.14:10000',
-                'Expected Backend': 'http://50.118.225.14:3000/api',
+                'Expected Frontend': `http://${hostname}:10000`,
+                'Expected Backend': `http://${hostname}:3000/api`,
                 'CORS Test': 'Will test cross-origin requests'
             };
             

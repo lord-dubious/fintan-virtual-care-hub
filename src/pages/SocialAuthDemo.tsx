@@ -16,12 +16,12 @@ const SocialAuthDemo: React.FC = () => {
     authenticateWithMicrosoft,
     isLoading: socialIsLoading,
     loadingProvider,
-    getConfiguredProviders 
+    // getConfiguredProviders // Not currently used
   } = useSocialAuth();
   const { toast } = useToast();
   const [testMode, setTestMode] = useState(false);
 
-  const configuredProviders = getConfiguredProviders();
+  // const configuredProviders = getConfiguredProviders(); // Commented out as not currently used
 
   const handleTestSocialAuth = async (provider: string) => {
     setTestMode(true);
@@ -60,7 +60,7 @@ const SocialAuthDemo: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      logout(); // Remove await as logout doesn't return a promise
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out",

@@ -23,13 +23,12 @@ import {
   Bell,
   MessageSquare,
   Activity,
-  ChevronRight,
-  Loader2
+  ChevronRight
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { DashboardSkeleton, ErrorState, NetworkStatus, RetryButton, InlineLoader } from '@/components/LoadingStates';
-import { useDebounce, useIntersectionObserver, usePrefetch, usePerformanceMonitor } from '@/hooks/usePerformance';
-import { aria, screenReader, keyboardNavigation } from '@/utils/accessibility';
+import { DashboardSkeleton, ErrorState, NetworkStatus, InlineLoader } from '@/components/LoadingStates';
+import { usePerformanceMonitor } from '@/hooks/usePerformance';
+import { screenReader } from '@/utils/accessibility';
 import { AppointmentStatus, MedicalRecord } from '../../shared/domain'; // Import canonical types
 import { ApiAppointment } from '@/api/appointments'; // Explicitly import ApiAppointment
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
@@ -79,8 +78,9 @@ const PatientDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   // Performance monitoring
-  const { logPerformance } = usePerformanceMonitor('PatientDashboard');
-  const { prefetchOnHover } = usePrefetch();
+  // const { logPerformance } = usePerformanceMonitor('PatientDashboard'); // Commented out as not used
+  usePerformanceMonitor('PatientDashboard'); // Keep the hook call for side effects
+  // const { prefetchOnHover } = usePrefetch(); // Commented out as not currently used
 
   // Announce tab changes to screen readers
   React.useEffect(() => {
@@ -106,8 +106,8 @@ const PatientDashboard: React.FC = () => {
 
   // Memoized data processing for performance
   const upcomingAppointments = React.useMemo(() => {
-    const startTime = Date.now();
-    let result;
+    // const startTime = Date.now(); // Performance tracking commented out
+    // let result; // Unused variable commented out
     if (dashboardData?.upcomingAppointments) {
       return dashboardData.upcomingAppointments.map(apt => ({
         id: apt.id,

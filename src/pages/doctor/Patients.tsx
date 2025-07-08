@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -107,7 +107,18 @@ const DoctorPatients: React.FC = () => {
     return age;
   };
 
-  const PatientCard: React.FC<{ patient: any }> = ({ patient }) => (
+  const PatientCard: React.FC<{ patient: {
+    id: string;
+    conditions: string[];
+    status: string;
+    user: { name: string; email: string; phone: string; dateOfBirth: string };
+    dateOfBirth: string;
+    lastVisit?: string;
+    nextAppointment?: string;
+    totalAppointments: number;
+    medicalRecords: number;
+    [key: string]: unknown
+  } }> = ({ patient }) => (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
@@ -317,7 +328,14 @@ const DoctorPatients: React.FC = () => {
       ) : filteredPatients.length > 0 ? (
         <div className="space-y-4">
           {filteredPatients.map((patient) => (
-            <PatientCard key={patient.id} patient={patient} />
+            <PatientCard key={patient.id} patient={patient as unknown as typeof patient & {
+              user: { name: string; email: string; phone: string; dateOfBirth: string };
+              dateOfBirth: string;
+              lastVisit?: string;
+              nextAppointment?: string;
+              totalAppointments: number;
+              medicalRecords: number;
+            }} />
           ))}
         </div>
       ) : (

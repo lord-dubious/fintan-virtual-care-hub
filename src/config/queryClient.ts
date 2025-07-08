@@ -1,5 +1,23 @@
 import { QueryClient } from '@tanstack/react-query';
 
+// Define types for better type safety
+interface AppointmentData {
+  id: string;
+  status: string;
+  [key: string]: unknown;
+}
+
+interface AppointmentsResponse {
+  appointments: AppointmentData[];
+  total?: number;
+  [key: string]: unknown;
+}
+
+interface DashboardData {
+  upcomingAppointments?: AppointmentData[];
+  [key: string]: unknown;
+}
+
 // Optimized query client configuration for performance
 export const createOptimizedQueryClient = () => {
   return new QueryClient({
@@ -9,12 +27,12 @@ export const createOptimizedQueryClient = () => {
         staleTime: 5 * 60 * 1000, // 5 minutes
         
         // Cache time - how long data stays in cache after component unmounts
-        cacheTime: 10 * 60 * 1000, // 10 minutes
+        gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime in v5)
         
         // Retry configuration
-        retry: (failureCount, error: any) => {
+        retry: (failureCount, error: Error) => {
           // Don't retry on 4xx errors (client errors)
-          if (error?.status >= 400 && error?.status < 500) {
+          if ('status' in error && typeof error.status === 'number' && error.status >= 400 && error.status < 500) {
             return false;
           }
           // Retry up to 3 times for other errors
@@ -32,11 +50,8 @@ export const createOptimizedQueryClient = () => {
         // Network mode - continue with cached data when offline
         networkMode: 'offlineFirst',
         
-        // Suspense support
-        suspense: false,
-        
         // Keep previous data while fetching new data
-        keepPreviousData: true,
+        placeholderData: (previousData: unknown) => previousData, // Renamed from keepPreviousData in v5
       },
       mutations: {
         // Retry mutations once
@@ -136,22 +151,22 @@ export const prefetchStrategies = {
 export const cacheInvalidation = {
   // Invalidate user-related data
   invalidateUserData: (queryClient: QueryClient, userId: string) => {
-    queryClient.invalidateQueries(['user', userId]);
-    queryClient.invalidateQueries(['patient', 'dashboard']);
-    queryClient.invalidateQueries(['provider', 'dashboard']);
+    queryClient.invalidateQueries({ queryKey: ['user', userId] });
+    queryClient.invalidateQueries({ queryKey: ['patient', 'dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['provider', 'dashboard'] });
   },
-  
+
   // Invalidate appointment data
   invalidateAppointments: (queryClient: QueryClient) => {
-    queryClient.invalidateQueries(['appointments']);
-    queryClient.invalidateQueries(['patient', 'dashboard']);
-    queryClient.invalidateQueries(['provider', 'dashboard']);
+    queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    queryClient.invalidateQueries({ queryKey: ['patient', 'dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['provider', 'dashboard'] });
   },
-  
+
   // Invalidate medical records
   invalidateMedicalRecords: (queryClient: QueryClient) => {
-    queryClient.invalidateQueries(['medical-records']);
-    queryClient.invalidateQueries(['patient', 'dashboard']);
+    queryClient.invalidateQueries({ queryKey: ['medical-records'] });
+    queryClient.invalidateQueries({ queryKey: ['patient', 'dashboard'] });
   },
 };
 
@@ -164,24 +179,24 @@ export const optimisticUpdates = {
     newStatus: string
   ) => {
     // Update appointments list
-    queryClient.setQueryData(['appointments'], (oldData: any) => {
+    queryClient.setQueryData(['appointments'], (oldData: AppointmentsResponse | undefined) => {
       if (!oldData?.appointments) return oldData;
-      
+
       return {
         ...oldData,
-        appointments: oldData.appointments.map((apt: any) =>
+        appointments: oldData.appointments.map((apt) =>
           apt.id === appointmentId ? { ...apt, status: newStatus } : apt
         ),
       };
     });
     
     // Update dashboard data
-    queryClient.setQueryData(['patient', 'dashboard'], (oldData: any) => {
+    queryClient.setQueryData(['patient', 'dashboard'], (oldData: DashboardData | undefined) => {
       if (!oldData) return oldData;
-      
+
       return {
         ...oldData,
-        upcomingAppointments: oldData.upcomingAppointments?.map((apt: any) =>
+        upcomingAppointments: oldData.upcomingAppointments?.map((apt) =>
           apt.id === appointmentId ? { ...apt, status: newStatus } : apt
         ),
       };
@@ -189,14 +204,14 @@ export const optimisticUpdates = {
   },
   
   // Add new appointment optimistically
-  addAppointment: (queryClient: QueryClient, newAppointment: any) => {
-    queryClient.setQueryData(['appointments'], (oldData: any) => {
+  addAppointment: (queryClient: QueryClient, newAppointment: AppointmentData) => {
+    queryClient.setQueryData(['appointments'], (oldData: AppointmentsResponse | undefined) => {
       if (!oldData?.appointments) return oldData;
-      
+
       return {
         ...oldData,
         appointments: [newAppointment, ...oldData.appointments],
-        total: oldData.total + 1,
+        total: (oldData.total || 0) + 1,
       };
     });
   },

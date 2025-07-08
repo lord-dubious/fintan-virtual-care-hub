@@ -172,10 +172,11 @@
         }
 
         async function testAPIConfig() {
+            const hostname = window.location.hostname;
             const config = {
                 'API_BASE_URL': API_BASE_URL,
                 'Login Endpoint': `${API_BASE_URL}/auth/login`,
-                'Expected Frontend': 'http://50.118.225.14:10000',
+                'Expected Frontend': `http://${hostname}:10000`,
                 'Current Origin': window.location.origin
             };
             

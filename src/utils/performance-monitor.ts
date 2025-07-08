@@ -16,6 +16,25 @@ interface WebVitalsMetric {
   timestamp: number;
 }
 
+interface LayoutShiftEntry extends PerformanceEntry {
+  value: number;
+  hadRecentInput?: boolean;
+}
+
+interface FirstInputEntry extends PerformanceEntry {
+  processingStart: number;
+}
+
+interface MemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface PerformanceWithMemory extends Performance {
+  memory: MemoryInfo;
+}
+
 interface PerformanceReport {
   pageLoadTime: number;
   domContentLoaded: number;
@@ -94,7 +113,7 @@ class PerformanceMonitor {
       // Observe layout shift
       const clsObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if (entry.entryType === 'layout-shift' && !(entry as any).hadRecentInput) {
+          if (entry.entryType === 'layout-shift' && !('hadRecentInput' in entry && entry.hadRecentInput)) {
             this.handleLayoutShiftEntry(entry);
           }
         }
@@ -119,8 +138,8 @@ class PerformanceMonitor {
   }
 
   private handleNavigationEntry(entry: PerformanceNavigationTiming): void {
-    const pageLoadTime = entry.loadEventEnd - entry.navigationStart;
-    const domContentLoaded = entry.domContentLoadedEventEnd - entry.navigationStart;
+    const pageLoadTime = entry.loadEventEnd - entry.startTime;
+    const domContentLoaded = entry.domContentLoadedEventEnd - entry.startTime;
 
     this.addMetric('page-load-time', pageLoadTime);
     this.addMetric('dom-content-loaded', domContentLoaded);
@@ -136,16 +155,16 @@ class PerformanceMonitor {
     this.addMetric('largest-contentful-paint', entry.startTime);
   }
 
-  private handleLayoutShiftEntry(entry: any): void {
+  private handleLayoutShiftEntry(entry: PerformanceEntry): void {
     const currentCLS = this.metrics
       .filter(m => m.name === 'cumulative-layout-shift')
       .reduce((sum, m) => sum + m.value, 0);
-    
-    this.addMetric('cumulative-layout-shift', currentCLS + entry.value);
+
+    this.addMetric('cumulative-layout-shift', currentCLS + (entry as LayoutShiftEntry).value);
   }
 
-  private handleFirstInputEntry(entry: any): void {
-    const fid = entry.processingStart - entry.startTime;
+  private handleFirstInputEntry(entry: PerformanceEntry): void {
+    const fid = (entry as FirstInputEntry).processingStart - entry.startTime;
     this.addMetric('first-input-delay', fid);
   }
 
@@ -238,10 +257,11 @@ class PerformanceMonitor {
 
     // Add memory usage if available
     if ('memory' in performance) {
+      const perfWithMemory = performance as PerformanceWithMemory;
       report.memoryUsage = {
-        usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-        totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-        jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit,
+        usedJSHeapSize: perfWithMemory.memory.usedJSHeapSize,
+        totalJSHeapSize: perfWithMemory.memory.totalJSHeapSize,
+        jsHeapSizeLimit: perfWithMemory.memory.jsHeapSizeLimit,
       };
     }
 

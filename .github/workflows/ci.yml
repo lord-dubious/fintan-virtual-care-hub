@@ -98,3 +98,78 @@ jobs:
 
     - name: Run dependency check
       run: npx audit-ci --moderate
+
+    - name: Check for hardcoded secrets
+      run: |
+        echo "Checking for potential secrets..."
+        if grep -r "password\|secret\|key\|token" src/ backend/src/ --include="*.ts" --include="*.tsx" | grep -v "// " | grep -v "type\|interface\|import" | grep -v "placeholder\|example"; then
+          echo "⚠️ Potential hardcoded secrets found. Please review."
+          exit 1
+        else
+          echo "✅ No obvious hardcoded secrets found."
+        fi
+
+  backend-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install backend dependencies
+      run: cd backend && npm ci
+
+    - name: Run backend linter
+      run: cd backend && npm run lint
+
+    - name: Run backend type check
+      run: cd backend && npx tsc --noEmit
+
+    - name: Run backend tests
+      run: cd backend && npm run test
+
+    - name: Build backend
+      run: cd backend && npm run build
+
+  database-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install backend dependencies
+      run: cd backend && npm ci
+
+    - name: Validate Prisma schema
+      run: cd backend && npx prisma validate
+
+    - name: Generate Prisma client
+      run: cd backend && npx prisma generate
+
+    - name: Check for migration issues
+      run: |
+        cd backend
+        if [ -d "prisma/migrations" ]; then
+          echo "Checking migration files..."
+          # Check for common migration issues
+          if find prisma/migrations -name "*.sql" -exec grep -l "DROP\|DELETE\|TRUNCATE" {} \; | head -1; then
+            echo "⚠️ Destructive operations found in migrations. Please review carefully."
+          fi
+        fi

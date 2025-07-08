@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,7 +18,6 @@ import {
   Download,
   Share,
   Edit,
-  Trash2,
   Upload,
   Eye,
   Lock,
@@ -139,7 +138,18 @@ const DoctorMedicalRecords: React.FC = () => {
     }
   };
 
-  const RecordCard: React.FC<{ record: any }> = ({ record }) => (
+  const RecordCard: React.FC<{ record: {
+    id: string;
+    diagnosis: string;
+    type: string;
+    patient: { user: { name: string } };
+    createdAt: string;
+    treatment?: string | null;
+    prescription?: string | null;
+    notes?: string | null;
+    attachments: unknown[] | string[];
+    [key: string]: unknown
+  } }> = ({ record }) => (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
@@ -179,12 +189,12 @@ const DoctorMedicalRecords: React.FC = () => {
               
               {record.notes && (
                 <div className="text-sm">
-                  <strong>Notes:</strong> {record.notes.substring(0, 150)}
-                  {record.notes.length > 150 && '...'}
+                  <strong>Notes:</strong> {String(record.notes).substring(0, 150)}
+                  {String(record.notes).length > 150 && '...'}
                 </div>
               )}
               
-              {record.attachments.length > 0 && (
+              {Array.isArray(record.attachments) && record.attachments.length > 0 && (
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   {record.attachments.length} attachment(s)

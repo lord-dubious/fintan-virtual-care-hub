@@ -7,9 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format } from 'date-fns';
 import {
-  Clock,
   Calendar,
   Plus,
   Trash2,
@@ -17,7 +16,6 @@ import {
   Save,
   RotateCcw,
   AlertCircle,
-  CheckCircle,
   Coffee,
   Plane,
   Settings,
@@ -116,7 +114,7 @@ const AvailabilitySettings: React.FC = () => {
     title: '',
     startDate: '',
     endDate: '',
-    type: 'vacation' as const,
+    type: 'vacation' as 'vacation' | 'sick' | 'personal' | 'conference',
     isRecurring: false,
     notes: '',
   });
@@ -528,7 +526,7 @@ const AvailabilitySettings: React.FC = () => {
                     <Label htmlFor="type">Type</Label>
                     <Select
                       value={newTimeOff.type}
-                      onValueChange={(value: any) => setNewTimeOff(prev => ({ ...prev, type: value }))}
+                      onValueChange={(value: string) => setNewTimeOff(prev => ({ ...prev, type: value as 'vacation' | 'sick' | 'personal' | 'conference' }))}
                     >
                       <SelectTrigger>
                         <SelectValue />

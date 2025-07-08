@@ -2,6 +2,53 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { useToast } from '@/hooks/use-toast';
 
+// Define API response types
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data: T;
+  error?: string;
+}
+
+// Define schedule data types
+interface ScheduleData {
+  providerId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  [key: string]: unknown;
+}
+
+interface ExceptionData {
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  isAvailable: boolean;
+  reason?: string;
+  [key: string]: unknown;
+}
+
+interface WeeklyAvailability {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+}
+
+interface BreakPeriod {
+  startTime: string;
+  endTime: string;
+  title?: string;
+}
+
+interface ScheduleException {
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  isAvailable: boolean;
+  reason?: string;
+}
+
 export interface AvailabilitySlot {
   date: string;
   startTime: string;
@@ -83,11 +130,12 @@ export const useProviderAvailability = (
         }
       });
 
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Failed to fetch availability');
+      const apiResponse = response.data as ApiResponse;
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'Failed to fetch availability');
       }
 
-      return response.data.data.slots;
+      return (apiResponse.data as { slots: AvailabilitySlot[] }).slots;
     },
     enabled: !!providerId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -121,11 +169,12 @@ export const useConflictCheck = () => {
         excludeAppointmentId
       });
 
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Failed to check conflicts');
+      const apiResponse = response.data as ApiResponse;
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'Failed to check conflicts');
       }
 
-      return response.data.data;
+      return apiResponse.data as ConflictCheckResult;
     },
     onError: (error) => {
       console.error('Conflict check failed:', error);
@@ -145,11 +194,12 @@ export const useProviderSchedules = (providerId?: string) => {
     queryFn: async (): Promise<ProviderSchedule[]> => {
       const response = await apiClient.get('/api/availability/schedules');
 
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Failed to fetch schedules');
+      const apiResponse = response.data as ApiResponse;
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'Failed to fetch schedules');
       }
 
-      return response.data.data.schedules;
+      return (apiResponse.data as { schedules: ProviderSchedule[] }).schedules;
     },
     enabled: !!providerId,
   });
@@ -161,14 +211,15 @@ export const useScheduleMutation = () => {
   const { toast } = useToast();
 
   const createSchedule = useMutation({
-    mutationFn: async (scheduleData: any) => {
+    mutationFn: async (scheduleData: ScheduleData) => {
       const response = await apiClient.post('/api/availability/schedules', scheduleData);
+      const apiResponse = response.data as ApiResponse;
 
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Failed to create schedule');
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'Failed to create schedule');
       }
 
-      return response.data.data.schedule;
+      return (apiResponse.data as { schedule: unknown }).schedule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-schedules'] });
@@ -188,14 +239,15 @@ export const useScheduleMutation = () => {
   });
 
   const updateSchedule = useMutation({
-    mutationFn: async ({ id, ...scheduleData }: { id: string } & any) => {
+    mutationFn: async ({ id, ...scheduleData }: { id: string } & ScheduleData) => {
       const response = await apiClient.put(`/api/availability/schedules/${id}`, scheduleData);
+      const apiResponse = response.data as ApiResponse;
 
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Failed to update schedule');
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'Failed to update schedule');
       }
 
-      return response.data.data.schedule;
+      return (apiResponse.data as { schedule: unknown }).schedule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-schedules'] });
@@ -219,11 +271,12 @@ export const useScheduleMutation = () => {
     mutationFn: async (id: string) => {
       const response = await apiClient.delete(`/api/availability/schedules/${id}`);
 
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Failed to delete schedule');
+      const apiResponse = response.data as ApiResponse;
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'Failed to delete schedule');
       }
 
-      return response.data;
+      return apiResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-schedules'] });
@@ -256,14 +309,15 @@ export const useScheduleExceptions = () => {
   const { toast } = useToast();
 
   const addException = useMutation({
-    mutationFn: async ({ scheduleId, ...exceptionData }: { scheduleId: string } & any) => {
+    mutationFn: async ({ scheduleId, ...exceptionData }: { scheduleId: string } & ExceptionData) => {
       const response = await apiClient.post(`/api/availability/schedules/${scheduleId}/exceptions`, exceptionData);
+      const apiResponse = response.data as ApiResponse;
 
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Failed to add exception');
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'Failed to add exception');
       }
 
-      return response.data.data.exception;
+      return (apiResponse.data as { exception: unknown }).exception;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-schedules'] });
@@ -287,11 +341,12 @@ export const useScheduleExceptions = () => {
     mutationFn: async (exceptionId: string) => {
       const response = await apiClient.delete(`/api/availability/exceptions/${exceptionId}`);
 
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Failed to remove exception');
+      const apiResponse = response.data as ApiResponse;
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'Failed to remove exception');
       }
 
-      return response.data;
+      return apiResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-schedules'] });
@@ -327,9 +382,9 @@ export const useScheduleValidation = () => {
       exceptions
     }: {
       scheduleId: string;
-      weeklyAvailability: any[];
-      breakPeriods: any[];
-      exceptions?: any[];
+      weeklyAvailability: WeeklyAvailability[];
+      breakPeriods: BreakPeriod[];
+      exceptions?: ScheduleException[];
     }) => {
       const response = await apiClient.post('/api/availability/validate-schedule', {
         scheduleId,
@@ -337,12 +392,13 @@ export const useScheduleValidation = () => {
         breakPeriods,
         exceptions
       });
+      const apiResponse = response.data as ApiResponse;
 
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Failed to validate schedule');
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.error || 'Failed to validate schedule');
       }
 
-      return response.data.data;
+      return apiResponse.data;
     },
   });
 };

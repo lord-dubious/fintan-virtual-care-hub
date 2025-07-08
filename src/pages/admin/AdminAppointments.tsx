@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -18,7 +18,6 @@ import {
   Calendar as CalendarIcon,
   Search,
   Filter,
-  ChevronDown,
   MoreHorizontal,
   Video,
   Phone

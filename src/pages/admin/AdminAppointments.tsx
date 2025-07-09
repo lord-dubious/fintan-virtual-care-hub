@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import React, { useState, useMemo } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,10 +14,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Calendar as CalendarIcon, 
-  Search, 
-  Filter, 
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Calendar as CalendarIcon,
+  Search,
+  Filter,
   ChevronDown,
   MoreHorizontal,
   Video,
@@ -35,97 +36,122 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { format } from 'date-fns';
+import { useAppointments, useCancelAppointment, useRescheduleAppointment, useJoinConsultation } from '@/hooks/useAppointments';
+import { AppointmentFilters } from '@/api/appointments';
 
-// Mock appointment data
-const APPOINTMENTS = [
-  { 
-    id: 'APP001', 
-    patient: 'John Doe', 
-    date: '2025-05-11T10:00:00', 
-    type: 'Video', 
-    status: 'Confirmed' 
-  },
-  { 
-    id: 'APP002', 
-    patient: 'Jane Smith', 
-    date: '2025-05-11T11:30:00', 
-    type: 'Audio', 
-    status: 'Confirmed' 
-  },
-  { 
-    id: 'APP003', 
-    patient: 'Robert Johnson', 
-    date: '2025-05-11T14:00:00', 
-    type: 'Video', 
-    status: 'Confirmed' 
-  },
-  { 
-    id: 'APP004', 
-    patient: 'Emily Williams', 
-    date: '2025-05-12T09:15:00', 
-    type: 'Audio', 
-    status: 'Confirmed' 
-  },
-  { 
-    id: 'APP005', 
-    patient: 'Michael Brown', 
-    date: '2025-05-12T13:45:00', 
-    type: 'Video', 
-    status: 'Cancelled' 
-  },
-  { 
-    id: 'APP006', 
-    patient: 'Sarah Davis', 
-    date: '2025-05-13T10:30:00', 
-    type: 'Video', 
-    status: 'Confirmed' 
-  },
-  { 
-    id: 'APP007', 
-    patient: 'David Miller', 
-    date: '2025-05-13T15:15:00', 
-    type: 'Audio', 
-    status: 'Confirmed' 
-  },
-];
+// Type definitions for API data
+interface ApiAppointment {
+  id: string;
+  patient?: {
+    user?: {
+      name?: string;
+    };
+  };
+  appointmentDate: string;
+  consultationType: 'VIDEO' | 'AUDIO' | string;
+  status: 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | string;
+}
+
+interface AppointmentUI {
+  id: string;
+  patient: string;
+  date: string;
+  type: string;
+  status: string;
+}
+
+// Transform API appointment data to match UI expectations
+const transformAppointment = (appointment: ApiAppointment): AppointmentUI => ({
+  id: appointment.id,
+  patient: appointment.patient?.user?.name || 'Unknown Patient',
+  date: appointment.appointmentDate,
+  type: appointment.consultationType === 'VIDEO' ? 'Video' : 'Audio',
+  status: appointment.status === 'SCHEDULED' ? 'Confirmed' :
+          appointment.status === 'CONFIRMED' ? 'Confirmed' :
+          appointment.status === 'IN_PROGRESS' ? 'In Progress' :
+          appointment.status === 'COMPLETED' ? 'Completed' :
+          appointment.status === 'CANCELLED' ? 'Cancelled' : appointment.status
+});
 
 const AdminAppointments = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [filteredAppointments, setFilteredAppointments] = useState(APPOINTMENTS);
 
-  // Apply filters
-  React.useEffect(() => {
-    let results = [...APPOINTMENTS];
-    
+  // Mutations
+  const cancelAppointment = useCancelAppointment();
+  const rescheduleAppointment = useRescheduleAppointment();
+  const joinConsultation = useJoinConsultation();
+
+  // Build filters for API
+  const filters = useMemo((): AppointmentFilters => {
+    const apiFilters: AppointmentFilters = {};
+
     if (searchTerm) {
-      results = results.filter(app => 
-        app.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.id.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      apiFilters.search = searchTerm;
     }
-    
+
     if (selectedDate) {
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      results = results.filter(app => app.date.startsWith(dateStr));
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      apiFilters.dateFrom = startOfDay;
+      apiFilters.dateTo = endOfDay;
     }
-    
-    setFilteredAppointments(results);
+
+    return apiFilters;
   }, [searchTerm, selectedDate]);
+
+  // Fetch appointments with filters
+  const { data: appointments, isLoading, error } = useAppointments(filters);
+
+  // Transform appointments for UI
+  const transformedAppointments = useMemo(() => {
+    if (!appointments) return [];
+    return appointments.map(transformAppointment);
+  }, [appointments]);
 
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedDate(undefined);
-    setFilteredAppointments(APPOINTMENTS);
   };
 
-  const handleActionClick = (action: string, appointmentId: string) => {
-    toast({
-      title: `${action} Appointment`,
-      description: `Action "${action}" for appointment ${appointmentId} (Demo only)`,
-    });
+  const handleActionClick = async (action: string, appointmentId: string) => {
+    try {
+      switch (action) {
+        case 'View':
+          // Navigate to appointment details (implement as needed)
+          toast({
+            title: "View Appointment",
+            description: `Viewing details for appointment ${appointmentId}`,
+          });
+          break;
+        case 'Reschedule':
+          // For demo, just show success message
+          // In real implementation, open reschedule dialog
+          toast({
+            title: "Reschedule Appointment",
+            description: "Reschedule functionality would open here",
+          });
+          break;
+        case 'Cancel':
+          await cancelAppointment.mutateAsync({ id: appointmentId, reason: 'Cancelled by admin' });
+          break;
+        case 'Join':
+          await joinConsultation.mutateAsync(appointmentId);
+          break;
+        default:
+          toast({
+            title: `${action} Appointment`,
+            description: `Action "${action}" for appointment ${appointmentId}`,
+          });
+      }
+    } catch (error) {
+      // Error handling is done in the mutation hooks
+    }
   };
 
   // Format the appointment date
@@ -134,7 +160,7 @@ const AdminAppointments = () => {
     return format(date, 'MMM d, yyyy h:mm a');
   };
 
-  const AppointmentCard = ({ appointment }: { appointment: typeof APPOINTMENTS[0] }) => (
+  const AppointmentCard = ({ appointment }: { appointment: AppointmentUI }) => (
     <Card className="mb-3">
       <CardContent className="p-4">
         <div className="flex justify-between items-start">
@@ -224,8 +250,30 @@ const AdminAppointments = () => {
 
       {isMobile ? (
         <div className="space-y-3">
-          {filteredAppointments.length > 0 ? (
-            filteredAppointments.map(appointment => (
+          {isLoading ? (
+            // Loading skeletons for mobile
+            Array.from({ length: 5 }).map((_, index) => (
+              <Card key={index} className="mb-3">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-3 w-32" />
+                      <Skeleton className="h-5 w-16" />
+                    </div>
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : error ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Failed to load appointments. Please try again.
+            </div>
+          ) : transformedAppointments.length > 0 ? (
+            transformedAppointments.map(appointment => (
               <AppointmentCard key={appointment.id} appointment={appointment} />
             ))
           ) : (
@@ -248,8 +296,26 @@ const AdminAppointments = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAppointments.length > 0 ? (
-                filteredAppointments.map((appointment) => (
+              {isLoading ? (
+                // Loading skeletons for table
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  </TableRow>
+                ))
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                    Failed to load appointments. Please try again.
+                  </TableCell>
+                </TableRow>
+              ) : transformedAppointments.length > 0 ? (
+                transformedAppointments.map((appointment) => (
                   <TableRow key={appointment.id}>
                     <TableCell className="font-medium">{appointment.id}</TableCell>
                     <TableCell>{appointment.patient}</TableCell>
@@ -266,8 +332,12 @@ const AdminAppointments = () => {
                     </TableCell>
                     <TableCell>
                       <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${appointment.status === 'Confirmed' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' 
+                        ${appointment.status === 'Confirmed' || appointment.status === 'Scheduled'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400'
+                          : appointment.status === 'In Progress'
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400'
+                          : appointment.status === 'Completed'
+                          ? 'bg-gray-100 text-gray-800 dark:bg-gray-800/20 dark:text-gray-400'
                           : 'bg-red-100 text-red-800 dark:bg-red-800/20 dark:text-red-400'}`}
                       >
                         {appointment.status}
@@ -285,6 +355,11 @@ const AdminAppointments = () => {
                           <DropdownMenuItem onClick={() => handleActionClick("View", appointment.id)}>
                             View Details
                           </DropdownMenuItem>
+                          {appointment.status === 'Confirmed' && (
+                            <DropdownMenuItem onClick={() => handleActionClick("Join", appointment.id)}>
+                              Join Consultation
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => handleActionClick("Reschedule", appointment.id)}>
                             Reschedule
                           </DropdownMenuItem>

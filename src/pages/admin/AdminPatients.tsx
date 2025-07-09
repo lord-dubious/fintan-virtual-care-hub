@@ -1,16 +1,17 @@
 
-import React, { useState } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import React, { useState, useMemo } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Search, Filter, MoreHorizontal, ChevronRight } from 'lucide-react';
 import {
   DropdownMenu,
@@ -28,68 +29,104 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { usePatients, usePatientMedicalHistory, usePatientAppointments } from '@/hooks/usePatients';
+import { PatientFilters } from '@/api/patients';
 
-// Mock patient data
-const PATIENTS = [
-  { 
-    id: 'PAT001', 
-    name: 'John Doe', 
-    email: 'john.doe@example.com', 
-    phone: '(555) 123-4567', 
-    lastVisit: '2025-05-02', 
-    status: 'Active' 
-  },
-  { 
-    id: 'PAT002', 
-    name: 'Jane Smith', 
-    email: 'jane.smith@example.com', 
-    phone: '(555) 234-5678', 
-    lastVisit: '2025-05-05', 
-    status: 'Active' 
-  },
-  { 
-    id: 'PAT003', 
-    name: 'Robert Johnson', 
-    email: 'robert.johnson@example.com', 
-    phone: '(555) 345-6789', 
-    lastVisit: '2025-04-28', 
-    status: 'Active' 
-  },
-  { 
-    id: 'PAT004', 
-    name: 'Emily Williams', 
-    email: 'emily.williams@example.com', 
-    phone: '(555) 456-7890', 
-    lastVisit: '2025-04-20', 
-    status: 'Inactive' 
-  },
-  { 
-    id: 'PAT005', 
-    name: 'Michael Brown', 
-    email: 'michael.brown@example.com', 
-    phone: '(555) 567-8901', 
-    lastVisit: '2025-04-15', 
-    status: 'Active' 
-  },
-  { 
-    id: 'PAT006', 
-    name: 'Sarah Davis', 
-    email: 'sarah.davis@example.com', 
-    phone: '(555) 678-9012', 
-    lastVisit: '2025-03-30', 
-    status: 'Active' 
-  },
-];
+// Type definitions for API data
+interface ApiPatient {
+  id: string;
+  user: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
+  appointments?: ApiAppointment[];
+}
 
-const PatientDetails = ({ patient }: { patient: typeof PATIENTS[0] }) => {
+interface ApiAppointment {
+  id: string;
+  appointmentDate: string;
+  consultationType: 'VIDEO' | 'AUDIO' | string;
+  status: 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | string;
+}
+
+interface ApiMedicalRecord {
+  id: string;
+  date: string;
+  type: string;
+  notes: string;
+  diagnosis?: string;
+  prescription?: string;
+}
+
+interface PatientUI {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  lastVisit: string;
+  status: string;
+}
+
+// Transform API patient data to match UI expectations
+const transformPatient = (patient: ApiPatient): PatientUI => {
+  // Find the most recent appointment for last visit
+  const lastAppointment = patient.appointments?.length > 0
+    ? [...patient.appointments].sort((a, b) =>
+        new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()
+      )[0]
+    : null;
+
+  return {
+    id: patient.id,
+    name: patient.user.name || 'Unknown Patient',
+    email: patient.user.email || '',
+    phone: patient.user.phone || '',
+    lastVisit: lastAppointment
+      ? new Date(lastAppointment.appointmentDate).toISOString().split('T')[0]
+      : 'Never',
+    status: 'Active' // You can add status logic based on your business rules
+  };
+};
+
+const PatientDetails = ({ patient }: { patient: PatientUI }) => {
   const { toast } = useToast();
-  
-  // Mock medical history
-  const medicalHistory = [
-    { date: '2025-05-02', type: 'Video Consultation', notes: 'Regular checkup, prescribed medication for allergies.' },
-    { date: '2025-04-10', type: 'Audio Consultation', notes: 'Follow-up on previous treatment, showing improvement.' },
-    { date: '2025-03-15', type: 'Video Consultation', notes: 'Initial consultation regarding seasonal allergies.' },
-  ];
+
+  // Fetch real medical history and appointments
+  const { data: medicalHistory, isLoading: historyLoading } = usePatientMedicalHistory(patient.id);
+  const { data: appointments, isLoading: appointmentsLoading } = usePatientAppointments(patient.id);
+
+  // Transform medical history for display
+  const transformedHistory = useMemo(() => {
+    if (!medicalHistory) return [];
+    return medicalHistory.map((record: ApiMedicalRecord) => ({
+      date: new Date(record.date).toISOString().split('T')[0],
+      type: record.type,
+      notes: record.notes
+    }));
+  }, [medicalHistory]);
+
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    const totalConsultations = appointments?.length || 0;
+    const firstVisit = appointments?.length > 0
+      ? [...appointments].sort((a, b) =>
+          new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime()
+        )[0]
+      : null;
+    const lastVisit = appointments?.length > 0
+      ? [...appointments].sort((a, b) =>
+          new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime()
+        )[0]
+      : null;
+
+    return {
+      totalConsultations,
+      firstVisit: firstVisit ? new Date(firstVisit.appointmentDate).toLocaleDateString() : 'N/A',
+      lastVisit: lastVisit ? new Date(lastVisit.appointmentDate).toLocaleDateString() : 'N/A',
+      nextAppointment: 'Not scheduled' // You can implement logic for upcoming appointments
+    };
+  }, [appointments]);
 
   return (
     <div className="space-y-6">
@@ -133,7 +170,12 @@ const PatientDetails = ({ patient }: { patient: typeof PATIENTS[0] }) => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Last Visit:</span>
-                <span>{new Date(patient.lastVisit).toLocaleDateString()}</span>
+                <span>
+                  {patient.lastVisit === 'Never'
+                    ? 'Never'
+                    : new Date(patient.lastVisit).toLocaleDateString()
+                  }
+                </span>
               </div>
             </div>
           </CardContent>
@@ -143,22 +185,33 @@ const PatientDetails = ({ patient }: { patient: typeof PATIENTS[0] }) => {
           <CardContent className="p-4">
             <h3 className="text-lg font-semibold mb-4">Patient Summary</h3>
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Consultations:</span>
-                <span>3</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">First Visit:</span>
-                <span>Mar 15, 2025</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Last Visit:</span>
-                <span>May 2, 2025</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Next Appointment:</span>
-                <span>Not scheduled</span>
-              </div>
+              {appointmentsLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Consultations:</span>
+                    <span>{summaryStats.totalConsultations}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">First Visit:</span>
+                    <span>{summaryStats.firstVisit}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Last Visit:</span>
+                    <span>{summaryStats.lastVisit}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Next Appointment:</span>
+                    <span>{summaryStats.nextAppointment}</span>
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -168,24 +221,42 @@ const PatientDetails = ({ patient }: { patient: typeof PATIENTS[0] }) => {
         <CardContent className="p-4">
           <h3 className="text-lg font-semibold mb-4">Medical History</h3>
           <div className="space-y-4">
-            {medicalHistory.map((record, index) => (
-              <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium">{new Date(record.date).toLocaleDateString()} - {record.type}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{record.notes}</p>
+            {historyLoading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-48" />
+                      <Skeleton className="h-3 w-full" />
+                    </div>
+                    <Skeleton className="h-8 w-12" />
                   </div>
-                  <Button variant="ghost" size="sm" className="h-8" 
-                    onClick={() => toast({ 
-                      title: "Demo Only", 
-                      description: "This would show full consultation details" 
-                    })}
-                  >
-                    View
-                  </Button>
                 </div>
+              ))
+            ) : transformedHistory.length > 0 ? (
+              transformedHistory.map((record, index) => (
+                <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{new Date(record.date).toLocaleDateString()} - {record.type}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{record.notes}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-8"
+                      onClick={() => toast({
+                        title: "View Record",
+                        description: "This would show full medical record details"
+                      })}
+                    >
+                      View
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-muted-foreground">
+                No medical history available
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -197,32 +268,34 @@ const AdminPatients = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredPatients, setFilteredPatients] = useState(PATIENTS);
-  const [selectedPatient, setSelectedPatient] = useState<typeof PATIENTS[0] | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<PatientUI | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Apply filters
-  React.useEffect(() => {
-    if (!searchTerm) {
-      setFilteredPatients(PATIENTS);
-      return;
+  // Build filters for API
+  const filters = useMemo((): PatientFilters => {
+    const apiFilters: PatientFilters = {};
+
+    if (searchTerm) {
+      apiFilters.search = searchTerm;
     }
-    
-    const results = PATIENTS.filter(patient => 
-      patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    
-    setFilteredPatients(results);
+
+    return apiFilters;
   }, [searchTerm]);
+
+  // Fetch patients with filters
+  const { data: patients, isLoading, error } = usePatients(filters);
+
+  // Transform patients for UI
+  const transformedPatients = useMemo(() => {
+    if (!patients) return [];
+    return patients.map(transformPatient);
+  }, [patients]);
 
   const resetFilters = () => {
     setSearchTerm('');
-    setFilteredPatients(PATIENTS);
   };
 
-  const handleViewPatient = (patient: typeof PATIENTS[0]) => {
+  const handleViewPatient = (patient: PatientUI) => {
     setSelectedPatient(patient);
     setShowDetails(true);
   };
@@ -230,11 +303,11 @@ const AdminPatients = () => {
   const handleActionClick = (action: string, patientId: string) => {
     toast({
       title: `${action} Patient`,
-      description: `Action "${action}" for patient ${patientId} (Demo only)`,
+      description: `Action "${action}" for patient ${patientId}`,
     });
   };
 
-  const PatientCard = ({ patient }: { patient: typeof PATIENTS[0] }) => (
+  const PatientCard = ({ patient }: { patient: PatientUI }) => (
     <Card className="mb-3">
       <CardContent className="p-4">
         <div className="flex justify-between items-center">
@@ -291,8 +364,30 @@ const AdminPatients = () => {
 
         {isMobile ? (
           <div className="space-y-3">
-            {filteredPatients.length > 0 ? (
-              filteredPatients.map(patient => (
+            {isLoading ? (
+              // Loading skeletons for mobile
+              Array.from({ length: 5 }).map((_, index) => (
+                <Card key={index} className="mb-3">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-16" />
+                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-3 w-28" />
+                        <Skeleton className="h-5 w-16" />
+                      </div>
+                      <Skeleton className="h-9 w-9" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : error ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Failed to load patients. Please try again.
+              </div>
+            ) : transformedPatients.length > 0 ? (
+              transformedPatients.map(patient => (
                 <PatientCard key={patient.id} patient={patient} />
               ))
             ) : (
@@ -316,18 +411,42 @@ const AdminPatients = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPatients.length > 0 ? (
-                  filteredPatients.map((patient) => (
+                {isLoading ? (
+                  // Loading skeletons for table
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                      Failed to load patients. Please try again.
+                    </TableCell>
+                  </TableRow>
+                ) : transformedPatients.length > 0 ? (
+                  transformedPatients.map((patient) => (
                     <TableRow key={patient.id}>
                       <TableCell className="font-medium">{patient.id}</TableCell>
                       <TableCell>{patient.name}</TableCell>
                       <TableCell>{patient.email}</TableCell>
                       <TableCell>{patient.phone}</TableCell>
-                      <TableCell>{new Date(patient.lastVisit).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {patient.lastVisit === 'Never'
+                          ? 'Never'
+                          : new Date(patient.lastVisit).toLocaleDateString()
+                        }
+                      </TableCell>
                       <TableCell>
                         <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                          ${patient.status === 'Active' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' 
+                          ${patient.status === 'Active'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400'
                             : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800/20 dark:text-yellow-400'}`}
                         >
                           {patient.status}

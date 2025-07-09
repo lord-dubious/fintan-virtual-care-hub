@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, Lock, User, CheckCircle, Apple } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SimpleSignOnProps {
   onAuthenticated: (email: string) => void;
@@ -22,7 +23,7 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, register, isLoggingIn, isRegistering, error } = useAuth();
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: '',
@@ -48,17 +49,20 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    
-    // Simulate authentication
-    setTimeout(() => {
+    try {
+      await login({ email: formData.email, password: formData.password });
       onAuthenticated(formData.email);
       toast({
         title: "Welcome!",
         description: "You've been signed in successfully",
       });
-      setIsLoading(false);
-    }, 1000);
+    } catch (error: unknown) {
+      toast({
+        title: "Sign In Failed",
+        description: error instanceof Error ? error.message : "An error occurred during sign in",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSignUp = async () => {
@@ -71,17 +75,27 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    
-    // Simulate registration
-    setTimeout(() => {
+    try {
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+      await register({
+        fullName,
+        email: formData.email,
+        password: formData.password,
+        role: 'PATIENT',
+      });
+
       onAuthenticated(formData.email);
       toast({
         title: "Account Created!",
         description: "Welcome to Dr. Fintan's practice",
       });
-      setIsLoading(false);
-    }, 1000);
+    } catch (error: unknown) {
+      toast({
+        title: "Registration Failed",
+        description: error instanceof Error ? error.message : "An error occurred during registration",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSocialSignIn = async (provider: string) => {
@@ -255,10 +269,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 
               <Button
                 onClick={handleSignIn}
-                disabled={isLoading}
+                disabled={isLoggingIn}
                 className={`w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoggingIn ? "Signing in..." : "Sign In"}
               </Button>
             </CardContent>
           </Card>
@@ -334,10 +348,10 @@ const SimpleSignOn: React.FC<SimpleSignOnProps> = ({
 
               <Button
                 onClick={handleSignUp}
-                disabled={isLoading}
+                disabled={isRegistering}
                 className={`w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 ${isMobile ? 'h-10 text-sm' : 'h-11'}`}
               >
-                {isLoading ? "Creating account..." : "Create Account"}
+                {isRegistering ? "Creating account..." : "Create Account"}
               </Button>
             </CardContent>
           </Card>

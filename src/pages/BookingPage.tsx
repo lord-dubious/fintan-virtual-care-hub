@@ -54,6 +54,9 @@ const BookingPage: React.FC = () => {
     userEmail: ''
   });
 
+  // Get provider ID from environment or use default
+  const providerId = import.meta.env.VITE_DEFAULT_PROVIDER_ID || "default-provider-id";
+
   const stepTitles = ['Sign In', 'Type', 'Date & Time', 'Your Info', 'Payment'];
 
   const updateBookingData = (field: keyof BookingData, value: any) => {
@@ -144,6 +147,7 @@ const BookingPage: React.FC = () => {
               if (data.date !== undefined) updateBookingData('selectedDate', data.date);
               if (data.time !== undefined) updateBookingData('selectedTime', data.time);
             }}
+            providerId={providerId}
           />
         );
       case 3:

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/lib/auth/authProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,7 @@ const RegisterPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'PATIENT' | 'PROVIDER'>('PATIENT');
   const [formError, setFormError] = useState('');
-  const { register, loading, error } = useAuth();
+  const { register, isRegistering, error } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,10 +40,12 @@ const RegisterPage: React.FC = () => {
     }
 
     // Attempt registration
-    const success = await register(email, password, name, role);
-    if (success) {
+    try {
+      await register({ fullName: name, email, password, role });
       // Redirect to dashboard
       navigate('/dashboard');
+    } catch (error) {
+      // Error is handled by the hook and displayed via toast
     }
   };
 
@@ -126,8 +128,8 @@ const RegisterPage: React.FC = () => {
                   </div>
                 </RadioGroup>
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
+              <Button type="submit" className="w-full" disabled={isRegistering}>
+                {isRegistering ? (
                   <>
                     <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-b-transparent"></span>
                     Creating account...

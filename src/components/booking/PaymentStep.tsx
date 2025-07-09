@@ -1,16 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
-import { 
-  CreditCard, 
-  Wallet, 
+import {
+  CreditCard,
+  Wallet,
   Shield,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
 import {
   Card,
@@ -21,6 +22,8 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import PaymentMethodCard from './PaymentMethodCard';
+import { usePaymentMethodConfig, useStripePaymentIntent, usePaystackPayment, useProcessPayment } from '@/hooks/usePayments';
+import { useToast } from '@/hooks/use-toast';
 
 interface PaymentStepProps {
   bookingData: {
@@ -28,52 +31,249 @@ interface PaymentStepProps {
     date: Date | null;
     time: string;
     paymentMethod: string;
+    patientInfo?: {
+      name: string;
+      email: string;
+      phone?: string;
+    };
   };
   updateBookingData: (data: { paymentMethod: string }) => void;
   onSubmit: () => void;
+  appointmentId?: string; // For real payment processing
 }
 
-const PaymentStep: React.FC<PaymentStepProps> = ({ 
-  bookingData, 
+const PaymentStep: React.FC<PaymentStepProps> = ({
+  bookingData,
   updateBookingData,
-  onSubmit
+  onSubmit,
+  appointmentId
 }) => {
+  const { toast } = useToast();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  // Secure Stripe Elements implementation
+  const [stripeElements, setStripeElements] = useState<any>(null);
+  const [cardElement, setCardElement] = useState<any>(null);
+  const stripeInstanceRef = useRef<any>(null);
+
+  // Fetch payment method configuration (must come before useEffect that uses it)
+  const { data: paymentConfig, isLoading: configLoading } = usePaymentMethodConfig();
+
+  // Initialize Stripe Elements when Stripe payment method is selected
+  useEffect(() => {
+    if (bookingData.paymentMethod === 'stripe' && paymentConfig?.stripe?.enabled) {
+      const initializeStripe = async () => {
+        const stripe = (window as any).Stripe;
+        if (!stripe) {
+          console.error('Stripe.js not loaded');
+          return;
+        }
+
+        // Store the Stripe instance in ref for reuse
+        stripeInstanceRef.current = stripe;
+
+        const elements = stripe.elements();
+        const card = elements.create('card', {
+          style: {
+            base: {
+              fontSize: '16px',
+              color: '#424770',
+              '::placeholder': {
+                color: '#aab7c4',
+              },
+            },
+          },
+        });
+
+        setStripeElements(elements);
+        setCardElement(card);
+
+        // Mount the card element
+        const cardContainer = document.getElementById('stripe-card-element');
+        if (cardContainer) {
+          card.mount('#stripe-card-element');
+        }
+      };
+
+      initializeStripe();
+    }
+
+    // Cleanup on unmount or payment method change
+    return () => {
+      if (cardElement) {
+        cardElement.unmount();
+        setCardElement(null);
+        setStripeElements(null);
+      }
+    };
+  }, [bookingData.paymentMethod, paymentConfig?.stripe?.enabled]);
+
   const consultationPrice = bookingData.consultationType === 'video' ? 85 : 65;
+
+  // Payment processing hooks
+  const stripePaymentIntent = useStripePaymentIntent();
+  const paystackPayment = usePaystackPayment();
+  const processPayment = useProcessPayment();
   
+  // Filter payment methods based on configuration
   const paymentMethods = [
     {
-      id: 'card',
-      name: 'Credit/Debit Card',
-      icon: CreditCard,
-      description: 'Pay securely with your card',
-      brands: ['visa', 'mastercard', 'amex']
-    },
-    {
-      id: 'paypal',
-      name: 'PayPal',
-      icon: () => <img src="/icons/paypal.svg" alt="PayPal" className="h-5 w-5" />,
-      description: 'Fast checkout with PayPal',
-    },
-    {
       id: 'stripe',
-      name: 'Stripe',
-      icon: () => <img src="/icons/stripe.svg" alt="Stripe" className="h-5 w-5" />,
-      description: 'Secure payments via Stripe',
+      name: 'Credit/Debit Card (Stripe)',
+      icon: CreditCard,
+      description: 'Pay securely with your card via Stripe',
+      brands: ['visa', 'mastercard', 'amex'],
+      enabled: paymentConfig?.stripe?.enabled ?? true
     },
     {
       id: 'paystack',
       name: 'Paystack',
       icon: () => <img src="/icons/paystack.svg" alt="Paystack" className="h-5 w-5" />,
       description: 'Pay with Paystack',
+      enabled: paymentConfig?.paystack?.enabled ?? true
+    },
+    {
+      id: 'paypal',
+      name: 'PayPal',
+      icon: () => <img src="/icons/paypal.svg" alt="PayPal" className="h-5 w-5" />,
+      description: 'Fast checkout with PayPal',
+      enabled: paymentConfig?.paypal?.enabled ?? true
     },
     {
       id: 'flutterwave',
       name: 'Flutterwave',
       icon: () => <img src="/icons/flutterwave.svg" alt="Flutterwave" className="h-5 w-5" />,
       description: 'Pay with Flutterwave',
+      enabled: paymentConfig?.flutterwave?.enabled ?? true
     }
-  ];
+  ].filter(method => method.enabled);
+
+  const handlePaymentSubmit = async () => {
+    if (!acceptedTerms) {
+      toast({
+        title: "Please accept terms and conditions",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!appointmentId) {
+      toast({
+        title: "Appointment ID missing",
+        description: "Please complete the booking process first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const paymentData = {
+        appointmentId,
+        amount: consultationPrice,
+        currency: 'USD',
+        paymentMethod: bookingData.paymentMethod.toUpperCase() as any,
+      };
+
+      switch (bookingData.paymentMethod) {
+        case 'stripe': {
+          if (!cardElement) {
+            toast({
+              title: "Payment method not ready",
+              description: "Please wait for the payment form to load",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          // Create Stripe payment intent
+          const stripeIntent = await stripePaymentIntent.mutateAsync({
+            appointmentId,
+            amount: consultationPrice * 100 // Stripe expects cents
+          });
+
+          if (!stripeIntent.success || !stripeIntent.data?.clientSecret) {
+            throw new Error('Failed to create payment intent');
+          }
+
+          // Use persisted Stripe instance to confirm payment securely
+          const stripe = stripeInstanceRef.current;
+          if (!stripe) {
+            throw new Error('Stripe not initialised – this should not happen');
+          }
+
+          const { error, paymentIntent } = await stripe.confirmCardPayment(
+            stripeIntent.data.clientSecret,
+            {
+              payment_method: {
+                card: cardElement,
+                billing_details: {
+                  name: bookingData.patientInfo?.name || 'Anonymous',
+                  email: bookingData.patientInfo?.email,
+                },
+              },
+            }
+          );
+
+          if (error) {
+            throw new Error(error.message);
+          }
+
+          if (paymentIntent.status === 'succeeded') {
+            // Confirm payment with backend
+            await processPayment.mutateAsync({
+              ...paymentData,
+              transactionId: paymentIntent.id,
+            });
+          }
+          break;
+        }
+
+        case 'paystack': {
+          if (!bookingData.patientInfo?.email) {
+            toast({
+              title: "Email required for Paystack",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          await paystackPayment.mutateAsync({
+            appointmentId,
+            amount: consultationPrice * 100, // Paystack expects kobo
+            email: bookingData.patientInfo.email
+          });
+          break;
+        }
+
+        case 'paypal':
+        case 'flutterwave': {
+          await processPayment.mutateAsync(paymentData);
+          break;
+        }
+
+        default:
+          toast({
+            title: "Payment method not supported",
+            variant: "destructive"
+          });
+          return;
+      }
+
+      // If we reach here, payment was successful
+      onSubmit();
+
+    } catch (error: unknown) {
+      toast({
+        title: "Payment failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -129,25 +329,23 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
             ))}
           </RadioGroup>
 
-          {bookingData.paymentMethod === 'card' && (
+          {bookingData.paymentMethod === 'stripe' && (
             <div className="mt-6 space-y-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div className="space-y-2">
-                <Label htmlFor="cardName">Name on Card</Label>
-                <Input id="cardName" placeholder="Full name as displayed on card" className="bg-white dark:bg-gray-700" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cardNumber">Card Number</Label>
-                <Input id="cardNumber" placeholder="1234 5678 9012 3456" className="bg-white dark:bg-gray-700" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="expiryDate">Expiry Date</Label>
-                  <Input id="expiryDate" placeholder="MM/YY" className="bg-white dark:bg-gray-700" />
+                <Label htmlFor="stripe-card-element">Card Details</Label>
+                <div
+                  id="stripe-card-element"
+                  className="p-3 border border-gray-300 rounded-md bg-white dark:bg-gray-700 min-h-[50px] flex items-center"
+                >
+                  {/* Stripe Elements will mount here */}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cvv">CVV</Label>
-                  <Input id="cvv" placeholder="123" className="bg-white dark:bg-gray-700" />
-                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Your card details are securely processed by Stripe and never stored on our servers.
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                <Shield className="w-4 h-4" />
+                <span>Secured by Stripe - PCI DSS Level 1 compliant</span>
               </div>
             </div>
           )}
@@ -173,13 +371,22 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
         </div>
       </div>
 
-      <Button 
-        onClick={onSubmit}
-        disabled={!acceptedTerms}
+      <Button
+        onClick={handlePaymentSubmit}
+        disabled={!acceptedTerms || isProcessing || configLoading}
         className="w-full bg-medical-primary hover:bg-medical-primary/90 text-white dark:bg-medical-accent dark:hover:bg-medical-accent/90 py-6 text-base"
       >
-        <CheckCircle className="mr-2 h-4 w-4" />
-        Confirm & Pay ${consultationPrice.toFixed(2)}
+        {isProcessing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing Payment...
+          </>
+        ) : (
+          <>
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Confirm & Pay ${consultationPrice.toFixed(2)}
+          </>
+        )}
       </Button>
 
       <div className="flex items-center justify-center gap-2 text-xs text-medical-neutral-500 dark:text-medical-dark-text-secondary">

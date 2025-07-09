@@ -8,8 +8,26 @@ import { formatDate } from '@/lib/utils';
 import { consultationService } from '@/lib/services/consultationService';
 import { useToast } from '@/hooks/use-toast';
 
+interface Appointment {
+  id: string;
+  appointmentDate: string;
+  consultationType: 'VIDEO' | 'AUDIO' | string;
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | string;
+  reason?: string;
+  patient?: {
+    user: {
+      name: string;
+    };
+  };
+  provider?: {
+    user: {
+      name: string;
+    };
+  };
+}
+
 interface AppointmentListProps {
-  appointments: any[];
+  appointments: Appointment[];
   isProvider?: boolean;
 }
 
@@ -91,7 +109,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isProvi
     }
   };
 
-  const isAppointmentActive = (appointment: any) => {
+  const isAppointmentActive = (appointment: Appointment) => {
     const appointmentTime = new Date(appointment.appointmentDate).getTime();
     const now = new Date().getTime();
     const thirtyMinutesBefore = appointmentTime - 30 * 60 * 1000;
@@ -125,7 +143,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isProvi
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
               <CardTitle className="text-lg">
-                {isProvider ? appointment.patient.user.name : appointment.provider.user.name}
+                {isProvider ? appointment.patient?.user.name || 'Unknown Patient' : appointment.provider?.user.name || 'Unknown Provider'}
               </CardTitle>
               {getStatusBadge(appointment.status)}
             </div>

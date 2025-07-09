@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { User } from '@prisma/client';
 
 // API Response types
@@ -31,6 +31,10 @@ export interface AuthenticatedRequest extends Request {
   userId?: string;
 }
 
+// Route handler types for better TypeScript support
+export type RouteHandler = (req: Request, res: Response, next?: NextFunction) => Promise<any> | any;
+export type AuthenticatedRouteHandler = (req: AuthenticatedRequest, res: Response, next?: NextFunction) => Promise<any> | any;
+
 export interface JwtPayload {
   userId: string;
   email: string;
@@ -62,7 +66,7 @@ export interface AuthResponse {
 }
 
 // User types
-export type UserRole = 'PATIENT' | 'PROVIDER' | 'ADMIN';
+export type UserRole = 'PATIENT' | 'PROVIDER' | 'DOCTOR' | 'ADMIN';
 
 export interface UserProfile {
   id: string;

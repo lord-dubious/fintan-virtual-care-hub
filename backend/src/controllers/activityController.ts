@@ -4,7 +4,8 @@ import logger from '@/config/logger';
 import { AuthenticatedRequest } from '@/types';
 import { activityLogService } from '@/services/activityLogService';
 import { z } from 'zod';
-import { startOfDay, endOfDay, parseISO, subDays } from 'date-fns';
+import { startOfDay, endOfDay, subDays } from 'date-fns';
+import { parseISO } from 'date-fns/parseISO';
 
 // Validation schemas
 const activityQuerySchema = z.object({
@@ -372,7 +373,7 @@ export const logCustomActivity = async (req: AuthenticatedRequest, res: Response
     }
 
     const validatedData = logActivitySchema.parse(req.body);
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip || req.socket?.remoteAddress;
     const userAgent = req.get('User-Agent');
 
     await activityLogService.logActivity({

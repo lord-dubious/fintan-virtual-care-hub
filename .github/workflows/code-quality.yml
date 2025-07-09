@@ -13,7 +13,6 @@ jobs:
   code-analysis:
     name: Code Analysis
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -53,7 +52,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload complexity report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: complexity-report
@@ -93,7 +92,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload security scan results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: security-scan-results
@@ -150,7 +149,7 @@ jobs:
           echo "License compliance check completed"
 
       - name: Upload dependency analysis
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: dependency-analysis
@@ -196,7 +195,7 @@ jobs:
           fi
 
       - name: Upload performance analysis
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: performance-analysis
@@ -223,7 +222,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage/lcov.info
           flags: frontend

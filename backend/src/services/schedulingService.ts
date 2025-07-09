@@ -2,7 +2,7 @@ import { prisma } from '@/config/database';
 import logger from '@/config/logger';
 import { addDays, addWeeks, addMonths, format, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
-import { SlotCalculator } from 'slot-calculator';
+import SlotCalculator from 'slot-calculator';
 
 export interface TimeSlot {
   startTime: Date;
@@ -135,22 +135,22 @@ export class SchedulingService {
         end: new Date(appointment.appointmentDate.getTime() + (appointment.duration || 30) * 60 * 1000),
       }));
 
-      // Initialize slot calculator
-      const slotCalculator = new SlotCalculator({
-        startTime,
-        endTime,
-        slotDuration: duration, // in minutes
+      // Use slot calculator
+      const slots = SlotCalculator.getSlots({
+        from: startTime.toISOString(),
+        to: endTime.toISOString(),
+        duration: duration, // in minutes
         existingBookings,
         timezone,
       });
 
       // Get available slots
-      const availableSlots = slotCalculator.getAvailableSlots();
+      const availableSlots = slots.availableSlots;
 
       // Convert to our TimeSlot format
-      return availableSlots.map(slot => ({
-        startTime: slot.start,
-        endTime: slot.end,
+      return availableSlots.map((slot: any) => ({
+        startTime: slot.startTime || slot.from,
+        endTime: slot.endTime || slot.to,
         isAvailable: true,
         conflictReason: undefined,
       }));

@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { createServer } from 'http';
 import net from 'net';
+import os from 'os';
 import { config } from '@/config';
 import { checkDatabaseConnection, disconnectDatabase } from '@/config/database';
 import logger, { requestLogger } from '@/config/logger';
@@ -206,6 +207,26 @@ const isPortInUse = (port: number): Promise<boolean> => {
   });
 };
 
+// Network interface utility
+const getNetworkInterfaces = () => {
+  const interfaces = os.networkInterfaces();
+  const addresses: string[] = [];
+
+  for (const name of Object.keys(interfaces)) {
+    const nets = interfaces[name];
+    if (nets) {
+      for (const net of nets) {
+        // Skip internal and non-IPv4 addresses
+        if (net.family === 'IPv4' && !net.internal) {
+          addresses.push(`${net.address} (${name})`);
+        }
+      }
+    }
+  }
+
+  return addresses;
+};
+
 // Kill processes using the port
 const killPortProcesses = async (port: number): Promise<void> => {
   try {
@@ -369,10 +390,28 @@ const startServer = async () => {
 
   // Start server with Socket.IO
   server = httpServer.listen(port, config.server.host, async () => {
+    const networkInterfaces = getNetworkInterfaces();
+
     logger.info(`🚀 Dr. Fintan Virtual Care Hub Backend API Server started`);
     logger.info(`📍 Environment: ${config.server.nodeEnv}`);
-    logger.info(`🌐 Server running on ${config.server.host}:${port}`);
-    logger.info(`🔗 Backend Host: ${config.server.backendHost}`);
+    logger.info(`🌐 Server binding: ${config.server.host}:${port}`);
+    logger.info(`📡 Port ${port} is now OPEN and accepting connections`);
+
+    if (config.server.host === '0.0.0.0') {
+      logger.info(`🔗 Server accessible on ALL network interfaces:`);
+      logger.info(`   • localhost:${port} (local access)`);
+      logger.info(`   • 127.0.0.1:${port} (loopback)`);
+
+      if (networkInterfaces.length > 0) {
+        networkInterfaces.forEach(addr => {
+          logger.info(`   • ${addr.split(' ')[0]}:${port} (network access)`);
+        });
+      }
+    } else {
+      logger.info(`🔗 Server accessible on: ${config.server.host}:${port}`);
+    }
+
+    logger.info(`🎯 External Host: ${config.server.backendHost}`);
     logger.info(`📊 API Base URL: ${config.server.apiBaseUrl}`);
     logger.info(`🎯 Frontend URL: ${config.frontend.url}`);
     logger.info(`🔌 Socket.IO enabled for real-time communication`);

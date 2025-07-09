@@ -17,7 +17,7 @@ class DailyClient {
   constructor(apiKey: string, baseUrl: string = 'https://api.daily.co/v1') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
-    this.isMockMode = !apiKey || apiKey === 'your-daily-api-key-here';
+    this.isMockMode = !apiKey || apiKey.includes('example') || apiKey.includes('placeholder') || apiKey.length < 10;
   }
 
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
@@ -84,7 +84,7 @@ class DailyClient {
     if (this.isMockMode) {
       // Mock response for development/testing
       return {
-        token: `mock-token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        token: `mock-token-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
         exp: properties.exp || Math.floor(Date.now() / 1000) + 3600,
         room_name: properties.room_name,
         user_name: properties.user_name,

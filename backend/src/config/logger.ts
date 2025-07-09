@@ -1,4 +1,6 @@
 import winston from 'winston';
+import fs from 'fs';
+import path from 'path';
 import { config } from './index';
 
 // Define log levels
@@ -53,8 +55,6 @@ if (config.server.isDevelopment) {
 // File transport (enabled in production or when LOG_FILE is specified)
 if (config.server.isProduction || config.logging.file) {
   // Ensure logs directory exists
-  const fs = require('fs');
-  const path = require('path');
   const logDir = path.dirname(config.logging.file);
   
   if (!fs.existsSync(logDir)) {

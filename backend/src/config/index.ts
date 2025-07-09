@@ -1,15 +1,17 @@
-import dotenv from 'dotenv';
-import { z } from 'zod';
+import dotenv from "dotenv";
+import { z } from "zod";
 
 // Load environment variables from root directory
-dotenv.config({ path: '../.env' });
+dotenv.config({ path: "../.env" });
 
 // Environment validation schema
 const envSchema = z.object({
   // Server Configuration
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().transform(Number).default('3000'),
-  HOST: z.string().default('0.0.0.0'), // Bind address
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+  PORT: z.string().transform(Number).default("3000"),
+  HOST: z.string().default("0.0.0.0"), // Bind address
   BACKEND_HOST: z.string().optional(), // External host for URL construction
 
   // Frontend Configuration
@@ -24,8 +26,8 @@ const envSchema = z.object({
   // Authentication
   JWT_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
-  JWT_EXPIRES_IN: z.string().default('7d'),
-  JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+  JWT_EXPIRES_IN: z.string().default("7d"),
+  JWT_REFRESH_EXPIRES_IN: z.string().default("30d"),
 
   // Daily.co Configuration
   DAILY_API_KEY: z.string().optional(),
@@ -53,66 +55,102 @@ const envSchema = z.object({
   TWILIO_PHONE_NUMBER: z.string().optional(),
 
   // Security Configuration
-  BCRYPT_SALT_ROUNDS: z.string().transform(Number).default('12'),
-  RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'),
-  RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
+  BCRYPT_SALT_ROUNDS: z.string().transform(Number).default("12"),
+  RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default("900000"),
+  RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default("100"),
 
   // Logging Configuration
-  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-  LOG_FILE: z.string().default('logs/app.log'),
+  LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
+  LOG_FILE: z.string().default("logs/app.log"),
 
   // Feature Flags
-  ENABLE_REGISTRATION: z.string().transform(val => val === 'true').default('true'),
-  ENABLE_EMAIL_VERIFICATION: z.string().transform(val => val === 'true').default('true'),
-  ENABLE_SMS_NOTIFICATIONS: z.string().transform(val => val === 'true').default('true'),
-  ENABLE_EMAIL_NOTIFICATIONS: z.string().transform(val => val === 'true').default('true'),
-  ENABLE_PAYMENT_PROCESSING: z.string().transform(val => val === 'true').default('true'),
-  ENABLE_VIDEO_CONSULTATIONS: z.string().transform(val => val === 'true').default('true'),
-  ENABLE_AUDIO_CONSULTATIONS: z.string().transform(val => val === 'true').default('true'),
+  ENABLE_REGISTRATION: z
+    .string()
+    .transform((val) => val === "true")
+    .default("true"),
+  ENABLE_EMAIL_VERIFICATION: z
+    .string()
+    .transform((val) => val === "true")
+    .default("true"),
+  ENABLE_SMS_NOTIFICATIONS: z
+    .string()
+    .transform((val) => val === "true")
+    .default("true"),
+  ENABLE_EMAIL_NOTIFICATIONS: z
+    .string()
+    .transform((val) => val === "true")
+    .default("true"),
+  ENABLE_PAYMENT_PROCESSING: z
+    .string()
+    .transform((val) => val === "true")
+    .default("true"),
+  ENABLE_VIDEO_CONSULTATIONS: z
+    .string()
+    .transform((val) => val === "true")
+    .default("true"),
+  ENABLE_AUDIO_CONSULTATIONS: z
+    .string()
+    .transform((val) => val === "true")
+    .default("true"),
 
   // File Upload Configuration
-  MAX_FILE_SIZE: z.string().transform(Number).default('10485760'), // 10MB
-  ALLOWED_FILE_TYPES: z.string().default('pdf,jpg,jpeg,png,doc,docx'),
+  MAX_FILE_SIZE: z.string().transform(Number).default("10485760"), // 10MB
+  ALLOWED_FILE_TYPES: z.string().default("pdf,jpg,jpeg,png,doc,docx"),
 
   // Health Check Configuration
-  HEALTH_CHECK_INTERVAL: z.string().transform(Number).default('30000'),
-  DATABASE_HEALTH_CHECK_TIMEOUT: z.string().transform(Number).default('5000'),
+  HEALTH_CHECK_INTERVAL: z.string().transform(Number).default("30000"),
+  DATABASE_HEALTH_CHECK_TIMEOUT: z.string().transform(Number).default("5000"),
 
   // External Service Timeouts
-  DAILY_API_TIMEOUT: z.string().transform(Number).default('10000'),
-  STRIPE_API_TIMEOUT: z.string().transform(Number).default('10000'),
-  PAYSTACK_API_TIMEOUT: z.string().transform(Number).default('10000'),
-  SMTP_TIMEOUT: z.string().transform(Number).default('10000'),
-  TWILIO_TIMEOUT: z.string().transform(Number).default('10000'),
+  DAILY_API_TIMEOUT: z.string().transform(Number).default("10000"),
+  STRIPE_API_TIMEOUT: z.string().transform(Number).default("10000"),
+  PAYSTACK_API_TIMEOUT: z.string().transform(Number).default("10000"),
+  SMTP_TIMEOUT: z.string().transform(Number).default("10000"),
+  TWILIO_TIMEOUT: z.string().transform(Number).default("10000"),
 });
 
 // Validate and parse environment variables
 const env = envSchema.parse(process.env);
 
-// Dynamic URL construction helpers
+// Dynamic URL construction helpers - NO HARDCODING
 const getServerHost = () => {
-  // Always use BACKEND_HOST if set, regardless of environment
+  // Always use BACKEND_HOST if explicitly set
   if (env.BACKEND_HOST) {
     return env.BACKEND_HOST;
   }
 
-  // In production, try to detect the host
-  if (env.NODE_ENV === 'production') {
-    return process.env.RENDER_EXTERNAL_HOSTNAME ||
-           process.env.RAILWAY_PUBLIC_DOMAIN ||
-           process.env.VERCEL_URL ||
-           'localhost';
-  }
+  // Auto-detect host from various hosting platforms
+  const detectedHost =
+    process.env.RENDER_EXTERNAL_HOSTNAME || // Render.com
+    process.env.RAILWAY_PUBLIC_DOMAIN || // Railway
+    process.env.VERCEL_URL || // Vercel
+    (process.env.HEROKU_APP_NAME
+      ? `${process.env.HEROKU_APP_NAME}.herokuapp.com`
+      : null) || // Heroku
+    (process.env.FLY_APP_NAME ? `${process.env.FLY_APP_NAME}.fly.dev` : null) || // Fly.io
+    process.env.HOST_IP || // Custom host IP
+    "0.0.0.0"; // Final fallback - bind to all interfaces
 
-  // Default to localhost for development
-  return 'localhost';
+  return detectedHost;
 };
 
 const getProtocol = () => {
   const host = getServerHost();
-  return (host === 'localhost' || host.includes('127.0.0.1') || /^\d+\.\d+\.\d+\.\d+$/.test(host))
-    ? 'http'
-    : 'https';
+
+  // Force HTTPS if explicitly set
+  if (process.env.FORCE_HTTPS === 'true') {
+    return 'https';
+  }
+
+  // Use HTTP for local development (localhost, 127.0.0.1, any IP address, or 0.0.0.0)
+  // Use HTTPS for hosted domains
+  const isLocalDevelopment =
+    host.includes("localhost") ||
+    host.includes("127.0.0.1") ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(host) ||
+    host === "0.0.0.0";
+
+  return isLocalDevelopment ? "http" : "https";
 };
 
 const getFrontendHost = () => {
@@ -136,8 +174,13 @@ const getFrontendURL = () => {
   const protocol = getProtocol();
   const port = env.FRONTEND_PORT || env.PORT + 7000;
 
-  // For localhost/IP addresses, always include port
-  if (host === 'localhost' || host.includes('127.0.0.1') || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+  // For local development (localhost, 127.0.0.1, IP addresses, or 0.0.0.0), always include port
+  if (
+    host.includes("localhost") ||
+    host.includes("127.0.0.1") ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(host) ||
+    host === "0.0.0.0"
+  ) {
     return `${protocol}://${host}:${port}`;
   }
 
@@ -160,9 +203,9 @@ export const config = {
     backendHost: getServerHost(),
     protocol: getProtocol(),
     apiBaseUrl: `${getBackendURL()}/api`,
-    isDevelopment: env.NODE_ENV === 'development',
-    isProduction: env.NODE_ENV === 'production',
-    isTest: env.NODE_ENV === 'test',
+    isDevelopment: env.NODE_ENV === "development",
+    isProduction: env.NODE_ENV === "production",
+    isTest: env.NODE_ENV === "test",
   },
 
   // Frontend
@@ -269,7 +312,9 @@ export const config = {
   // File Upload
   fileUpload: {
     maxSize: env.MAX_FILE_SIZE,
-    allowedTypes: env.ALLOWED_FILE_TYPES.split(',').map(type => type.trim()),
+    allowedTypes: env.ALLOWED_FILE_TYPES.split(",")
+      .map((type) => type.trim())
+      .filter(Boolean),
   },
 
   // Health Check

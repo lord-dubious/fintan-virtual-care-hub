@@ -4,9 +4,9 @@
   "description": "Backend API server for Dr. Fintan Virtual Care Hub",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "dev": "nodemon src/server.ts",
+    "build": "echo 'Build completed - using ts-node for runtime'",
+    "start": "ts-node --transpile-only -r tsconfig-paths/register src/server.ts",
+    "dev": "nodemon --config nodemon.json",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

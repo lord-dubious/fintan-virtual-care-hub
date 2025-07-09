@@ -1,11 +1,11 @@
-import { PrismaClient, DayOfWeek, ExceptionType } from '@prisma/client';
-import { addDays, format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { DayOfWeek, ExceptionType, PrismaClient } from "@prisma/client";
+import { addDays, endOfDay, format, startOfDay } from "date-fns";
 
 const prisma = new PrismaClient();
 
 export interface TimeSlot {
   start: string; // HH:MM format
-  end: string;   // HH:MM format
+  end: string; // HH:MM format
 }
 
 export interface AvailabilitySlot {
@@ -19,7 +19,7 @@ export interface AvailabilitySlot {
 export interface ConflictResult {
   hasConflict: boolean;
   conflicts: {
-    type: 'appointment' | 'break' | 'exception';
+    type: "appointment" | "break" | "exception";
     startTime: string;
     endTime: string;
     description: string;
@@ -42,7 +42,7 @@ export class AvailabilityService {
         where: {
           providerId,
           isActive: true,
-          isDefault: true
+          isDefault: true,
         },
         include: {
           weeklyAvailability: true,
@@ -51,11 +51,11 @@ export class AvailabilityService {
             where: {
               date: {
                 gte: startOfDay(startDate),
-                lte: endOfDay(endDate)
-              }
-            }
-          }
-        }
+                lte: endOfDay(endDate),
+              },
+            },
+          },
+        },
       });
 
       if (!schedule) {
@@ -68,12 +68,12 @@ export class AvailabilityService {
           providerId,
           appointmentDate: {
             gte: startOfDay(startDate),
-            lte: endOfDay(endDate)
+            lte: endOfDay(endDate),
           },
           status: {
-            in: ['SCHEDULED', 'CONFIRMED']
-          }
-        }
+            in: ["SCHEDULED", "CONFIRMED"],
+          },
+        },
       });
 
       const slots: AvailabilitySlot[] = [];
@@ -81,38 +81,38 @@ export class AvailabilityService {
 
       while (currentDate <= endOfDay(endDate)) {
         const dayOfWeek = this.getDayOfWeek(currentDate);
-        const dateStr = format(currentDate, 'yyyy-MM-dd');
+        const dateStr = format(currentDate, "yyyy-MM-dd");
 
         // Check for schedule exceptions
-        const exception = schedule.scheduleExceptions.find(ex => 
-          format(ex.date, 'yyyy-MM-dd') === dateStr
+        const exception = schedule.scheduleExceptions.find(
+          (ex) => format(ex.date, "yyyy-MM-dd") === dateStr
         );
 
         if (exception && exception.type === ExceptionType.UNAVAILABLE) {
           slots.push({
             date: dateStr,
-            startTime: '00:00',
-            endTime: '23:59',
+            startTime: "00:00",
+            endTime: "23:59",
             isAvailable: false,
-            reason: exception.title
+            reason: exception.title,
           });
           currentDate = addDays(currentDate, 1);
           continue;
         }
 
         // Get weekly availability for this day
-        const weeklyAvail = schedule.weeklyAvailability.filter(wa => 
-          wa.dayOfWeek === dayOfWeek && wa.isAvailable
+        const weeklyAvail = schedule.weeklyAvailability.filter(
+          (wa) => wa.dayOfWeek === dayOfWeek && wa.isAvailable
         );
 
         if (weeklyAvail.length === 0) {
           // Day not available
           slots.push({
             date: dateStr,
-            startTime: '00:00',
-            endTime: '23:59',
+            startTime: "00:00",
+            endTime: "23:59",
             isAvailable: false,
-            reason: 'Not available on this day'
+            reason: "Not available on this day",
           });
           currentDate = addDays(currentDate, 1);
           continue;
@@ -135,8 +135,8 @@ export class AvailabilityService {
               slotStart,
               slotEnd,
               appointments,
-              schedule.breakPeriods.filter(bp => 
-                !bp.dayOfWeek || bp.dayOfWeek === dayOfWeek
+              schedule.breakPeriods.filter(
+                (bp) => !bp.dayOfWeek || bp.dayOfWeek === dayOfWeek
               ),
               exception
             );
@@ -146,7 +146,9 @@ export class AvailabilityService {
               startTime: slot.start,
               endTime: slot.end,
               isAvailable: !conflict.hasConflict,
-              reason: conflict.hasConflict ? conflict.conflicts[0]?.description : undefined
+              reason: conflict.hasConflict
+                ? conflict.conflicts[0]?.description
+                : undefined,
             });
           }
         }
@@ -156,8 +158,8 @@ export class AvailabilityService {
 
       return slots;
     } catch (error) {
-      console.error('Error getting provider availability:', error);
-      throw new Error('Failed to get provider availability');
+      console.error("Error getting provider availability:", error);
+      throw new Error("Failed to get provider availability");
     }
   }
 
@@ -178,7 +180,7 @@ export class AvailabilityService {
         where: {
           providerId,
           isActive: true,
-          isDefault: true
+          isDefault: true,
         },
         include: {
           weeklyAvailability: true,
@@ -187,22 +189,24 @@ export class AvailabilityService {
             where: {
               date: {
                 gte: startOfDay(appointmentDate),
-                lte: endOfDay(appointmentDate)
-              }
-            }
-          }
-        }
+                lte: endOfDay(appointmentDate),
+              },
+            },
+          },
+        },
       });
 
       if (!schedule) {
         return {
           hasConflict: true,
-          conflicts: [{
-            type: 'exception',
-            startTime: format(startTime, 'HH:mm'),
-            endTime: format(endTime, 'HH:mm'),
-            description: 'No schedule found for provider'
-          }]
+          conflicts: [
+            {
+              type: "exception",
+              startTime: format(startTime, "HH:mm"),
+              endTime: format(endTime, "HH:mm"),
+              description: "No schedule found for provider",
+            },
+          ],
         };
       }
 
@@ -212,12 +216,12 @@ export class AvailabilityService {
           providerId,
           appointmentDate: {
             gte: startOfDay(appointmentDate),
-            lte: endOfDay(appointmentDate)
+            lte: endOfDay(appointmentDate),
           },
           status: {
-            in: ['SCHEDULED', 'CONFIRMED']
-          }
-        }
+            in: ["SCHEDULED", "CONFIRMED"],
+          },
+        },
       });
 
       const dayOfWeek = this.getDayOfWeek(appointmentDate);
@@ -227,14 +231,14 @@ export class AvailabilityService {
         startTime.toISOString(),
         endTime.toISOString(),
         appointments,
-        schedule.breakPeriods.filter(bp => 
-          !bp.dayOfWeek || bp.dayOfWeek === dayOfWeek
+        schedule.breakPeriods.filter(
+          (bp) => !bp.dayOfWeek || bp.dayOfWeek === dayOfWeek
         ),
         exception
       );
     } catch (error) {
-      console.error('Error checking appointment conflicts:', error);
-      throw new Error('Failed to check appointment conflicts');
+      console.error("Error checking appointment conflicts:", error);
+      throw new Error("Failed to check appointment conflicts");
     }
   }
 
@@ -253,64 +257,71 @@ export class AvailabilityService {
         where: {
           provider: {
             schedules: {
-              some: { id: scheduleId }
-            }
+              some: { id: scheduleId },
+            },
           },
           appointmentDate: {
             gte: new Date(),
-            lte: futureDate
+            lte: futureDate,
           },
           status: {
-            in: ['SCHEDULED', 'CONFIRMED']
-          }
-        }
+            in: ["SCHEDULED", "CONFIRMED"],
+          },
+        },
       });
 
-      const conflicts: ConflictResult['conflicts'] = [];
+      const conflicts: ConflictResult["conflicts"] = [];
 
       for (const appointment of appointments) {
         const dayOfWeek = this.getDayOfWeek(appointment.appointmentDate);
-        const appointmentTime = format(appointment.appointmentDate, 'HH:mm');
+        const appointmentTime = format(appointment.appointmentDate, "HH:mm");
         const appointmentEndTime = format(
-          new Date(appointment.appointmentDate.getTime() + (appointment.duration || 30) * 60000),
-          'HH:mm'
+          new Date(
+            appointment.appointmentDate.getTime() +
+              (appointment.duration || 30) * 60000
+          ),
+          "HH:mm"
         );
 
         // Check against new weekly availability
-        const dayAvailability = newWeeklyAvailability.filter(wa => 
-          wa.dayOfWeek === dayOfWeek && wa.isAvailable
+        const dayAvailability = newWeeklyAvailability.filter(
+          (wa) => wa.dayOfWeek === dayOfWeek && wa.isAvailable
         );
 
-        const isWithinAvailableHours = dayAvailability.some(avail => 
-          appointmentTime >= avail.startTime && appointmentEndTime <= avail.endTime
+        const isWithinAvailableHours = dayAvailability.some(
+          (avail) =>
+            appointmentTime >= avail.startTime &&
+            appointmentEndTime <= avail.endTime
         );
 
         if (!isWithinAvailableHours) {
           conflicts.push({
-            type: 'appointment',
+            type: "appointment",
             startTime: appointmentTime,
             endTime: appointmentEndTime,
-            description: `Existing appointment on ${format(appointment.appointmentDate, 'yyyy-MM-dd')} conflicts with new availability`
+            description: `Existing appointment on ${format(appointment.appointmentDate, "yyyy-MM-dd")} conflicts with new availability`,
           });
         }
 
         // Check against new break periods
-        const dayBreaks = newBreakPeriods.filter(bp => 
-          !bp.dayOfWeek || bp.dayOfWeek === dayOfWeek
+        const dayBreaks = newBreakPeriods.filter(
+          (bp) => !bp.dayOfWeek || bp.dayOfWeek === dayOfWeek
         );
 
         for (const breakPeriod of dayBreaks) {
-          if (this.timeRangesOverlap(
-            appointmentTime,
-            appointmentEndTime,
-            breakPeriod.startTime,
-            breakPeriod.endTime
-          )) {
+          if (
+            this.timeRangesOverlap(
+              appointmentTime,
+              appointmentEndTime,
+              breakPeriod.startTime,
+              breakPeriod.endTime
+            )
+          ) {
             conflicts.push({
-              type: 'break',
+              type: "break",
               startTime: appointmentTime,
               endTime: appointmentEndTime,
-              description: `Existing appointment conflicts with new break period: ${breakPeriod.title || 'Break'}`
+              description: `Existing appointment conflicts with new break period: ${breakPeriod.title || "Break"}`,
             });
           }
         }
@@ -318,23 +329,35 @@ export class AvailabilityService {
 
       return {
         hasConflict: conflicts.length > 0,
-        conflicts
+        conflicts,
       };
     } catch (error) {
-      console.error('Error validating schedule changes:', error);
-      throw new Error('Failed to validate schedule changes');
+      console.error("Error validating schedule changes:", error);
+      throw new Error("Failed to validate schedule changes");
     }
   }
 
   private static getDayOfWeek(date: Date): DayOfWeek {
-    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const days = [
+      "SUNDAY",
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY",
+    ];
     return days[date.getDay()] as DayOfWeek;
   }
 
-  private static generateTimeSlots(startTime: string, endTime: string, duration: number): TimeSlot[] {
+  private static generateTimeSlots(
+    startTime: string,
+    endTime: string,
+    duration: number
+  ): TimeSlot[] {
     const slots: TimeSlot[] = [];
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
 
     let currentMinutes = startHour * 60 + startMinute;
     const endMinutes = endHour * 60 + endMinute;
@@ -347,8 +370,8 @@ export class AvailabilityService {
       const slotEndMinute = slotEndMinutes % 60;
 
       slots.push({
-        start: `${slotStartHour.toString().padStart(2, '0')}:${slotStartMinute.toString().padStart(2, '0')}`,
-        end: `${slotEndHour.toString().padStart(2, '0')}:${slotEndMinute.toString().padStart(2, '0')}`
+        start: `${slotStartHour.toString().padStart(2, "0")}:${slotStartMinute.toString().padStart(2, "0")}`,
+        end: `${slotEndHour.toString().padStart(2, "0")}:${slotEndMinute.toString().padStart(2, "0")}`,
       });
 
       currentMinutes += duration;
@@ -364,36 +387,48 @@ export class AvailabilityService {
     breakPeriods: any[],
     exception?: any
   ): ConflictResult {
-    const conflicts: ConflictResult['conflicts'] = [];
-    const slotStartTime = format(parseISO(slotStart), 'HH:mm');
-    const slotEndTime = format(parseISO(slotEnd), 'HH:mm');
+    const conflicts: ConflictResult["conflicts"] = [];
+    const slotStartTime = format(new Date(slotStart), "HH:mm");
+    const slotEndTime = format(new Date(slotEnd), "HH:mm");
 
     // Check appointment conflicts
     for (const appointment of appointments) {
-      const aptStart = format(appointment.appointmentDate, 'HH:mm');
+      const aptStart = format(appointment.appointmentDate, "HH:mm");
       const aptEnd = format(
-        new Date(appointment.appointmentDate.getTime() + (appointment.duration || 30) * 60000),
-        'HH:mm'
+        new Date(
+          appointment.appointmentDate.getTime() +
+            (appointment.duration || 30) * 60000
+        ),
+        "HH:mm"
       );
 
-      if (this.timeRangesOverlap(slotStartTime, slotEndTime, aptStart, aptEnd)) {
+      if (
+        this.timeRangesOverlap(slotStartTime, slotEndTime, aptStart, aptEnd)
+      ) {
         conflicts.push({
-          type: 'appointment',
+          type: "appointment",
           startTime: aptStart,
           endTime: aptEnd,
-          description: 'Existing appointment'
+          description: "Existing appointment",
         });
       }
     }
 
     // Check break conflicts
     for (const breakPeriod of breakPeriods) {
-      if (this.timeRangesOverlap(slotStartTime, slotEndTime, breakPeriod.startTime, breakPeriod.endTime)) {
+      if (
+        this.timeRangesOverlap(
+          slotStartTime,
+          slotEndTime,
+          breakPeriod.startTime,
+          breakPeriod.endTime
+        )
+      ) {
         conflicts.push({
-          type: 'break',
+          type: "break",
           startTime: breakPeriod.startTime,
           endTime: breakPeriod.endTime,
-          description: breakPeriod.title || 'Break period'
+          description: breakPeriod.title || "Break period",
         });
       }
     }
@@ -401,12 +436,19 @@ export class AvailabilityService {
     // Check exception conflicts
     if (exception && exception.type === ExceptionType.MODIFIED_HOURS) {
       if (exception.startTime && exception.endTime) {
-        if (!this.timeRangesOverlap(slotStartTime, slotEndTime, exception.startTime, exception.endTime)) {
+        if (
+          !this.timeRangesOverlap(
+            slotStartTime,
+            slotEndTime,
+            exception.startTime,
+            exception.endTime
+          )
+        ) {
           conflicts.push({
-            type: 'exception',
+            type: "exception",
             startTime: exception.startTime,
             endTime: exception.endTime,
-            description: exception.title
+            description: exception.title,
           });
         }
       }
@@ -414,11 +456,16 @@ export class AvailabilityService {
 
     return {
       hasConflict: conflicts.length > 0,
-      conflicts
+      conflicts,
     };
   }
 
-  private static timeRangesOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
+  private static timeRangesOverlap(
+    start1: string,
+    end1: string,
+    start2: string,
+    end2: string
+  ): boolean {
     return start1 < end2 && start2 < end1;
   }
 }

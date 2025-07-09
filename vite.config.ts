@@ -9,6 +9,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0",
     port: parseInt(process.env.VITE_PORT || process.env.PORT || '10000', 10),
+    proxy: {
+      '/socket.io': {
+        target: process.env.VITE_BACKEND_URL || 'http://fintan-virtual-care-hub-sqhm:3000',
+        ws: true,
+      },
+    },
   },
   plugins: [
     react(),

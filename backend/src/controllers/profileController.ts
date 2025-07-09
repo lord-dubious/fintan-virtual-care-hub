@@ -65,8 +65,7 @@ export const uploadProfilePicture = async (req: AuthenticatedRequest, res: Respo
     }
 
     // Generate the URL for the uploaded file
-    const baseUrl = process.env['API_BASE_URL'] || 'http://50.118.225.14:3000';
-    const profilePictureUrl = `${baseUrl}/uploads/profiles/${req.file.filename}`;
+    const profilePictureUrl = `${req.protocol}://${req.get('host')}/uploads/profiles/${req.file.filename}`;
 
     // Update user's profile picture in database
     const updatedUser = await prisma.user.update({

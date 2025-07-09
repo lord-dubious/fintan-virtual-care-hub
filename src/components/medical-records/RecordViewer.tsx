@@ -1,32 +1,30 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { format } from 'date-fns';
-import {
-  FileText,
-  Download,
-  Share,
-  Print,
-  Calendar,
-  User,
-  Pill,
-  Activity,
-  Eye,
-  Heart,
-  Brain,
-  X,
-  Lock,
-  Shield,
-} from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
+import { format } from "date-fns";
+import {
+  Activity,
+  Brain,
+  Calendar,
+  Download,
+  Eye,
+  FileText,
+  Heart,
+  Pill,
+  Printer,
+  Share,
+  Shield,
+  User,
+  X,
+} from "lucide-react";
+import React, { useState } from "react";
 
 interface MedicalRecord {
   id: string;
@@ -55,30 +53,30 @@ interface RecordViewerProps {
   record: MedicalRecord;
   isOpen: boolean;
   onClose: () => void;
-  userRole?: 'PATIENT' | 'DOCTOR' | 'PROVIDER';
+  userRole?: "PATIENT" | "DOCTOR" | "PROVIDER";
 }
 
 const RecordViewer: React.FC<RecordViewerProps> = ({
   record,
   isOpen,
   onClose,
-  userRole = 'PATIENT'
+  userRole = "PATIENT",
 }) => {
   const [isSharing, setIsSharing] = useState(false);
 
   const getRecordTypeIcon = (type: string) => {
     switch (type.toLowerCase()) {
-      case 'consultation':
+      case "consultation":
         return <User className="h-5 w-5" />;
-      case 'prescription':
+      case "prescription":
         return <Pill className="h-5 w-5" />;
-      case 'lab_result':
+      case "lab_result":
         return <Activity className="h-5 w-5" />;
-      case 'imaging':
+      case "imaging":
         return <Eye className="h-5 w-5" />;
-      case 'surgery':
+      case "surgery":
         return <Heart className="h-5 w-5" />;
-      case 'mental_health':
+      case "mental_health":
         return <Brain className="h-5 w-5" />;
       default:
         return <FileText className="h-5 w-5" />;
@@ -87,26 +85,26 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
 
   const getRecordTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
-      case 'consultation':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'prescription':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'lab_result':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
-      case 'imaging':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
-      case 'surgery':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      case 'mental_health':
-        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300';
+      case "consultation":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+      case "prescription":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+      case "lab_result":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
+      case "imaging":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300";
+      case "surgery":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+      case "mental_health":
+        return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300";
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
     }
   };
 
   const handleDownload = () => {
     // In a real app, this would generate and download a PDF
-    console.log('Downloading record:', record.id);
+    console.log("Downloading record:", record.id);
   };
 
   const handleShare = () => {
@@ -125,7 +123,9 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${getRecordTypeColor(record.type)}`}>
+              <div
+                className={`p-2 rounded-lg ${getRecordTypeColor(record.type)}`}
+              >
                 {getRecordTypeIcon(record.type)}
               </div>
               <div>
@@ -133,7 +133,8 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
                   {record.diagnosis}
                 </DialogTitle>
                 <DialogDescription>
-                  Medical Record • {format(new Date(record.createdAt), 'MMMM d, yyyy')}
+                  Medical Record •{" "}
+                  {format(new Date(record.createdAt), "MMMM d, yyyy")}
                 </DialogDescription>
               </div>
             </div>
@@ -148,13 +149,11 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
           <div className="flex items-center gap-4">
             <Badge className={getRecordTypeColor(record.type)}>
               {getRecordTypeIcon(record.type)}
-              <span className="ml-2 capitalize">{record.type.replace('_', ' ')}</span>
+              <span className="ml-2 capitalize">
+                {record.type.replace("_", " ")}
+              </span>
             </Badge>
-            {record.status && (
-              <Badge variant="outline">
-                {record.status}
-              </Badge>
-            )}
+            {record.status && <Badge variant="outline">{record.status}</Badge>}
           </div>
 
           {/* Patient/Provider Information */}
@@ -164,19 +163,23 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {userRole !== 'PATIENT' && record.patient && (
+                {userRole !== "PATIENT" && record.patient && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Patient</label>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Patient
+                    </label>
                     <div className="flex items-center gap-2 mt-1">
                       <User className="h-4 w-4" />
                       {record.patient.user.name}
                     </div>
                   </div>
                 )}
-                
+
                 {record.provider && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Healthcare Provider</label>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Healthcare Provider
+                    </label>
                     <div className="mt-1">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4" />
@@ -190,20 +193,29 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
                     </div>
                   </div>
                 )}
-                
+
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Date Created</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Date Created
+                  </label>
                   <div className="flex items-center gap-2 mt-1">
                     <Calendar className="h-4 w-4" />
-                    {format(new Date(record.createdAt), 'EEEE, MMMM d, yyyy h:mm a')}
+                    {format(
+                      new Date(record.createdAt),
+                      "EEEE, MMMM d, yyyy h:mm a"
+                    )}
                   </div>
                 </div>
-                
+
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Record Type</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Record Type
+                  </label>
                   <div className="flex items-center gap-2 mt-1">
                     {getRecordTypeIcon(record.type)}
-                    <span className="capitalize">{record.type.replace('_', ' ')}</span>
+                    <span className="capitalize">
+                      {record.type.replace("_", " ")}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -253,7 +265,9 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
               <CardTitle className="text-lg">Clinical Notes</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-foreground whitespace-pre-wrap">{record.notes}</p>
+              <p className="text-foreground whitespace-pre-wrap">
+                {record.notes}
+              </p>
             </CardContent>
           </Card>
 
@@ -266,7 +280,10 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
               <CardContent>
                 <div className="space-y-2">
                   {record.attachments.map((attachment, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4" />
                         <span>{attachment}</span>
@@ -287,11 +304,14 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
                 <Shield className="h-4 w-4" />
-                <span className="font-medium">Protected Health Information</span>
+                <span className="font-medium">
+                  Protected Health Information
+                </span>
               </div>
               <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                This medical record contains protected health information and is confidential.
-                Unauthorized access or disclosure is prohibited by law.
+                This medical record contains protected health information and is
+                confidential. Unauthorized access or disclosure is prohibited by
+                law.
               </p>
             </CardContent>
           </Card>
@@ -304,19 +324,21 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
                 Download PDF
               </Button>
               <Button variant="outline" onClick={handlePrint}>
-                <Print className="h-4 w-4 mr-2" />
+                <Printer className="h-4 w-4 mr-2" />
                 Print
               </Button>
-              {userRole !== 'PATIENT' && (
-                <Button variant="outline" onClick={handleShare} disabled={isSharing}>
+              {userRole !== "PATIENT" && (
+                <Button
+                  variant="outline"
+                  onClick={handleShare}
+                  disabled={isSharing}
+                >
                   <Share className="h-4 w-4 mr-2" />
-                  {isSharing ? 'Sharing...' : 'Share'}
+                  {isSharing ? "Sharing..." : "Share"}
                 </Button>
               )}
             </div>
-            <Button onClick={onClose}>
-              Close
-            </Button>
+            <Button onClick={onClose}>Close</Button>
           </div>
         </div>
       </DialogContent>

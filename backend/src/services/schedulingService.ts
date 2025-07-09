@@ -1,8 +1,15 @@
-import { prisma } from '@/config/database';
-import logger from '@/config/logger';
-import { addDays, addWeeks, addMonths, format, startOfDay, endOfDay, parseISO } from 'date-fns';
-import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
-import SlotCalculator from 'slot-calculator';
+import { prisma } from "@/config/database";
+import logger from "@/config/logger";
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  endOfDay,
+  format,
+  startOfDay,
+} from "date-fns";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import SlotCalculator from "slot-calculator";
 
 export interface TimeSlot {
   startTime: Date;
@@ -24,8 +31,8 @@ export interface RecurringAppointmentRequest {
   startDateTime: Date;
   duration: number; // in minutes
   reason: string;
-  consultationType: 'VIDEO' | 'AUDIO' | 'IN_PERSON';
-  recurrencePattern: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  consultationType: "VIDEO" | "AUDIO" | "IN_PERSON";
+  recurrencePattern: "DAILY" | "WEEKLY" | "MONTHLY";
   recurrenceCount?: number | undefined; // Number of occurrences
   recurrenceEndDate?: Date | undefined; // End date for recurrence
   timezone: string;
@@ -39,11 +46,13 @@ export class SchedulingService {
     try {
       const { providerId, date, timezone, duration = 30 } = request;
 
-      logger.info(`🔍 Getting available slots for provider ${providerId} on ${date}`);
+      logger.info(
+        `🔍 Getting available slots for provider ${providerId} on ${date}`
+      );
 
       // Parse the date
-      const requestDate = parseISO(date + 'T00:00:00');
-      const dayOfWeek = format(requestDate, 'EEEE').toUpperCase();
+      const requestDate = new Date(date + "T00:00:00");
+      const dayOfWeek = format(requestDate, "EEEE").toUpperCase();
 
       // Get provider availability for the requested day
       const providerAvailability = await prisma.availability.findMany({
@@ -53,12 +62,14 @@ export class SchedulingService {
           isAvailable: true,
         },
         orderBy: {
-          startTime: 'asc',
+          startTime: "asc",
         },
       });
 
       if (providerAvailability.length === 0) {
-        logger.info(`❌ No availability found for provider ${providerId} on ${dayOfWeek}`);
+        logger.info(
+          `❌ No availability found for provider ${providerId} on ${dayOfWeek}`
+        );
         return [];
       }
 
@@ -74,7 +85,7 @@ export class SchedulingService {
             lte: endOfDayUTC,
           },
           status: {
-            in: ['SCHEDULED', 'CONFIRMED'],
+            in: ["SCHEDULED", "CONFIRMED"],
           },
         },
         select: {
@@ -83,7 +94,9 @@ export class SchedulingService {
         },
       });
 
-      logger.info(`📅 Found ${existingAppointments.length} existing appointments`);
+      logger.info(
+        `📅 Found ${existingAppointments.length} existing appointments`
+      );
 
       // Use slot-calculator to generate available slots
       const timeSlots: TimeSlot[] = [];
@@ -99,13 +112,15 @@ export class SchedulingService {
         timeSlots.push(...slots);
       }
 
-      const sortedSlots = timeSlots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+      const sortedSlots = timeSlots.sort(
+        (a, b) => a.startTime.getTime() - b.startTime.getTime()
+      );
       logger.info(`✅ Generated ${sortedSlots.length} time slots`);
 
       return sortedSlots;
     } catch (error) {
-      logger.error('Get available slots error:', error);
-      throw new Error('Failed to get available slots');
+      logger.error("Get available slots error:", error);
+      throw new Error("Failed to get available slots");
     }
   }
 
@@ -121,7 +136,7 @@ export class SchedulingService {
   ): Promise<TimeSlot[]> {
     try {
       // Create date strings for the specific day
-      const dateStr = format(requestDate, 'yyyy-MM-dd');
+      const dateStr = format(requestDate, "yyyy-MM-dd");
       const startTimeStr = `${dateStr}T${availability.startTime}:00`;
       const endTimeStr = `${dateStr}T${availability.endTime}:00`;
 
@@ -130,9 +145,12 @@ export class SchedulingService {
       const endTime = fromZonedTime(new Date(endTimeStr), timezone);
 
       // Prepare existing bookings for slot-calculator
-      const existingBookings = existingAppointments.map(appointment => ({
+      const existingBookings = existingAppointments.map((appointment) => ({
         start: appointment.appointmentDate,
-        end: new Date(appointment.appointmentDate.getTime() + (appointment.duration || 30) * 60 * 1000),
+        end: new Date(
+          appointment.appointmentDate.getTime() +
+            (appointment.duration || 30) * 60 * 1000
+        ),
       }));
 
       // Use slot calculator
@@ -140,8 +158,17 @@ export class SchedulingService {
         from: startTime.toISOString(),
         to: endTime.toISOString(),
         duration: duration, // in minutes
-        existingBookings,
-        timezone,
+        unavailability: existingBookings.map((booking) => ({
+          from:
+            booking.start instanceof Date
+              ? booking.start.toISOString()
+              : booking.start,
+          to:
+            booking.end instanceof Date
+              ? booking.end.toISOString()
+              : booking.end,
+        })),
+        outputTimezone: timezone,
       });
 
       // Get available slots
@@ -154,11 +181,16 @@ export class SchedulingService {
         isAvailable: true,
         conflictReason: undefined,
       }));
-
     } catch (error) {
-      logger.error('Error calculating slots with slot-calculator:', error);
+      logger.error("Error calculating slots with slot-calculator:", error);
       // Fallback to basic slot generation
-      return this.generateBasicSlots(availability, requestDate, timezone, duration, existingAppointments);
+      return this.generateBasicSlots(
+        availability,
+        requestDate,
+        timezone,
+        duration,
+        existingAppointments
+      );
     }
   }
 
@@ -173,11 +205,9 @@ export class SchedulingService {
     existingAppointments: any[]
   ): TimeSlot[] {
     const slots: TimeSlot[] = [];
-    const dateStr = format(requestDate, 'yyyy-MM-dd');
+    const dateStr = format(requestDate, "yyyy-MM-dd");
 
-    // Parse start and end times
-    const [startHour, startMinute] = availability.startTime.split(':').map(Number);
-    const [endHour, endMinute] = availability.endTime.split(':').map(Number);
+    // Note: Using time strings directly in Date constructor below
 
     // Create start and end times for the day
     const dayStart = fromZonedTime(
@@ -197,15 +227,19 @@ export class SchedulingService {
 
       if (slotEnd <= dayEnd) {
         // Check for conflicts with existing appointments
-        const hasConflict = existingAppointments.some(appointment => {
+        const hasConflict = existingAppointments.some((appointment) => {
           const appointmentEnd = new Date(
-            appointment.appointmentDate.getTime() + (appointment.duration || 30) * 60 * 1000
+            appointment.appointmentDate.getTime() +
+              (appointment.duration || 30) * 60 * 1000
           );
 
           return (
-            (currentTime >= appointment.appointmentDate && currentTime < appointmentEnd) ||
-            (slotEnd > appointment.appointmentDate && slotEnd <= appointmentEnd) ||
-            (currentTime <= appointment.appointmentDate && slotEnd >= appointmentEnd)
+            (currentTime >= appointment.appointmentDate &&
+              currentTime < appointmentEnd) ||
+            (slotEnd > appointment.appointmentDate &&
+              slotEnd <= appointmentEnd) ||
+            (currentTime <= appointment.appointmentDate &&
+              slotEnd >= appointmentEnd)
           );
         });
 
@@ -213,7 +247,9 @@ export class SchedulingService {
           startTime: new Date(currentTime),
           endTime: new Date(slotEnd),
           isAvailable: !hasConflict,
-          conflictReason: hasConflict ? 'Appointment already booked' : undefined,
+          conflictReason: hasConflict
+            ? "Appointment already booked"
+            : undefined,
         });
       }
 
@@ -234,13 +270,15 @@ export class SchedulingService {
     excludeAppointmentId?: string
   ): Promise<{ available: boolean; conflictReason?: string }> {
     try {
-      const endDateTime = new Date(startDateTime.getTime() + duration * 60 * 1000);
+      const endDateTime = new Date(
+        startDateTime.getTime() + duration * 60 * 1000
+      );
 
       // Check for conflicting appointments
       const whereClause: any = {
         providerId,
         status: {
-          in: ['SCHEDULED', 'CONFIRMED'],
+          in: ["SCHEDULED", "CONFIRMED"],
         },
       };
 
@@ -266,8 +304,8 @@ export class SchedulingService {
       }
 
       // Check provider availability for the day and time
-      const dayOfWeek = format(startDateTime, 'EEEE').toUpperCase();
-      const timeString = format(startDateTime, 'HH:mm');
+      const dayOfWeek = format(startDateTime, "EEEE").toUpperCase();
+      const timeString = format(startDateTime, "HH:mm");
 
       const availability = await prisma.availability.findFirst({
         where: {
@@ -286,21 +324,23 @@ export class SchedulingService {
       if (!availability) {
         return {
           available: false,
-          conflictReason: 'Provider not available at this time',
+          conflictReason: "Provider not available at this time",
         };
       }
 
       return { available: true };
     } catch (error) {
-      logger.error('Check slot availability error:', error);
-      throw new Error('Failed to check slot availability');
+      logger.error("Check slot availability error:", error);
+      throw new Error("Failed to check slot availability");
     }
   }
 
   /**
    * Create recurring appointments
    */
-  async createRecurringAppointments(request: RecurringAppointmentRequest): Promise<string[]> {
+  async createRecurringAppointments(
+    request: RecurringAppointmentRequest
+  ): Promise<string[]> {
     try {
       const {
         patientId,
@@ -329,8 +369,12 @@ export class SchedulingService {
         }
 
         // Check if the slot is available
-        const availability = await this.isSlotAvailable(providerId, currentDate, duration);
-        
+        const availability = await this.isSlotAvailable(
+          providerId,
+          currentDate,
+          duration
+        );
+
         if (availability.available) {
           appointments.push({
             patientId,
@@ -338,7 +382,7 @@ export class SchedulingService {
             appointmentDate: currentDate,
             reason: `${reason} (Recurring ${count + 1})`,
             consultationType,
-            status: 'SCHEDULED',
+            status: "SCHEDULED",
             duration,
           });
         } else {
@@ -350,13 +394,13 @@ export class SchedulingService {
 
         // Calculate next occurrence
         switch (recurrencePattern) {
-          case 'DAILY':
+          case "DAILY":
             currentDate = addDays(currentDate, 1);
             break;
-          case 'WEEKLY':
+          case "WEEKLY":
             currentDate = addWeeks(currentDate, 1);
             break;
-          case 'MONTHLY':
+          case "MONTHLY":
             currentDate = addMonths(currentDate, 1);
             break;
         }
@@ -367,14 +411,14 @@ export class SchedulingService {
       // Create all appointments in a transaction
       if (appointments.length > 0) {
         const createdAppointments = await prisma.$transaction(
-          appointments.map(appointment =>
+          appointments.map((appointment) =>
             prisma.appointment.create({
               data: appointment,
             })
           )
         );
 
-        appointmentIds.push(...createdAppointments.map(apt => apt.id));
+        appointmentIds.push(...createdAppointments.map((apt) => apt.id));
       }
 
       logger.info(`Created ${appointmentIds.length} recurring appointments`, {
@@ -385,8 +429,8 @@ export class SchedulingService {
 
       return appointmentIds;
     } catch (error) {
-      logger.error('Create recurring appointments error:', error);
-      throw new Error('Failed to create recurring appointments');
+      logger.error("Create recurring appointments error:", error);
+      throw new Error("Failed to create recurring appointments");
     }
   }
 
@@ -401,10 +445,10 @@ export class SchedulingService {
     existingAppointments: any[]
   ): TimeSlot[] {
     const slots: TimeSlot[] = [];
-    
+
     // Parse availability times
-    const [startHour, startMin] = availability.startTime.split(':').map(Number);
-    const [endHour, endMin] = availability.endTime.split(':').map(Number);
+    const [startHour, startMin] = availability.startTime.split(":").map(Number);
+    const [endHour, endMin] = availability.endTime.split(":").map(Number);
 
     // Create start and end times for the day in the specified timezone
     const dayStart = new Date(date);
@@ -417,23 +461,30 @@ export class SchedulingService {
 
     // Generate slots every `duration` minutes
     let currentSlotStart = new Date(dayStartUTC);
-    
+
     while (currentSlotStart < dayEndUTC) {
-      const currentSlotEnd = new Date(currentSlotStart.getTime() + duration * 60 * 1000);
-      
+      const currentSlotEnd = new Date(
+        currentSlotStart.getTime() + duration * 60 * 1000
+      );
+
       if (currentSlotEnd > dayEndUTC) {
         break;
       }
 
       // Check for conflicts with existing appointments
-      const hasConflict = existingAppointments.some(appointment => {
+      const hasConflict = existingAppointments.some((appointment) => {
         const appointmentStart = new Date(appointment.appointmentDate);
-        const appointmentEnd = new Date(appointmentStart.getTime() + (appointment.duration || 30) * 60 * 1000);
-        
+        const appointmentEnd = new Date(
+          appointmentStart.getTime() + (appointment.duration || 30) * 60 * 1000
+        );
+
         return (
-          (currentSlotStart >= appointmentStart && currentSlotStart < appointmentEnd) ||
-          (currentSlotEnd > appointmentStart && currentSlotEnd <= appointmentEnd) ||
-          (currentSlotStart <= appointmentStart && currentSlotEnd >= appointmentEnd)
+          (currentSlotStart >= appointmentStart &&
+            currentSlotStart < appointmentEnd) ||
+          (currentSlotEnd > appointmentStart &&
+            currentSlotEnd <= appointmentEnd) ||
+          (currentSlotStart <= appointmentStart &&
+            currentSlotEnd >= appointmentEnd)
         );
       });
 
@@ -444,13 +495,15 @@ export class SchedulingService {
       };
 
       if (hasConflict) {
-        slot.conflictReason = 'Time slot already booked';
+        slot.conflictReason = "Time slot already booked";
       }
 
       slots.push(slot);
 
       // Move to next slot
-      currentSlotStart = new Date(currentSlotStart.getTime() + duration * 60 * 1000);
+      currentSlotStart = new Date(
+        currentSlotStart.getTime() + duration * 60 * 1000
+      );
     }
 
     return slots;
@@ -460,7 +513,7 @@ export class SchedulingService {
    * Convert UTC time to user's timezone for display
    */
   formatTimeForTimezone(utcTime: Date, timezone: string): string {
-    return formatInTimeZone(utcTime, timezone, 'yyyy-MM-dd HH:mm:ss zzz');
+    return formatInTimeZone(utcTime, timezone, "yyyy-MM-dd HH:mm:ss zzz");
   }
 
   /**

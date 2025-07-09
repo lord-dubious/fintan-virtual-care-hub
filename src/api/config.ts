@@ -1,9 +1,14 @@
 // API Configuration for Dr. Fintan Virtual Care Hub
 // This file centralizes all API-related configuration
 
-// Dynamic API URL construction - NO HARDCODING, AUTO-DETECT EVERYTHING
+// Dynamic API URL construction - PRIORITIZE EXPLICIT CONFIGURATION
 const getBackendURL = () => {
-  // If explicitly set, use it
+  // HIGHEST PRIORITY: Full URL override
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL;
+  }
+
+  // SECOND PRIORITY: Host + Port configuration
   if (import.meta.env.VITE_BACKEND_HOST) {
     const host = import.meta.env.VITE_BACKEND_HOST;
     const port = import.meta.env.VITE_BACKEND_PORT || "3000";

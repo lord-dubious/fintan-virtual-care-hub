@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ESNext",
     "useDefineForClassFields": true,
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -17,18 +21,24 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["./src/*"],
-      "shared/*": ["./shared/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "shared/*": [
+        "./shared/*"
+      ]
     }
   },
-  "include": ["src"],
+  "include": [
+    "src/**/*"
+  ],
   "exclude": [
-    "src/__tests__/**/*",
-    "src/tests/**/*",
-    "src/examples/**/*",
-    "src/lib/services/**/*.jsdoc.ts",
-    "src/lib/prisma.ts",
-    "src/setupTests.ts",
-    "src/lib/auth/authGuard.tsx"
+    "node_modules",
+    "dist",
+    "build",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
   ]
 }

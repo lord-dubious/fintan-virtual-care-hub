@@ -1,14 +1,19 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { patientsApi, Patient, PatientFilters, CreatePatientData, UpdatePatientData } from '@/api/patients';
-import { useToast } from '@/hooks/use-toast';
+import {
+  CreatePatientData,
+  PatientFilters,
+  patientsApi,
+  UpdatePatientData,
+} from "@/api/patients";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const usePatients = (filters?: PatientFilters) => {
   return useQuery({
-    queryKey: ['patients', filters],
+    queryKey: ["patients", filters],
     queryFn: async () => {
       const response = await patientsApi.getPatients(filters);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch patients');
+        throw new Error(response.error || "Failed to fetch patients");
       }
       return response.data!;
     },
@@ -18,11 +23,11 @@ export const usePatients = (filters?: PatientFilters) => {
 
 export const usePatient = (id: string) => {
   return useQuery({
-    queryKey: ['patients', id],
+    queryKey: ["patients", id],
     queryFn: async () => {
       const response = await patientsApi.getPatient(id);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch patient');
+        throw new Error(response.error || "Failed to fetch patient");
       }
       return response.data!;
     },
@@ -32,11 +37,11 @@ export const usePatient = (id: string) => {
 
 export const usePatientMedicalHistory = (patientId: string) => {
   return useQuery({
-    queryKey: ['patients', patientId, 'medical-history'],
+    queryKey: ["patients", patientId, "medical-history"],
     queryFn: async () => {
       const response = await patientsApi.getPatientMedicalHistory(patientId);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch medical history');
+        throw new Error(response.error || "Failed to fetch medical history");
       }
       return response.data!;
     },
@@ -46,11 +51,13 @@ export const usePatientMedicalHistory = (patientId: string) => {
 
 export const usePatientAppointments = (patientId: string) => {
   return useQuery({
-    queryKey: ['patients', patientId, 'appointments'],
+    queryKey: ["patients", patientId, "appointments"],
     queryFn: async () => {
       const response = await patientsApi.getPatientAppointments(patientId);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch patient appointments');
+        throw new Error(
+          response.error || "Failed to fetch patient appointments"
+        );
       }
       return response.data!;
     },
@@ -66,13 +73,13 @@ export const useCreatePatient = () => {
     mutationFn: async (data: CreatePatientData) => {
       const response = await patientsApi.createPatient(data);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to create patient');
+        throw new Error(response.error || "Failed to create patient");
       }
       return response.data!;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['patients'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast({
         title: "Patient Created",
         description: "The patient has been added successfully.",
@@ -93,16 +100,22 @@ export const useUpdatePatient = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: UpdatePatientData }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdatePatientData;
+    }) => {
       const response = await patientsApi.updatePatient(id, data);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to update patient');
+        throw new Error(response.error || "Failed to update patient");
       }
       return response.data!;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['patients'] });
-      queryClient.invalidateQueries({ queryKey: ['patients', data.id] });
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["patients", data.id] });
       toast({
         title: "Patient Updated",
         description: "The patient information has been updated successfully.",
@@ -123,18 +136,29 @@ export const useAddMedicalRecord = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ patientId, record }: { 
-      patientId: string; 
-      record: { date: Date; type: string; notes: string; diagnosis?: string; prescription?: string; }
+    mutationFn: async ({
+      patientId,
+      record,
+    }: {
+      patientId: string;
+      record: {
+        date: Date;
+        type: string;
+        notes: string;
+        diagnosis?: string;
+        prescription?: string;
+      };
     }) => {
       const response = await patientsApi.addMedicalRecord(patientId, record);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to add medical record');
+        throw new Error(response.error || "Failed to add medical record");
       }
       return response.data!;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['patients', variables.patientId, 'medical-history'] });
+      queryClient.invalidateQueries({
+        queryKey: ["patients", variables.patientId, "medical-history"],
+      });
       toast({
         title: "Medical Record Added",
         description: "The medical record has been added successfully.",
@@ -152,12 +176,12 @@ export const useAddMedicalRecord = () => {
 
 export const useSearchPatients = (query: string) => {
   return useQuery({
-    queryKey: ['patients', 'search', query],
+    queryKey: ["patients", "search", query],
     queryFn: async () => {
       if (!query.trim()) return [];
       const response = await patientsApi.searchPatients(query);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to search patients');
+        throw new Error(response.error || "Failed to search patients");
       }
       return response.data!;
     },
@@ -168,11 +192,11 @@ export const useSearchPatients = (query: string) => {
 
 export const usePatientStats = () => {
   return useQuery({
-    queryKey: ['patients', 'stats'],
+    queryKey: ["patients", "stats"],
     queryFn: async () => {
       const response = await patientsApi.getPatientStats();
       if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch patient statistics');
+        throw new Error(response.error || "Failed to fetch patient statistics");
       }
       return response.data!;
     },
@@ -188,12 +212,12 @@ export const useDeactivatePatient = () => {
     mutationFn: async (id: string) => {
       const response = await patientsApi.deactivatePatient(id);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to deactivate patient');
+        throw new Error(response.error || "Failed to deactivate patient");
       }
       return response.data!;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
       toast({
         title: "Patient Deactivated",
         description: "The patient has been deactivated successfully.",
@@ -217,12 +241,12 @@ export const useReactivatePatient = () => {
     mutationFn: async (id: string) => {
       const response = await patientsApi.reactivatePatient(id);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to reactivate patient');
+        throw new Error(response.error || "Failed to reactivate patient");
       }
       return response.data!;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
       toast({
         title: "Patient Reactivated",
         description: "The patient has been reactivated successfully.",
@@ -243,22 +267,24 @@ export const usePatientDashboard = () => {
   const { toast } = useToast();
 
   return useQuery({
-    queryKey: ['patient', 'dashboard'],
+    queryKey: ["patient", "dashboard"],
     queryFn: async () => {
       const response = await patientsApi.getPatientDashboard();
       if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch patient dashboard data');
+        throw new Error(
+          response.error || "Failed to fetch patient dashboard data"
+        );
       }
       return response.data!;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes for dashboard data
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     refetchOnWindowFocus: true, // Refresh when user returns to tab
     refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     // Enable background updates
-    refetchOnMount: 'always',
+    refetchOnMount: "always",
     // Optimistic updates for better UX
     placeholderData: (previousData) => previousData,
   });
@@ -266,14 +292,16 @@ export const usePatientDashboard = () => {
 
 export const usePatientMedicalRecords = (patientId?: string) => {
   return useQuery({
-    queryKey: ['patient', patientId || 'current', 'medical-records'],
+    queryKey: ["patient", patientId || "current", "medical-records"],
     queryFn: async () => {
-      const response = patientId 
+      const response = patientId
         ? await patientsApi.getMedicalRecords(patientId)
-        : await patientsApi.getMedicalRecords('current');
-      
+        : await patientsApi.getMedicalRecords("current");
+
       if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch patient medical records');
+        throw new Error(
+          response.error || "Failed to fetch patient medical records"
+        );
       }
       return response.data!;
     },

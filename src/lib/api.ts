@@ -1,9 +1,14 @@
 // Simple API utility for making HTTP requests
 import axios from "axios";
 
-// Dynamic API URL construction - AUTO-DETECT EVERYTHING
+// Dynamic API URL construction - PRIORITIZE EXPLICIT CONFIGURATION
 const getAPIBaseURL = () => {
-  // If explicitly set, use it
+  // HIGHEST PRIORITY: Full URL override
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return `${import.meta.env.VITE_BACKEND_URL}/api`;
+  }
+
+  // SECOND PRIORITY: Host + Port configuration
   if (import.meta.env.VITE_BACKEND_HOST) {
     const host = import.meta.env.VITE_BACKEND_HOST;
     const port = import.meta.env.VITE_BACKEND_PORT || "3000";

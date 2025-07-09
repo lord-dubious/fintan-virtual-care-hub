@@ -7,7 +7,12 @@ export const config = {
   },
   api: {
     baseUrl: (() => {
-      // If explicitly set, use it
+      // HIGHEST PRIORITY: Full URL override
+      if (import.meta.env.VITE_BACKEND_URL) {
+        return `${import.meta.env.VITE_BACKEND_URL}/api`;
+      }
+
+      // SECOND PRIORITY: Host + Port configuration
       if (import.meta.env.VITE_BACKEND_HOST) {
         const host = import.meta.env.VITE_BACKEND_HOST;
         const port = import.meta.env.VITE_BACKEND_PORT || "3000";

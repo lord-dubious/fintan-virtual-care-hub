@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/api/client';
-import { useToast } from '@/hooks/use-toast';
+import { apiClient } from "@/api/client";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 interface ProviderDashboardData {
   provider: {
@@ -71,34 +71,38 @@ export const useProviderDashboard = () => {
   const { toast } = useToast();
 
   return useQuery({
-    queryKey: ['provider', 'dashboard'],
+    queryKey: ["provider", "dashboard"],
     queryFn: async () => {
       try {
-        const response = await apiClient.get<ProviderDashboardData>('/api/providers/dashboard');
+        const response = await apiClient.get<ProviderDashboardData>(
+          "/api/providers/dashboard"
+        );
 
         if (!response.success) {
-          throw new Error(response.error || 'Failed to fetch provider dashboard data');
+          throw new Error(
+            response.error || "Failed to fetch provider dashboard data"
+          );
         }
 
         return response.data!;
       } catch (error) {
-        console.error('Provider dashboard fetch error:', error);
+        console.error("Provider dashboard fetch error:", error);
         toast({
           title: "Error",
           description: "Failed to load dashboard data. Please try again.",
-          variant: "destructive"
+          variant: "destructive",
         });
         throw error;
       }
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     refetchOnWindowFocus: true,
     refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     // Enable background updates
-    refetchOnMount: 'always',
+    refetchOnMount: "always",
     // Optimistic updates for better UX
     placeholderData: (previousData) => previousData,
     // Prefetch related data
@@ -111,31 +115,31 @@ export const useProviderDashboard = () => {
   });
 };
 
-export const useProviderAppointments = (filters?: { 
-  status?: string; 
-  dateFrom?: string; 
-  dateTo?: string; 
+export const useProviderAppointments = (filters?: {
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
   limit?: number;
 }) => {
   const { toast } = useToast();
 
   return useQuery({
-    queryKey: ['provider', 'appointments', filters],
+    queryKey: ["provider", "appointments", filters],
     queryFn: async () => {
       try {
-        const response = await apiClient.get('/api/appointments', filters);
-        
+        const response = await apiClient.get("/api/appointments", filters);
+
         if (!response.success) {
-          throw new Error(response.error || 'Failed to fetch appointments');
+          throw new Error(response.error || "Failed to fetch appointments");
         }
-        
+
         return response.data!;
       } catch (error) {
-        console.error('Provider appointments fetch error:', error);
+        console.error("Provider appointments fetch error:", error);
         toast({
           title: "Error",
           description: "Failed to load appointments. Please try again.",
-          variant: "destructive"
+          variant: "destructive",
         });
         throw error;
       }
@@ -145,29 +149,29 @@ export const useProviderAppointments = (filters?: {
   });
 };
 
-export const useProviderPatients = (filters?: { 
+export const useProviderPatients = (filters?: {
   limit?: number;
   search?: string;
 }) => {
   const { toast } = useToast();
 
   return useQuery({
-    queryKey: ['provider', 'patients', filters],
+    queryKey: ["provider", "patients", filters],
     queryFn: async () => {
       try {
-        const response = await apiClient.get('/api/patients', filters);
-        
+        const response = await apiClient.get("/api/patients", filters);
+
         if (!response.success) {
-          throw new Error(response.error || 'Failed to fetch patients');
+          throw new Error(response.error || "Failed to fetch patients");
         }
-        
+
         return response.data!;
       } catch (error) {
-        console.error('Provider patients fetch error:', error);
+        console.error("Provider patients fetch error:", error);
         toast({
           title: "Error",
           description: "Failed to load patients. Please try again.",
-          variant: "destructive"
+          variant: "destructive",
         });
         throw error;
       }
@@ -181,22 +185,24 @@ export const useProviderStats = (days: number = 30) => {
   const { toast } = useToast();
 
   return useQuery({
-    queryKey: ['provider', 'stats', days],
+    queryKey: ["provider", "stats", days],
     queryFn: async () => {
       try {
         const response = await apiClient.get(`/api/providers/stats`, { days });
-        
+
         if (!response.success) {
-          throw new Error(response.error || 'Failed to fetch provider statistics');
+          throw new Error(
+            response.error || "Failed to fetch provider statistics"
+          );
         }
-        
+
         return response.data!;
       } catch (error) {
-        console.error('Provider stats fetch error:', error);
+        console.error("Provider stats fetch error:", error);
         toast({
           title: "Error",
           description: "Failed to load statistics. Please try again.",
-          variant: "destructive"
+          variant: "destructive",
         });
         throw error;
       }

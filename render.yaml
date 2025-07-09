@@ -21,7 +21,7 @@ services:
       - key: VITE_DEFAULT_PROVIDER_ID
         sync: false
 
-  # Backend Service  
+  # Backend Service
   - type: web
     name: fintan-backend
     env: node
@@ -32,7 +32,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
+        value: 3000
       - key: HOST
         value: 0.0.0.0
       - key: DATABASE_URL

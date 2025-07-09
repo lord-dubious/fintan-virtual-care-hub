@@ -8,6 +8,11 @@
     "dev:frontend": "vite",
     "dev:backend": "cd backend && npm run dev",
     "build": "vite build",
+    "build:frontend": "vite build",
+    "build:backend": "cd backend && npm run build",
+    "start": "vite preview --host 0.0.0.0 --port $PORT",
+    "start:frontend": "vite preview --host 0.0.0.0 --port $PORT",
+    "start:backend": "cd backend && npm start",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
@@ -94,6 +99,7 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
+    "vite": "^5.4.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -127,7 +133,6 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1",
     "vite-plugin-pwa": "^1.0.0",
     "vitest": "^3.2.4",
     "workbox-window": "^7.3.0"

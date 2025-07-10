@@ -30,7 +30,7 @@ const sendErrorResponse = (res: Response, error: ApiError): void => {
 
   // Include error code in development
   if (config.server.isDevelopment) {
-    response.meta = {
+    (response as any).debug = {
       code: error.code,
       ...(error.details && { details: error.details }),
     };

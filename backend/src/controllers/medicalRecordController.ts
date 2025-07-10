@@ -124,8 +124,13 @@ export const createMedicalRecord = async (
 
     const medicalRecord = await prisma.medicalRecord.create({
       data: {
-        ...validatedData,
         providerId: provider.id,
+        patientId: validatedData.patientId,
+        notes: validatedData.notes,
+        diagnosis: validatedData.diagnosis,
+        attachments: validatedData.attachments,
+        consultationId: validatedData.appointmentId,
+        prescriptions: validatedData.prescription ? [validatedData.prescription] : undefined,
       },
       include: {
         patient: {

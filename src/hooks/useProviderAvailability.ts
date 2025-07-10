@@ -120,7 +120,7 @@ export const useAvailabilitySlots = (
   return useQuery({
     queryKey: ['availability-slots', startDate?.toISOString(), endDate?.toISOString(), slotDuration],
     queryFn: async (): Promise<AvailabilitySlot[]> => {
-      const params: any = { slotDuration };
+      const params: Record<string, unknown> = { slotDuration };
 
       if (startDate) params.startDate = startDate.toISOString();
       if (endDate) params.endDate = endDate.toISOString();

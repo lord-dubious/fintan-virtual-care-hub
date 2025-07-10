@@ -1,11 +1,11 @@
-import React from 'react';
+import React from "react";
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { usePatientDashboard, usePatientMedicalRecords } from '@/hooks/usePatients';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
-import { Loader2, FileText, User, Download } from 'lucide-react';
+import { Loader as Loader2 } from "lucide-react";
 import { PatientWithUser, MedicalRecord } from 'shared/domain'; // Import PatientWithUser and MedicalRecord
 
 const PatientProfile = () => {

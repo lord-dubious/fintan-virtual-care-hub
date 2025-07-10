@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from "react";
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -83,7 +84,7 @@ const DoctorDashboard: React.FC = () => {
     if (dashboardData?.todaysAppointments) {
       return dashboardData.todaysAppointments.map(apt => ({
         id: apt.id,
-        patient: apt.patient.name,
+        patient: apt?.patient?.name,
         time: format(new Date(apt.date), 'h:mm a'),
         type: apt.consultationType === 'VIDEO' ? 'Video Consultation' : 'Audio Consultation',
         status: apt.status.toLowerCase(),

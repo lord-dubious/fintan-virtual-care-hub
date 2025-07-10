@@ -70,7 +70,7 @@ const originalConsoleWarn = console.warn;
 
 beforeAll(() => {
   // Suppress console errors/warnings in tests unless they're test-related
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     if (
       typeof args[0] === 'string' &&
       (args[0].includes('Warning:') || args[0].includes('Error:'))
@@ -80,7 +80,7 @@ beforeAll(() => {
     originalConsoleError(...args);
   };
 
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     if (typeof args[0] === 'string' && args[0].includes('Warning:')) {
       return;
     }

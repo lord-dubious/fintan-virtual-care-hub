@@ -13,6 +13,7 @@ export interface ApiResponse<T = unknown> {
 class ApiClient {
   private client: AxiosInstance;
   private refreshPromise: Promise<string | null> | null = null; // Single-flight refresh
+  private refreshLock = false; // Additional lock for race condition prevention
 
   constructor() {
     this.client = axios.create({
@@ -52,24 +53,42 @@ class ApiClient {
           originalRequest._retry = true;
 
           try {
-            // Use single-flight refresh to prevent concurrent refresh requests
-            if (!this.refreshPromise) {
-              this.refreshPromise = this.refreshToken();
+            // Prevent concurrent refresh requests with double-checked locking
+            if (!this.refreshPromise && !this.refreshLock) {
+              this.refreshLock = true;
+
+              // Double-check after acquiring lock
+              if (!this.refreshPromise) {
+                this.refreshPromise = this.refreshToken();
+              }
+
+              this.refreshLock = false;
             }
 
+            // Wait for refresh to complete
             const newToken = await this.refreshPromise;
             this.refreshPromise = null; // Clear the promise after completion
 
             if (newToken) {
               // Retry the original request with new token
-              originalRequest.headers = { ...(originalRequest.headers ?? {}), Authorization: `Bearer ${newToken}` };
+              originalRequest.headers = {
+                ...(originalRequest.headers ?? {}),
+                Authorization: `Bearer ${newToken}`
+              };
               return this.client(originalRequest);
             }
           } catch (refreshError) {
             this.refreshPromise = null; // Clear the promise on error
+            this.refreshLock = false; // Clear the lock on error
+
             // Refresh failed, clear auth data and redirect
             tokenManager.clearAuthData();
-            window.location.href = '/auth/login';
+
+            // Only redirect if we're in a browser environment
+            if (typeof window !== 'undefined') {
+              window.location.href = '/auth/login';
+            }
+
             return Promise.reject(refreshError);
           }
         }
@@ -102,10 +121,10 @@ class ApiClient {
       if (response.data.success) {
         // With cookie-based auth, tokens are automatically set in cookies
         // We just need to update the CSRF token if provided
-        if (response.data.data.csrfToken) {
+        if (response.data?.data.csrfToken) {
           tokenManager.setAuthData({
-            user: response.data.data.user,
-            csrfToken: response.data.data.csrfToken
+            user: response.data?.data.user,
+            csrfToken: response.data?.data.csrfToken
           });
         }
         return 'cookie-token'; // Return placeholder since token is in HTTP-only cookie
@@ -120,7 +139,7 @@ class ApiClient {
           refreshToken
         });
 
-        const { token, refreshToken: newRefreshToken } = response.data.data;
+        const { token, refreshToken: newRefreshToken } = response.data?.data;
 
         // Update stored tokens (legacy method)
         tokenManager.setAuthToken?.(token);

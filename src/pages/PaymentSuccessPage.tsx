@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from "react";
+import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { usePayment, useVerifyPayment } from '@/hooks/usePayments';
 import { paymentsApi } from '@/api/payments';
 import { appointmentsApi } from '@/api/appointments';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Loader as Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import AppointmentConfirmation from '@/components/booking/AppointmentConfirmation';

@@ -1,11 +1,10 @@
+import React from "react";
 
-import React from 'react';
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
-import { Video, Phone, Clock, CheckCircle } from 'lucide-react';
 
 const ServicesPage = () => {
   const isMobile = useIsMobile();

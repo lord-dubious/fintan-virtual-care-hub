@@ -1,42 +1,58 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  patientService, 
-  PatientCreateInput, 
-  PatientUpdateInput 
-} from '@/lib/services/patientService';
+import { patientsApi } from '@/api/patients';
+import type { CreatePatientData, UpdatePatientData } from '@/api/patients';
 
 export const usePatients = () => {
   const queryClient = useQueryClient();
 
   const patients = useQuery({
     queryKey: ['patients'],
-    queryFn: patientService.getAll,
+    queryFn: async () => {
+      const response = await patientsApi.getPatients();
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch patients');
+      }
+      return response.data!;
+    },
   });
 
   const usePatientById = (id: string) => useQuery({
     queryKey: ['patients', id],
-    queryFn: () => patientService.getById(id),
+    queryFn: async () => {
+      const response = await patientsApi.getPatient(id);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch patient');
+      }
+      return response.data!;
+    },
     enabled: !!id,
   });
 
-  const usePatientByEmail = (email: string) => useQuery({
-    queryKey: ['patients', 'email', email],
-    queryFn: () => patientService.getByEmail(email),
-    enabled: !!email,
-  });
+  // Note: usePatientByEmail removed as it was not implemented
+  // If needed, implement the API endpoint first, then add the hook
 
   const createPatient = useMutation({
-    mutationFn: (newPatient: PatientCreateInput) => 
-      patientService.create(newPatient),
+    mutationFn: async (newPatient: CreatePatientData) => {
+      const response = await patientsApi.createPatient(newPatient);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create patient');
+      }
+      return response.data!;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
     },
   });
 
   const updatePatient = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: PatientUpdateInput }) => 
-      patientService.update(id, data),
+    mutationFn: async ({ id, data }: { id: string, data: UpdatePatientData }) => {
+      const response = await patientsApi.updatePatient(id, data);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update patient');
+      }
+      return response.data!;
+    },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
       queryClient.invalidateQueries({ queryKey: ['patients', id] });
@@ -44,8 +60,13 @@ export const usePatients = () => {
   });
 
   const deletePatient = useMutation({
-    mutationFn: (id: string) => 
-      patientService.delete(id),
+    mutationFn: async (id: string) => {
+      const response = await patientsApi.deletePatient(id);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete patient');
+      }
+      return response.data!;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
     },

@@ -1,11 +1,12 @@
+import React from "react";
 // Comprehensive Integration Test Suite
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, XCircle, Loader2, Play } from 'lucide-react';
+import { Loader as Loader2 } from "lucide-react";
 import { authApi } from '@/api/auth';
 import { appointmentsApi } from '@/api/appointments';
 import { paymentsApi } from '@/api/payments';

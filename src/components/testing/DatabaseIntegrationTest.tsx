@@ -1,10 +1,11 @@
+import React from "react";
 // Database Integration Test Component
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, XCircle, Loader2, Database, Users, Calendar, CreditCard } from 'lucide-react';
+import { Loader as Loader2 } from "lucide-react";
 
 interface DatabaseTest {
   name: string;

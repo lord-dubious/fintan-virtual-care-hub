@@ -1,12 +1,13 @@
+import React from "react";
 // Payment Integration Test Component
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usePaymentMethodConfig, useStripePaymentIntent, usePayment } from '@/hooks/usePayments';
 import { paymentsApi } from '@/api/payments';
-import { CheckCircle, XCircle, Loader2, CreditCard, Wallet } from 'lucide-react';
+import { Loader as Loader2 } from "lucide-react";
 
 const PaymentIntegrationTest: React.FC = () => {
   const [testResults, setTestResults] = useState<Record<string, 'pending' | 'success' | 'error'>>({});

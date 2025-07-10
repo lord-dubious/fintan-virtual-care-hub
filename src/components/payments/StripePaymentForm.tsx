@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from "react";
+import { useState } from 'react';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader as Loader2 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 
 interface StripePaymentFormProps {

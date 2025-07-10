@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from "react";
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -130,7 +131,7 @@ const DoctorPatients: React.FC = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <div className="font-semibold text-lg">
-                  {patient.user.name}
+                  {patient?.user?.name}
                 </div>
                 <Badge className={getStatusColor(patient.status)}>
                   {patient.status}
@@ -232,7 +233,7 @@ const DoctorPatients: React.FC = () => {
 
   const filteredPatients = patients.filter(patient => 
     !searchTerm || 
-    patient.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    patient?.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.conditions.some(condition => 
       condition.toLowerCase().includes(searchTerm.toLowerCase())

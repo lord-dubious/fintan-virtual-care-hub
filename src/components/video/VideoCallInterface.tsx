@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React from "react";
+import { useEffect, useState, useRef } from 'react';
 import { dailyService } from '@/lib/services/dailyService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mic, MicOff, Video, VideoOff, ScreenShare, PhoneOff } from 'lucide-react';
+import { Loader as Loader2 } from "lucide-react";
 import { DailyParticipant } from '@daily-co/daily-js';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog';

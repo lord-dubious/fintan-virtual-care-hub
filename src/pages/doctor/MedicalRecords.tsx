@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from "react";
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -167,7 +168,7 @@ const DoctorMedicalRecords: React.FC = () => {
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4" />
-                Patient: {record.patient.user.name}
+                Patient: {record.patient?.user?.name}
               </div>
               
               <div className="flex items-center gap-2">
@@ -315,7 +316,7 @@ const DoctorMedicalRecords: React.FC = () => {
   const filteredRecords = medicalRecords.filter(record => 
     !searchTerm || 
     record.diagnosis.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.patient.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    record.patient?.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     record.treatment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     record.notes.toLowerCase().includes(searchTerm.toLowerCase())
   );

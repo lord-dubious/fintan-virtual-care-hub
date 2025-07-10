@@ -1,8 +1,7 @@
+import React from "react";
 
-import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
 const OfflinePage = () => {
   const isMobile = useIsMobile();

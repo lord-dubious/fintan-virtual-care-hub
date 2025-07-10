@@ -22,7 +22,7 @@ const mockServer = {
     this.isRunning = false;
   },
   
-  mockResponse(endpoint: string, response: any) {
+  mockResponse(endpoint: string, response: unknown) {
     // Mock API responses for testing
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes(endpoint)) {
@@ -43,7 +43,7 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     defaultOptions: {
       queries: {
         retry: false,
-        cacheTime: 0,
+        gcTime: 0,
       },
     },
   });

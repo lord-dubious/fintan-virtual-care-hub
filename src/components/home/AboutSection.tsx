@@ -1,7 +1,6 @@
+import React from "react";
 
-import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Award, CheckCircle, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const AboutSection: React.FC = () => {

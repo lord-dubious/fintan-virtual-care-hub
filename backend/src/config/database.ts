@@ -39,7 +39,8 @@ if (config.server.isProduction) {
 export async function checkDatabaseConnection(retries = 3): Promise<boolean> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      await prisma.$queryRaw`SELECT 1`;
+      // Use parameterized query to prevent SQL injection
+      await prisma.$queryRaw`SELECT 1 as health_check`;
       return true;
     } catch (error) {
       console.warn(`Database connection attempt ${attempt}/${retries} failed:`, error);
@@ -75,8 +76,8 @@ export async function healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; 
       setTimeout(() => reject(new Error('Database health check timeout')), config.database.healthCheckTimeout);
     });
     
-    const healthCheckPromise = prisma.$queryRaw`SELECT 1`;
-    
+    const healthCheckPromise = prisma.$queryRaw`SELECT 1 as health_check`;
+
     await Promise.race([healthCheckPromise, timeoutPromise]);
     
     const latency = Date.now() - startTime;

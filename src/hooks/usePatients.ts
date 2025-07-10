@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { patientsApi, Patient, PatientFilters, CreatePatientData, UpdatePatientData } from '@/api/patients';
+import { patientsApi, Patient, PatientFilters, CreatePatientData, UpdatePatientData, PatientDashboardData } from '@/api/patients';
 import { useToast } from '@/hooks/use-toast';
 
 export const usePatients = (filters?: PatientFilters) => {
@@ -242,9 +242,9 @@ export const usePatientDashboard = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  return useQuery({
+  return useQuery<PatientDashboardData>({
     queryKey: ['patient', 'dashboard'],
-    queryFn: async () => {
+    queryFn: async (): Promise<PatientDashboardData> => {
       const response = await patientsApi.getPatientDashboard();
       if (!response.success) {
         throw new Error(response.error || 'Failed to fetch patient dashboard data');
@@ -252,7 +252,7 @@ export const usePatientDashboard = () => {
       return response.data!;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes for dashboard data
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     refetchOnWindowFocus: true, // Refresh when user returns to tab
     refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
     retry: 2,

@@ -5,7 +5,7 @@ import { API_ENDPOINTS } from './config';
 // import { PaymentStatus, PaymentMethod } from '@/lib/types/enums';
 
 // Define Payment types locally for API use
-interface Payment {
+export interface Payment {
   id: string;
   appointmentId: string;
   amount: number;
@@ -17,7 +17,7 @@ interface Payment {
   updatedAt: Date;
 }
 
-interface CreatePaymentData {
+export interface CreatePaymentData {
   appointmentId: string;
   amount: number;
   currency?: string;

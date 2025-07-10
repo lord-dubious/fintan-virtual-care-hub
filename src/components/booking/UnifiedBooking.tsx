@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from "react";
+import { useState } from 'react';
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,7 @@ const UnifiedBooking: React.FC<UnifiedBookingProps> = ({ onBookingComplete }) =>
 
   const handleSlotClick = (date: string, time: string) => {
     // Find the selected slot to get provider info
-    const slot = availabilitySlots.find(s => s.date === date && s.startTime === time);
+    const slot = availabilitySlots?.find(s => s.date === date && s.startTime === time);
     setSelectedSlot({ 
       date, 
       time, 
@@ -87,7 +88,7 @@ const UnifiedBooking: React.FC<UnifiedBookingProps> = ({ onBookingComplete }) =>
   };
 
   // Group slots by date
-  const slotsByDate = availabilitySlots.reduce((acc, slot) => {
+  const slotsByDate = availabilitySlots?.reduce((acc, slot) => {
     if (slot.isAvailable) {
       if (!acc[slot.date]) {
         acc[slot.date] = [];
@@ -95,7 +96,7 @@ const UnifiedBooking: React.FC<UnifiedBookingProps> = ({ onBookingComplete }) =>
       acc[slot.date].push(slot);
     }
     return acc;
-  }, {} as Record<string, typeof availabilitySlots>);
+  }, {} as Record<string, typeof availabilitySlots>) || {};
 
   const availableDates = Object.keys(slotsByDate).sort();
 

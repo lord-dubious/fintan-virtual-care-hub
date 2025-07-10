@@ -1,5 +1,5 @@
+import React from "react";
 
-import React from 'react';
 import { Link, useLocation, Navigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Check } from "lucide-react";

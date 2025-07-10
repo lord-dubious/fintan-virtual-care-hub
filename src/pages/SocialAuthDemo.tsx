@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React from "react";
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocialAuth } from '@/hooks/useSocialAuth';
-import { CheckCircle, User, Mail, Shield, Calendar, Apple } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { safeParseDate } from '@/utils/date';
 

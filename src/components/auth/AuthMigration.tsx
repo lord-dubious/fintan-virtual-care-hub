@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from "react";
+import { useEffect, useState } from 'react';
 import { tokenManager } from '@/api/cookieTokenManager';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Shield, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface AuthMigrationProps {
   onMigrationComplete?: () => void;

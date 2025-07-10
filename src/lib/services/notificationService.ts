@@ -117,8 +117,8 @@ export const notificationService = {
       if (!appointment) return;
 
       const callType = appointment.consultationType;
-      const patientName = appointment.patient.user.name;
-      const providerName = appointment.provider.user.name;
+      const patientName = appointment.patient?.user?.name;
+      const providerName = appointment.provider?.user?.name;
       const appointmentDate = new Date(appointment.appointmentDate).toLocaleString();
 
       await this.createNotification({
@@ -170,8 +170,8 @@ export const notificationService = {
           if (!appointment) return;
     
           const callType = appointment.consultationType;
-          const patientName = appointment.patient.user.name;
-          const providerName = appointment.provider.user.name;
+          const patientName = appointment.patient?.user?.name;
+          const providerName = appointment.provider?.user?.name;
           const appointmentDate = new Date(appointment.appointmentDate).toLocaleString();
 
           await this.createNotification({
@@ -228,8 +228,8 @@ export const notificationService = {
 
       const { appointment } = consultation;
       const callType = appointment.consultationType;
-      const patientName = appointment.patient.user.name;
-      const providerName = appointment.provider.user.name;
+      const patientName = appointment.patient?.user?.name;
+      const providerName = appointment.provider?.user?.name;
 
       await this.createNotification({
         title: `${callType} Consultation Started`,

@@ -1,9 +1,8 @@
+import React from "react";
 
-import React from 'react';
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle } from "lucide-react";
 import { AddToCalendarButton } from 'add-to-calendar-button-react';
 
 interface AppointmentConfirmationProps {

@@ -1,5 +1,6 @@
+import React from "react";
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import BookingProgress from '@/components/booking/BookingProgress';
 import BookingNavigation from '@/components/booking/BookingNavigation';

@@ -1,41 +1,25 @@
 version: '3.8'
 
 services:
-  calcom-database:
-    image: postgres:14
-    container_name: calcom-database
-    restart: always
-    environment:
-      POSTGRES_DB: calcom
-      POSTGRES_USER: calcom
-      POSTGRES_PASSWORD: ${CALCOM_DATABASE_PASSWORD:-calcom_password_change_me}
-    volumes:
-      - calcom_postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
-    networks:
-      - calcom-network
-
   calcom-app:
     image: calcom/cal.com:latest
     container_name: calcom-app
     restart: always
-    depends_on:
-      - calcom-database
     environment:
-      # Database Configuration
-      DATABASE_URL: postgresql://calcom:${CALCOM_DATABASE_PASSWORD:-calcom_password_change_me}@calcom-database:5432/calcom
+      # Database Configuration (Using your Neon database)
+      DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
       
       # Application Configuration
       NEXTAUTH_SECRET: ${CALCOM_NEXTAUTH_SECRET}
       CALENDSO_ENCRYPTION_KEY: ${CALCOM_ENCRYPTION_KEY}
       
-      # Public URLs
-      NEXT_PUBLIC_WEBAPP_URL: ${CALCOM_WEBAPP_URL:-http://localhost:3001}
-      NEXTAUTH_URL: ${CALCOM_WEBAPP_URL:-http://localhost:3001}
-      
+      # Public URLs (Cal.com runs on port 3002 to avoid conflict)
+      NEXT_PUBLIC_WEBAPP_URL: http://localhost:3002
+      NEXTAUTH_URL: http://localhost:3002
+
       # API Configuration
-      API_V2_URL: ${CALCOM_WEBAPP_URL:-http://localhost:3001}/api/v2
+      API_V2_URL: http://localhost:3002/api/v2
       
       # Daily.co Integration (reuse existing credentials)
       DAILY_API_KEY: ${DAILY_API_KEY}
@@ -59,7 +43,7 @@ services:
       TZ: ${TIMEZONE:-UTC}
       
     ports:
-      - "3001:3000"
+      - "3002:3000"
     volumes:
       - calcom_app_data:/app/.next
     networks:
@@ -70,25 +54,8 @@ services:
       timeout: 10s
       retries: 3
 
-  # Optional: Redis for caching (recommended for production)
-  calcom-redis:
-    image: redis:7-alpine
-    container_name: calcom-redis
-    restart: always
-    ports:
-      - "6380:6379"
-    volumes:
-      - calcom_redis_data:/data
-    networks:
-      - calcom-network
-    command: redis-server --appendonly yes
-
 volumes:
-  calcom_postgres_data:
-    driver: local
   calcom_app_data:
-    driver: local
-  calcom_redis_data:
     driver: local
 
 networks:

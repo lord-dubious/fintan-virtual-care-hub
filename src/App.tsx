@@ -16,6 +16,7 @@ import AuthMigration from './components/auth/AuthMigration';
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const ServicesPage = lazy(() => import('./pages/ServicesPage'));
 const BookingPage = lazy(() => import('./pages/BookingPage'));
+const CalcomBookingPage = lazy(() => import('./pages/CalcomBookingPage'));
 const FaqPage = lazy(() => import('./pages/FaqPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
 const BookingConfirmation = lazy(() => import('./pages/BookingConfirmation'));
@@ -112,6 +113,7 @@ const App = () => {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/services" element={<ServicesPage />} />
                 <Route path="/booking" element={<BookingPage />} />
+                <Route path="/book-appointment" element={<CalcomBookingPage />} />
                 <Route path="/new-booking" element={<NewBookingPage />} />
                 <Route path="/booking/confirmation" element={
                   <ProtectedRoute>

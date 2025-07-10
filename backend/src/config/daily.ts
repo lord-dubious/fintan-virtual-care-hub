@@ -9,6 +9,23 @@ export const dailyConfig = {
 };
 
 // Daily.co API client
+interface DailyRoom {
+	id: string;
+	name: string;
+	url: string;
+	exp: number;
+	[key: string]: unknown;
+}
+
+interface MeetingToken {
+	token: string;
+	exp: number;
+	room_name: string;
+	user_name: string;
+	is_owner: boolean;
+	[key: string]: unknown;
+}
+
 class DailyClient {
   private apiKey: string;
   private baseUrl: string;
@@ -20,7 +37,7 @@ class DailyClient {
     this.isMockMode = !apiKey || apiKey === 'your-daily-api-key-here';
   }
 
-  private async makeRequest(endpoint: string, options: RequestInit = {}) {
+  private async makeRequest<T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'Authorization': `Bearer ${this.apiKey}`,
@@ -35,11 +52,11 @@ class DailyClient {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({})) as { error?: string };
         throw new Error(`Daily.co API error: ${response.status} - ${errorData.error || response.statusText}`);
       }
 
-      return await response.json();
+      return await response.json() as T;
     } catch (error) {
       logger.error('Daily.co API request failed:', error);
       throw error;
@@ -47,7 +64,7 @@ class DailyClient {
   }
 
   // Create a new room
-  async createRoom(properties: any) {
+  async createRoom(properties: any): Promise<DailyRoom> {
     if (this.isMockMode) {
       // Mock response for development/testing
       const roomId = `mock-room-${Date.now()}`;
@@ -61,7 +78,7 @@ class DailyClient {
       };
     }
 
-    return this.makeRequest('/rooms', {
+    return this.makeRequest<DailyRoom>('/rooms', {
       method: 'POST',
       body: JSON.stringify({ properties }),
     });
@@ -80,7 +97,7 @@ class DailyClient {
   }
 
   // Create a meeting token
-  async createMeetingToken(properties: any) {
+  async createMeetingToken(properties: any): Promise<MeetingToken> {
     if (this.isMockMode) {
       // Mock response for development/testing
       return {
@@ -92,7 +109,7 @@ class DailyClient {
       };
     }
 
-    return this.makeRequest('/meeting-tokens', {
+    return this.makeRequest<MeetingToken>('/meeting-tokens', {
       method: 'POST',
       body: JSON.stringify({ properties }),
     });

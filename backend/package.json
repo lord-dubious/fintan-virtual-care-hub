@@ -59,7 +59,7 @@
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
     "winston": "^3.17.0",
-    "zod": "^3.25.65"
+    "zod": "^4.0.2"
   },
   "prisma": {
     "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"

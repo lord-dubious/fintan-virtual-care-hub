@@ -20,10 +20,10 @@ const createScheduleSchema = z.object({
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
   })),
   breakPeriods: z.array(z.object({
-    dayOfWeek: z.nativeEnum(DayOfWeek).optional(),
+    dayOfWeek: z.nativeEnum(DayOfWeek),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    title: z.string().optional(),
+    title: z.string().default('Break'),
     isRecurring: z.boolean().default(true),
   })).default([]),
 });
@@ -47,7 +47,7 @@ router.get('/slots', async (req, res) => {
     const { providerId, startDate, endDate, slotDuration } = req.query;
 
     if (!providerId || !startDate || !endDate) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'providerId, startDate, and endDate are required'
       });
@@ -72,7 +72,7 @@ router.get('/schedules', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR')
   try {
     const providerId = req.user?.provider?.id;
     if (!providerId) {
-      return res.status(404).json({ success: false, error: 'Provider not found' });
+      res.status(404).json({ success: false, error: 'Provider not found' });
     }
 
     const schedules = await prisma.providerSchedule.findMany({
@@ -143,7 +143,7 @@ router.get('/schedules/:id', authenticateToken, authorizeRoles('PROVIDER', 'DOCT
     });
 
     if (!schedule) {
-      return res.status(404).json({ success: false, error: 'Schedule not found' });
+      res.status(404).json({ success: false, error: 'Schedule not found' });
     }
 
     res.json({ success: true, data: { schedule } });
@@ -158,7 +158,7 @@ router.post('/schedules', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'
   try {
     const providerId = req.user?.provider?.id;
     if (!providerId) {
-      return res.status(404).json({ success: false, error: 'Provider not found' });
+      res.status(404).json({ success: false, error: 'Provider not found' });
     }
 
     const validatedData = createScheduleSchema.parse(req.body);
@@ -179,9 +179,24 @@ router.post('/schedules', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'
         isDefault: validatedData.isDefault,
         weeklyAvailability: {
           create: validatedData.weeklyAvailability
+            .filter(item => item.dayOfWeek && item.startTime && item.endTime && item.isAvailable !== undefined)
+            .map(item => ({
+              dayOfWeek: item.dayOfWeek!,
+              startTime: item.startTime!,
+              endTime: item.endTime!,
+              isAvailable: item.isAvailable!
+            }))
         },
         breakPeriods: {
           create: validatedData.breakPeriods
+            .filter(item => item.dayOfWeek && item.startTime && item.endTime)
+            .map(item => ({
+              dayOfWeek: item.dayOfWeek!,
+              startTime: item.startTime!,
+              endTime: item.endTime!,
+              title: item.title || 'Break',
+              isRecurring: item.isRecurring ?? true
+            }))
         }
       },
       include: {
@@ -194,7 +209,7 @@ router.post('/schedules', authenticateToken, authorizeRoles('PROVIDER', 'DOCTOR'
     res.status(201).json({ success: true, data: { schedule } });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: 'Invalid data', details: error.errors });
+      res.status(400).json({ success: false, error: 'Invalid data', details: error.errors });
     }
     console.error('Error creating schedule:', error);
     res.status(500).json({ success: false, error: 'Failed to create schedule' });
@@ -215,7 +230,7 @@ router.put('/schedules/:id', authenticateToken, authorizeRoles('PROVIDER', 'DOCT
     });
 
     if (!existingSchedule) {
-      return res.status(404).json({ success: false, error: 'Schedule not found' });
+      res.status(404).json({ success: false, error: 'Schedule not found' });
     }
 
     // If this is set as default, unset other defaults
@@ -244,10 +259,15 @@ router.put('/schedules/:id', authenticateToken, authorizeRoles('PROVIDER', 'DOCT
           where: { scheduleId: id }
         });
         await tx.weeklyAvailability.createMany({
-          data: validatedData.weeklyAvailability.map(wa => ({
-            ...wa,
-            scheduleId: id
-          }))
+          data: validatedData.weeklyAvailability
+            .filter(wa => wa.dayOfWeek && wa.startTime && wa.endTime && wa.isAvailable !== undefined)
+            .map(wa => ({
+              dayOfWeek: wa.dayOfWeek!,
+              startTime: wa.startTime!,
+              endTime: wa.endTime!,
+              isAvailable: wa.isAvailable!,
+              scheduleId: id
+            }))
         });
       }
 
@@ -257,10 +277,16 @@ router.put('/schedules/:id', authenticateToken, authorizeRoles('PROVIDER', 'DOCT
           where: { scheduleId: id }
         });
         await tx.breakPeriod.createMany({
-          data: validatedData.breakPeriods.map(bp => ({
-            ...bp,
-            scheduleId: id
-          }))
+          data: validatedData.breakPeriods
+            .filter(bp => bp.dayOfWeek && bp.startTime && bp.endTime)
+            .map(bp => ({
+              dayOfWeek: bp.dayOfWeek!,
+              startTime: bp.startTime!,
+              endTime: bp.endTime!,
+              title: bp.title || 'Break',
+              isRecurring: bp.isRecurring ?? true,
+              scheduleId: id
+            }))
         });
       }
 
@@ -292,7 +318,7 @@ router.put('/schedules/:id', authenticateToken, authorizeRoles('PROVIDER', 'DOCT
     res.json({ success: true, data: { schedule: fullSchedule } });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: 'Invalid data', details: error.errors });
+      res.status(400).json({ success: false, error: 'Invalid data', details: error.errors });
     }
     console.error('Error updating schedule:', error);
     res.status(500).json({ success: false, error: 'Failed to update schedule' });
@@ -310,11 +336,11 @@ router.delete('/schedules/:id', authenticateToken, authorizeRoles('PROVIDER', 'D
     });
 
     if (!schedule) {
-      return res.status(404).json({ success: false, error: 'Schedule not found' });
+      res.status(404).json({ success: false, error: 'Schedule not found' });
     }
 
     if (schedule.isDefault) {
-      return res.status(400).json({ success: false, error: 'Cannot delete default schedule' });
+      res.status(400).json({ success: false, error: 'Cannot delete default schedule' });
     }
 
     await prisma.providerSchedule.delete({
@@ -342,7 +368,7 @@ router.post('/schedules/:id/exceptions', authenticateToken, authorizeRoles('PROV
     });
 
     if (!schedule) {
-      return res.status(404).json({ success: false, error: 'Schedule not found' });
+      res.status(404).json({ success: false, error: 'Schedule not found' });
     }
 
     const exception = await prisma.scheduleException.create({
@@ -362,7 +388,7 @@ router.post('/schedules/:id/exceptions', authenticateToken, authorizeRoles('PROV
     res.status(201).json({ success: true, data: { exception } });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: 'Invalid data', details: error.errors });
+      res.status(400).json({ success: false, error: 'Invalid data', details: error.errors });
     }
     console.error('Error creating exception:', error);
     res.status(500).json({ success: false, error: 'Failed to create exception' });
@@ -386,7 +412,7 @@ router.delete('/exceptions/:id', authenticateToken, authorizeRoles('PROVIDER', '
     });
 
     if (!exception) {
-      return res.status(404).json({ success: false, error: 'Exception not found' });
+      res.status(404).json({ success: false, error: 'Exception not found' });
     }
 
     await prisma.scheduleException.delete({
@@ -408,7 +434,7 @@ router.post('/schedules/:id/copy', authenticateToken, authorizeRoles('PROVIDER',
     const providerId = req.user?.provider?.id;
 
     if (!name) {
-      return res.status(400).json({ success: false, error: 'Name is required' });
+      res.status(400).json({ success: false, error: 'Name is required' });
     }
 
     const sourceSchedule = await prisma.providerSchedule.findFirst({
@@ -420,7 +446,7 @@ router.post('/schedules/:id/copy', authenticateToken, authorizeRoles('PROVIDER',
     });
 
     if (!sourceSchedule) {
-      return res.status(404).json({ success: false, error: 'Schedule not found' });
+      res.status(404).json({ success: false, error: 'Schedule not found' });
     }
 
     const newSchedule = await prisma.providerSchedule.create({
@@ -467,7 +493,7 @@ router.post('/check-conflicts', authenticateToken, async (req, res) => {
     const { providerId, appointmentDate, duration, patientId, excludeAppointmentId } = req.body;
 
     if (!providerId || !appointmentDate || !duration) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'providerId, appointmentDate, and duration are required'
       });
@@ -495,7 +521,7 @@ router.post('/validate-schedule', authenticateToken, authorizeRoles('PROVIDER', 
     const providerId = req.user?.provider?.id;
 
     if (!scheduleId) {
-      return res.status(400).json({ success: false, error: 'scheduleId is required' });
+      res.status(400).json({ success: false, error: 'scheduleId is required' });
     }
 
     // Verify schedule belongs to provider
@@ -504,7 +530,7 @@ router.post('/validate-schedule', authenticateToken, authorizeRoles('PROVIDER', 
     });
 
     if (!schedule) {
-      return res.status(404).json({ success: false, error: 'Schedule not found' });
+      res.status(404).json({ success: false, error: 'Schedule not found' });
     }
 
     const result = await ConflictDetectionService.validateScheduleChanges(
@@ -527,7 +553,7 @@ router.post('/check-double-booking', authenticateToken, authorizeRoles('PROVIDER
     const { providerId, appointmentDate, duration, excludeAppointmentId } = req.body;
 
     if (!providerId || !appointmentDate || !duration) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'providerId, appointmentDate, and duration are required'
       });

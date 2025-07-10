@@ -4,7 +4,7 @@
   "description": "Backend API server for Dr. Fintan Virtual Care Hub",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
     "test": "jest",
@@ -81,6 +81,7 @@
     "prettier": "^3.5.3",
     "supertest": "^7.1.1",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.8.3"
   }
 }

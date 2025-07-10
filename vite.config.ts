@@ -1,98 +1,41 @@
-import { defineConfig, type PluginOption } from 'vite';
-import react from '@vitejs/plugin-react-swc';
-import path from 'path';
-import { VitePWA } from 'vite-plugin-pwa';
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig(async ({ mode }) => {
-	const plugins: PluginOption[] = [react()];
+// Conditional import for lovable-tagger (only in development)
+let componentTagger: (() => any) | null = null;
+try {
+  if (process.env.NODE_ENV !== "production") {
+    componentTagger = require("lovable-tagger").componentTagger;
+  }
+} catch {
+  // lovable-tagger not available, skip it
+}
 
-	if (mode === 'development') {
-		try {
-			const { componentTagger } = await import('lovable-tagger');
-			plugins.push(componentTagger());
-		} catch {
-			console.warn('lovable-tagger not installed; skipping component tagging');
-		}
-	}
-
-	plugins.push(
-		VitePWA({
-			registerType: 'autoUpdate',
-			workbox: {
-				globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-				runtimeCaching: [
-					{
-						urlPattern: /^https:\/\/api\./,
-						handler: 'NetworkFirst',
-						options: {
-							cacheName: 'api-cache',
-							expiration: {
-								maxEntries: 100,
-								maxAgeSeconds: 60 * 60 * 24,
-							},
-						},
-					},
-				],
-			},
-			manifest: {
-				name: 'Dr. Fintan Virtual Care Hub',
-				short_name: 'Dr. Fintan',
-				description: 'Professional virtual healthcare consultations',
-				theme_color: '#1A5F7A',
-				background_color: '#ffffff',
-				display: 'standalone',
-				icons: [
-					{ src: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-					{ src: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
-				],
-			},
-		})
-	);
-
-	return {
-		server: {
-			host: '0.0.0.0',
-			port: parseInt(process.env.VITE_PORT ?? process.env.PORT ?? '10000', 10),
-		},
-		plugins,
-		resolve: {
-			alias: {
-				'@': path.resolve(__dirname, './src'),
-			},
-		},
-		test: {
-			globals: true,
-			environment: 'jsdom',
-			setupFiles: ['./src/setupTests.ts'],
-			css: true,
-		},
-	};
-});
-
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0",
-    port: parseInt(process.env.VITE_PORT || process.env.PORT || '10000', 10),
+    port: parseInt(process.env.VITE_PORT || process.env.PORT || "10000", 10),
   },
-  const plugins = [react()];
-    if (mode === 'development') {
-      try {
-        const { componentTagger } = await import('lovable-tagger');
-        plugins.push(componentTagger());
-      } catch {
-        console.warn('lovable-tagger not installed; skipping component tagging');
-      }
-    }
-    plugins.push(
+  preview: {
+    host: "0.0.0.0",
+    port: parseInt(process.env.PORT || "10000", 10),
+  },
+  plugins: [
+    react(),
+    mode === "development" && componentTagger && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: "autoUpdate",
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\./,
-            handler: 'NetworkFirst',
+            handler: "NetworkFirst",
             options: {
-              cacheName: 'api-cache',
+              cacheName: "api-cache",
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24, // 24 hours
@@ -102,38 +45,36 @@ export default defineConfig(async ({ mode }) => {
         ],
       },
       manifest: {
-        name: 'Dr. Fintan Virtual Care Hub',
-        short_name: 'Dr. Fintan',
-        description: 'Professional virtual healthcare consultations',
-        theme_color: '#1A5F7A',
-        background_color: '#ffffff',
-        display: 'standalone',
+        name: "Dr. Fintan Virtual Care Hub",
+        short_name: "Dr. Fintan",
+        description: "Professional virtual healthcare consultations",
+        theme_color: "#1A5F7A",
+        background_color: "#ffffff",
+        display: "standalone",
         icons: [
           {
-            src: 'icons/icon-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
+            src: "icons/icon-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
           },
           {
-            src: 'icons/icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
+            src: "icons/icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
           },
         ],
       },
     }),
-  ]    );
-  return {
-  server: {
+  ].filter(Boolean),
+  resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/setupTests.ts'],
+    environment: "jsdom",
+    setupFiles: ["./src/setupTests.ts"],
     css: true,
   },
-};
-
+}));

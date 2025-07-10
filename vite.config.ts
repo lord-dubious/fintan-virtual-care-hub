@@ -18,10 +18,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0",
     port: parseInt(process.env.VITE_PORT || process.env.PORT || "10000", 10),
+    allowedHosts: true,
   },
   preview: {
     host: "0.0.0.0",
     port: parseInt(process.env.PORT || "10000", 10),
+    allowedHosts: true,
   },
   plugins: [
     react(),

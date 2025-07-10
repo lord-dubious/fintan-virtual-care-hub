@@ -1,5 +1,5 @@
 import { PrismaClient, DayOfWeek, ExceptionType } from '@prisma/client';
-import { addDays, format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { addDays, format, startOfDay, endOfDay } from 'date-fns';
 
 const prisma = new PrismaClient();
 
@@ -365,8 +365,8 @@ export class AvailabilityService {
     exception?: any
   ): ConflictResult {
     const conflicts: ConflictResult['conflicts'] = [];
-    const slotStartTime = format(parseISO(slotStart), 'HH:mm');
-    const slotEndTime = format(parseISO(slotEnd), 'HH:mm');
+    const slotStartTime = format(new Date(slotStart), 'HH:mm');
+    const slotEndTime = format(new Date(slotEnd), 'HH:mm');
 
     // Check appointment conflicts
     for (const appointment of appointments) {

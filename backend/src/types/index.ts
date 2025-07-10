@@ -62,7 +62,7 @@ export interface AuthResponse {
 }
 
 // User types
-export type UserRole = 'PATIENT' | 'PROVIDER' | 'ADMIN';
+export type UserRole = 'PATIENT' | 'PROVIDER' | 'ADMIN' | 'DOCTOR';
 
 export interface UserProfile {
   id: string;

@@ -4,7 +4,7 @@ import logger from '@/config/logger';
 import { AuthenticatedRequest } from '@/types';
 import { activityLogService } from '@/services/activityLogService';
 import { z } from 'zod';
-import { startOfDay, endOfDay, parseISO, subDays } from 'date-fns';
+import { startOfDay, endOfDay, subDays } from 'date-fns';
 
 // Validation schemas
 const activityQuerySchema = z.object({
@@ -314,13 +314,13 @@ export const getActivityLogs = async (req: AuthenticatedRequest, res: Response):
     let endDate: Date | undefined;
 
     if (dateFrom) {
-      startDate = startOfDay(parseISO(dateFrom));
+      startDate = startOfDay(new Date(dateFrom));
     } else {
       startDate = subDays(new Date(), days);
     }
 
     if (dateTo) {
-      endDate = endOfDay(parseISO(dateTo));
+      endDate = endOfDay(new Date(dateTo));
     }
 
     const { activities, total } = await activityLogService.getUserActivity(req.user.id, {

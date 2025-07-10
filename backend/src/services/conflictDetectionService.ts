@@ -1,21 +1,24 @@
-import { PrismaClient, DayOfWeek, ExceptionType } from '@prisma/client';
-import { 
-  addDays, 
-  format, 
-  parseISO, 
-  startOfDay, 
-  endOfDay, 
-  isWithinInterval,
-  isSameDay,
+import { DayOfWeek, ExceptionType, PrismaClient } from "@prisma/client";
+import {
+  addDays,
   addMinutes,
-  differenceInMinutes
-} from 'date-fns';
+  differenceInMinutes,
+  endOfDay,
+  format,
+  isSameDay,
+  startOfDay,
+} from "date-fns";
 
 const prisma = new PrismaClient();
 
 export interface ConflictDetails {
-  type: 'appointment' | 'break' | 'unavailable' | 'outside_hours' | 'buffer_violation';
-  severity: 'error' | 'warning' | 'info';
+  type:
+    | "appointment"
+    | "break"
+    | "unavailable"
+    | "outside_hours"
+    | "buffer_violation";
+  severity: "error" | "warning" | "info";
   message: string;
   conflictingItem?: {
     id: string;
@@ -45,7 +48,7 @@ export interface ScheduleValidationResult {
     appointmentDate: string;
     patientName: string;
     conflictType: string;
-    severity: 'error' | 'warning';
+    severity: "error" | "warning" | "info";
   }[];
   conflicts: ConflictDetails[];
 }
@@ -74,9 +77,9 @@ export class ConflictDetectionService {
       const schedule = await this.getProviderActiveSchedule(providerId);
       if (!schedule) {
         conflicts.push({
-          type: 'unavailable',
-          severity: 'error',
-          message: 'Provider has no active schedule configured'
+          type: "unavailable",
+          severity: "error",
+          message: "Provider has no active schedule configured",
         });
         return { isValid: false, conflicts, warnings, suggestions };
       }
@@ -139,10 +142,10 @@ export class ConflictDetectionService {
         );
         if (alternatives.length > 0) {
           suggestions.push({
-            type: 'appointment',
-            severity: 'info',
-            message: 'Alternative time slots available',
-            suggestedAlternatives: alternatives
+            type: "appointment",
+            severity: "info",
+            message: "Alternative time slots available",
+            suggestedAlternatives: alternatives,
           });
         }
       }
@@ -151,11 +154,11 @@ export class ConflictDetectionService {
         isValid: conflicts.length === 0,
         conflicts,
         warnings,
-        suggestions
+        suggestions,
       };
     } catch (error) {
-      console.error('Error checking appointment conflicts:', error);
-      throw new Error('Failed to check appointment conflicts');
+      console.error("Error checking appointment conflicts:", error);
+      throw new Error("Failed to check appointment conflicts");
     }
   }
 
@@ -170,7 +173,8 @@ export class ConflictDetectionService {
   ): Promise<ScheduleValidationResult> {
     try {
       const conflicts: ConflictDetails[] = [];
-      const affectedAppointments: ScheduleValidationResult['affectedAppointments'] = [];
+      const affectedAppointments: ScheduleValidationResult["affectedAppointments"] =
+        [];
 
       // Get existing appointments for the next 90 days
       const futureDate = addDays(new Date(), 90);
@@ -178,101 +182,110 @@ export class ConflictDetectionService {
         where: {
           provider: {
             schedules: {
-              some: { id: scheduleId }
-            }
+              some: { id: scheduleId },
+            },
           },
           appointmentDate: {
             gte: new Date(),
-            lte: futureDate
+            lte: futureDate,
           },
           status: {
-            in: ['SCHEDULED', 'CONFIRMED']
-          }
+            in: ["SCHEDULED", "CONFIRMED"],
+          },
         },
         include: {
           patient: {
             include: {
-              user: true
-            }
-          }
-        }
+              user: true,
+            },
+          },
+        },
       });
 
       for (const appointment of appointments) {
         const appointmentConflicts: ConflictDetails[] = [];
         const dayOfWeek = this.getDayOfWeek(appointment.appointmentDate);
-        const appointmentTime = format(appointment.appointmentDate, 'HH:mm');
+        const appointmentTime = format(appointment.appointmentDate, "HH:mm");
         const appointmentEndTime = format(
           addMinutes(appointment.appointmentDate, appointment.duration || 30),
-          'HH:mm'
+          "HH:mm"
         );
 
         // Check against new weekly availability
-        const dayAvailability = newWeeklyAvailability.filter(wa => 
-          wa.dayOfWeek === dayOfWeek && wa.isAvailable
+        const dayAvailability = newWeeklyAvailability.filter(
+          (wa) => wa.dayOfWeek === dayOfWeek && wa.isAvailable
         );
 
-        const isWithinNewHours = dayAvailability.some(avail => 
-          this.timeIsWithinRange(appointmentTime, appointmentEndTime, avail.startTime, avail.endTime)
+        const isWithinNewHours = dayAvailability.some((avail) =>
+          this.timeIsWithinRange(
+            appointmentTime,
+            appointmentEndTime,
+            avail.startTime,
+            avail.endTime
+          )
         );
 
         if (!isWithinNewHours) {
           appointmentConflicts.push({
-            type: 'outside_hours',
-            severity: 'error',
+            type: "outside_hours",
+            severity: "error",
             message: `Appointment falls outside new working hours`,
             conflictingItem: {
               id: appointment.id,
               title: `Appointment with ${appointment.patient?.user?.name}`,
               startTime: appointmentTime,
               endTime: appointmentEndTime,
-              type: 'appointment'
-            }
+              type: "appointment",
+            },
           });
         }
 
         // Check against new break periods
-        const dayBreaks = newBreakPeriods.filter(bp => 
-          !bp.dayOfWeek || bp.dayOfWeek === dayOfWeek
+        const dayBreaks = newBreakPeriods.filter(
+          (bp) => !bp.dayOfWeek || bp.dayOfWeek === dayOfWeek
         );
 
         for (const breakPeriod of dayBreaks) {
-          if (this.timeRangesOverlap(
-            appointmentTime,
-            appointmentEndTime,
-            breakPeriod.startTime,
-            breakPeriod.endTime
-          )) {
+          if (
+            this.timeRangesOverlap(
+              appointmentTime,
+              appointmentEndTime,
+              breakPeriod.startTime,
+              breakPeriod.endTime
+            )
+          ) {
             appointmentConflicts.push({
-              type: 'break',
-              severity: 'error',
-              message: `Appointment conflicts with new break period: ${breakPeriod.title || 'Break'}`,
+              type: "break",
+              severity: "error",
+              message: `Appointment conflicts with new break period: ${breakPeriod.title || "Break"}`,
               conflictingItem: {
-                id: breakPeriod.id || 'new-break',
-                title: breakPeriod.title || 'Break Period',
+                id: breakPeriod.id || "new-break",
+                title: breakPeriod.title || "Break Period",
                 startTime: breakPeriod.startTime,
                 endTime: breakPeriod.endTime,
-                type: 'break'
-              }
+                type: "break",
+              },
             });
           }
         }
 
         // Check against new exceptions
         for (const exception of newExceptions) {
-          if (isSameDay(appointment.appointmentDate, new Date(exception.date))) {
+          if (
+            isSameDay(appointment.appointmentDate, new Date(exception.date))
+          ) {
             if (exception.type === ExceptionType.UNAVAILABLE) {
               appointmentConflicts.push({
-                type: 'unavailable',
-                severity: 'error',
+                type: "unavailable",
+                severity: "error",
                 message: `Appointment conflicts with scheduled time off: ${exception.title}`,
                 conflictingItem: {
-                  id: exception.id || 'new-exception',
+                  id: exception.id || "new-exception",
                   title: exception.title,
-                  startTime: exception.startTime || '00:00',
-                  endTime: exception.endTime || '23:59',
-                  type: 'exception'
-                }
+                  startTime: exception.startTime || "00:00",
+                  endTime: exception.endTime || "23:59",
+                  type: "exception",
+                },
               });
             }
           }
@@ -283,9 +296,9 @@ export class ConflictDetectionService {
           affectedAppointments.push({
             id: appointment.id,
             appointmentDate: appointment.appointmentDate.toISOString(),
-            patientName: appointment.patient?.user?.name || 'Unknown Patient',
+            patientName: appointment.patient?.user?.name || "Unknown Patient",
             conflictType: appointmentConflicts[0].type,
-            severity: appointmentConflicts[0].severity
+            severity: appointmentConflicts[0].severity,
           });
         }
       }
@@ -293,11 +306,11 @@ export class ConflictDetectionService {
       return {
         isValid: conflicts.length === 0,
         affectedAppointments,
-        conflicts
+        conflicts,
       };
     } catch (error) {
-      console.error('Error validating schedule changes:', error);
-      throw new Error('Failed to validate schedule changes');
+      console.error("Error validating schedule changes:", error);
+      throw new Error("Failed to validate schedule changes");
     }
   }
 
@@ -319,58 +332,61 @@ export class ConflictDetectionService {
         providerId,
         id: excludeAppointmentId ? { not: excludeAppointmentId } : undefined,
         status: {
-          in: ['SCHEDULED', 'CONFIRMED']
+          in: ["SCHEDULED", "CONFIRMED"],
         },
         OR: [
           {
             appointmentDate: {
               gte: startTime,
-              lt: endTime
-            }
+              lt: endTime,
+            },
           },
           {
             AND: [
               {
                 appointmentDate: {
-                  lt: startTime
-                }
+                  lt: startTime,
+                },
               },
               {
                 appointmentDate: {
-                  gte: new Date(startTime.getTime() - 60 * 60 * 1000) // Check 1 hour before
-                }
-              }
-            ]
-          }
-        ]
+                  gte: new Date(startTime.getTime() - 60 * 60 * 1000), // Check 1 hour before
+                },
+              },
+            ],
+          },
+        ],
       },
       include: {
         patient: {
           include: {
-            user: true
-          }
-        }
-      }
+            user: true,
+          },
+        },
+      },
     });
 
     for (const appointment of overlappingAppointments) {
-      const aptEndTime = addMinutes(appointment.appointmentDate, appointment.duration || 30);
-      
+      const aptEndTime = addMinutes(
+        appointment.appointmentDate,
+        appointment.duration || 30
+      );
+
       if (
         (appointment.appointmentDate < endTime && aptEndTime > startTime) ||
         (startTime < aptEndTime && endTime > appointment.appointmentDate)
       ) {
         conflicts.push({
-          type: 'appointment',
-          severity: 'error',
+          type: "appointment",
+          severity: "error",
           message: `Double booking conflict with existing appointment`,
           conflictingItem: {
             id: appointment.id,
             title: `Appointment with ${appointment.patient?.user?.name}`,
-            startTime: format(appointment.appointmentDate, 'HH:mm'),
-            endTime: format(aptEndTime, 'HH:mm'),
-            type: 'appointment'
-          }
+            startTime: format(appointment.appointmentDate, "HH:mm"),
+            endTime: format(aptEndTime, "HH:mm"),
+            type: "appointment",
+          },
         });
       }
     }
@@ -383,7 +399,7 @@ export class ConflictDetectionService {
       where: {
         providerId,
         isActive: true,
-        isDefault: true
+        isDefault: true,
       },
       include: {
         weeklyAvailability: true,
@@ -392,11 +408,11 @@ export class ConflictDetectionService {
           where: {
             date: {
               gte: startOfDay(new Date()),
-              lte: endOfDay(addDays(new Date(), 30))
-            }
-          }
-        }
-      }
+              lte: endOfDay(addDays(new Date(), 30)),
+            },
+          },
+        },
+      },
     });
   }
 
@@ -407,38 +423,46 @@ export class ConflictDetectionService {
     dayOfWeek: DayOfWeek
   ): { isValid: boolean; conflicts: ConflictDetails[] } {
     const conflicts: ConflictDetails[] = [];
-    const appointmentTime = format(appointmentDate, 'HH:mm');
-    const appointmentEndTime = format(addMinutes(appointmentDate, duration), 'HH:mm');
+    const appointmentTime = format(appointmentDate, "HH:mm");
+    const appointmentEndTime = format(
+      addMinutes(appointmentDate, duration),
+      "HH:mm"
+    );
 
-    const dayAvailability = weeklyAvailability.filter(wa => 
-      wa.dayOfWeek === dayOfWeek && wa.isAvailable
+    const dayAvailability = weeklyAvailability.filter(
+      (wa) => wa.dayOfWeek === dayOfWeek && wa.isAvailable
     );
 
     if (dayAvailability.length === 0) {
       conflicts.push({
-        type: 'outside_hours',
-        severity: 'error',
-        message: 'Provider is not available on this day'
+        type: "outside_hours",
+        severity: "error",
+        message: "Provider is not available on this day",
       });
       return { isValid: false, conflicts };
     }
 
-    const isWithinWorkingHours = dayAvailability.some(avail => 
-      this.timeIsWithinRange(appointmentTime, appointmentEndTime, avail.startTime, avail.endTime)
+    const isWithinWorkingHours = dayAvailability.some((avail) =>
+      this.timeIsWithinRange(
+        appointmentTime,
+        appointmentEndTime,
+        avail.startTime,
+        avail.endTime
+      )
     );
 
     if (!isWithinWorkingHours) {
       conflicts.push({
-        type: 'outside_hours',
-        severity: 'error',
-        message: 'Appointment is outside provider working hours',
+        type: "outside_hours",
+        severity: "error",
+        message: "Appointment is outside provider working hours",
         conflictingItem: {
-          id: 'working-hours',
-          title: 'Working Hours',
-          startTime: dayAvailability[0]?.startTime || '09:00',
-          endTime: dayAvailability[0]?.endTime || '17:00',
-          type: 'schedule'
-        }
+          id: "working-hours",
+          title: "Working Hours",
+          startTime: dayAvailability[0]?.startTime || "09:00",
+          endTime: dayAvailability[0]?.endTime || "17:00",
+          type: "schedule",
+        },
       });
     }
 
@@ -451,30 +475,30 @@ export class ConflictDetectionService {
     duration: number
   ): Promise<{ isValid: boolean; conflicts: ConflictDetails[] }> {
     const conflicts: ConflictDetails[] = [];
-    
+
     const exceptions = await prisma.scheduleException.findMany({
       where: {
         scheduleId,
         date: {
           gte: startOfDay(appointmentDate),
-          lte: endOfDay(appointmentDate)
-        }
-      }
+          lte: endOfDay(appointmentDate),
+        },
+      },
     });
 
     for (const exception of exceptions) {
       if (exception.type === ExceptionType.UNAVAILABLE) {
         conflicts.push({
-          type: 'unavailable',
-          severity: 'error',
+          type: "unavailable",
+          severity: "error",
           message: `Provider is unavailable: ${exception.title}`,
           conflictingItem: {
             id: exception.id,
             title: exception.title,
-            startTime: exception.startTime || '00:00',
-            endTime: exception.endTime || '23:59',
-            type: 'exception'
-          }
+            startTime: exception.startTime || "00:00",
+            endTime: exception.endTime || "23:59",
+            type: "exception",
+          },
         });
       }
     }
@@ -488,7 +512,12 @@ export class ConflictDetectionService {
     endTime: Date,
     excludeAppointmentId?: string
   ): Promise<ConflictDetails[]> {
-    return await this.checkDoubleBooking(providerId, startTime, differenceInMinutes(endTime, startTime), excludeAppointmentId);
+    return await this.checkDoubleBooking(
+      providerId,
+      startTime,
+      differenceInMinutes(endTime, startTime),
+      excludeAppointmentId
+    );
   }
 
   private static checkBreakPeriods(
@@ -498,26 +527,36 @@ export class ConflictDetectionService {
     dayOfWeek: DayOfWeek
   ): ConflictDetails[] {
     const conflicts: ConflictDetails[] = [];
-    const appointmentTime = format(appointmentDate, 'HH:mm');
-    const appointmentEndTime = format(addMinutes(appointmentDate, duration), 'HH:mm');
+    const appointmentTime = format(appointmentDate, "HH:mm");
+    const appointmentEndTime = format(
+      addMinutes(appointmentDate, duration),
+      "HH:mm"
+    );
 
-    const dayBreaks = breakPeriods.filter(bp => 
-      !bp.dayOfWeek || bp.dayOfWeek === dayOfWeek
+    const dayBreaks = breakPeriods.filter(
+      (bp) => !bp.dayOfWeek || bp.dayOfWeek === dayOfWeek
     );
 
     for (const breakPeriod of dayBreaks) {
-      if (this.timeRangesOverlap(appointmentTime, appointmentEndTime, breakPeriod.startTime, breakPeriod.endTime)) {
+      if (
+        this.timeRangesOverlap(
+          appointmentTime,
+          appointmentEndTime,
+          breakPeriod.startTime,
+          breakPeriod.endTime
+        )
+      ) {
         conflicts.push({
-          type: 'break',
-          severity: 'error',
-          message: `Appointment conflicts with break period: ${breakPeriod.title || 'Break'}`,
+          type: "break",
+          severity: "error",
+          message: `Appointment conflicts with break period: ${breakPeriod.title || "Break"}`,
           conflictingItem: {
             id: breakPeriod.id,
-            title: breakPeriod.title || 'Break Period',
+            title: breakPeriod.title || "Break Period",
             startTime: breakPeriod.startTime,
             endTime: breakPeriod.endTime,
-            type: 'break'
-          }
+            type: "break",
+          },
         });
       }
     }
@@ -541,29 +580,37 @@ export class ConflictDetectionService {
         providerId,
         id: excludeAppointmentId ? { not: excludeAppointmentId } : undefined,
         status: {
-          in: ['SCHEDULED', 'CONFIRMED']
+          in: ["SCHEDULED", "CONFIRMED"],
         },
         appointmentDate: {
           gte: bufferStart,
-          lte: bufferEnd
-        }
-      }
+          lte: bufferEnd,
+        },
+      },
     });
 
     for (const appointment of nearbyAppointments) {
-      const timeDiff = Math.abs(differenceInMinutes(appointment.appointmentDate, startTime));
+      const timeDiff = Math.abs(
+        differenceInMinutes(appointment.appointmentDate, startTime)
+      );
       if (timeDiff < bufferMinutes) {
         warnings.push({
-          type: 'buffer_violation',
-          severity: 'warning',
+          type: "buffer_violation",
+          severity: "warning",
           message: `Less than ${bufferMinutes} minutes between appointments`,
           conflictingItem: {
             id: appointment.id,
-            title: 'Adjacent Appointment',
-            startTime: format(appointment.appointmentDate, 'HH:mm'),
-            endTime: format(addMinutes(appointment.appointmentDate, appointment.duration || 30), 'HH:mm'),
-            type: 'appointment'
-          }
+            title: "Adjacent Appointment",
+            startTime: format(appointment.appointmentDate, "HH:mm"),
+            endTime: format(
+              addMinutes(
+                appointment.appointmentDate,
+                appointment.duration || 30
+              ),
+              "HH:mm"
+            ),
+            type: "appointment",
+          },
         });
       }
     }
@@ -577,35 +624,46 @@ export class ConflictDetectionService {
     duration: number,
     maxAlternatives: number
   ): Promise<{ date: string; startTime: string; endTime: string }[]> {
-    const alternatives: { date: string; startTime: string; endTime: string }[] = [];
-    
+    const alternatives: { date: string; startTime: string; endTime: string }[] =
+      [];
+
     // Search for alternatives in the next 7 days
     for (let i = 0; i < 7 && alternatives.length < maxAlternatives; i++) {
       const searchDate = addDays(preferredDate, i);
       const dayOfWeek = this.getDayOfWeek(searchDate);
-      
+
       // Get available slots for this day
       const schedule = await this.getProviderActiveSchedule(providerId);
       if (!schedule) continue;
 
-      const dayAvailability = schedule.weeklyAvailability.filter(wa => 
-        wa.dayOfWeek === dayOfWeek && wa.isAvailable
+      const dayAvailability = schedule.weeklyAvailability.filter(
+        (wa) => wa.dayOfWeek === dayOfWeek && wa.isAvailable
       );
 
       for (const avail of dayAvailability) {
-        const slots = this.generateTimeSlots(avail.startTime, avail.endTime, duration);
-        
+        const slots = this.generateTimeSlots(
+          avail.startTime,
+          avail.endTime,
+          duration
+        );
+
         for (const slot of slots) {
-          const slotDateTime = new Date(`${format(searchDate, 'yyyy-MM-dd')}T${slot.start}:00`);
-          const conflictCheck = await this.checkAppointmentBooking(providerId, slotDateTime, duration);
-          
+          const slotDateTime = new Date(
+            `${format(searchDate, "yyyy-MM-dd")}T${slot.start}:00`
+          );
+          const conflictCheck = await this.checkAppointmentBooking(
+            providerId,
+            slotDateTime,
+            duration
+          );
+
           if (conflictCheck.isValid) {
             alternatives.push({
-              date: format(searchDate, 'yyyy-MM-dd'),
+              date: format(searchDate, "yyyy-MM-dd"),
               startTime: slot.start,
-              endTime: slot.end
+              endTime: slot.end,
             });
-            
+
             if (alternatives.length >= maxAlternatives) break;
           }
         }
@@ -615,10 +673,14 @@ export class ConflictDetectionService {
     return alternatives;
   }
 
-  private static generateTimeSlots(startTime: string, endTime: string, duration: number): { start: string; end: string }[] {
+  private static generateTimeSlots(
+    startTime: string,
+    endTime: string,
+    duration: number
+  ): { start: string; end: string }[] {
     const slots: { start: string; end: string }[] = [];
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
 
     let currentMinutes = startHour * 60 + startMinute;
     const endMinutes = endHour * 60 + endMinute;
@@ -631,8 +693,8 @@ export class ConflictDetectionService {
       const slotEndMinute = slotEndMinutes % 60;
 
       slots.push({
-        start: `${slotStartHour.toString().padStart(2, '0')}:${slotStartMinute.toString().padStart(2, '0')}`,
-        end: `${slotEndHour.toString().padStart(2, '0')}:${slotEndMinute.toString().padStart(2, '0')}`
+        start: `${slotStartHour.toString().padStart(2, "0")}:${slotStartMinute.toString().padStart(2, "0")}`,
+        end: `${slotEndHour.toString().padStart(2, "0")}:${slotEndMinute.toString().padStart(2, "0")}`,
       });
 
       currentMinutes += 30; // 30-minute intervals
@@ -642,15 +704,44 @@ export class ConflictDetectionService {
   }
 
   private static getDayOfWeek(date: Date): DayOfWeek {
-    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const days = [
+      "SUNDAY",
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY",
+    ];
     return days[date.getDay()] as DayOfWeek;
   }
 
-  private static timeRangesOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
-    return start1 < end2 && start2 < end1;
+  private static timeRangesOverlap(
+    start1: string,
+    end1: string,
+    start2: string,
+    end2: string
+  ): boolean {
+    // Helper to parse 'HH:mm' or similar time strings to minutes since midnight
+    function parseTimeToMinutes(time: string): number {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    }
+
+    const s1 = parseTimeToMinutes(start1);
+    const e1 = parseTimeToMinutes(end1);
+    const s2 = parseTimeToMinutes(start2);
+    const e2 = parseTimeToMinutes(end2);
+
+    return s1 < e2 && s2 < e1;
   }
 
-  private static timeIsWithinRange(startTime: string, endTime: string, rangeStart: string, rangeEnd: string): boolean {
+  private static timeIsWithinRange(
+    startTime: string,
+    endTime: string,
+    rangeStart: string,
+    rangeEnd: string
+  ): boolean {
     return startTime >= rangeStart && endTime <= rangeEnd;
   }
 }

@@ -111,29 +111,149 @@ This is a **complete, fully functional healthcare platform** with real backend i
 ### **Production Deployment**
 See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for complete deployment instructions.
 
-## Demo Accounts
+## 🔑 API Keys & Service Configuration
 
-For testing purposes, the following demo accounts are available:
+### Required Services
 
-### Patient Accounts
+To run the application, you'll need accounts and API keys from these services:
 
-| Email | Password | Description |
-|-------|----------|-------------|
-| patient@example.com | Password123! | Regular patient account |
-| patient2@example.com | Password123! | Patient with existing appointments |
+#### 1. **Neon PostgreSQL** (Database)
+- **Website**: [neon.tech](https://neon.tech)
+- **Purpose**: Serverless PostgreSQL database
+- **Setup**:
+  1. Create a free account
+  2. Create a new project
+  3. Copy the `DATABASE_URL` (pooled) and `DIRECT_URL` (direct) connection strings
+  4. Add to your `.env` file
 
-### Provider Accounts
+#### 2. **Daily.co** (Video/Audio Calls)
+- **Website**: [daily.co](https://daily.co)
+- **Purpose**: WebRTC video and audio calling
+- **Setup**:
+  1. Sign up for a free account
+  2. Go to Developers → API Keys
+  3. Create a new API key
+  4. Set up a domain in Dashboard → Domains
+  5. Add `DAILY_API_KEY` and `VITE_DAILY_DOMAIN` to your `.env`
 
-| Email | Password | Description |
-|-------|----------|-------------|
-| doctor@example.com | Password123! | General practitioner |
-| specialist@example.com | Password123! | Specialist with limited availability |
+#### 3. **Stripe** (Payment Processing)
+- **Website**: [stripe.com](https://stripe.com)
+- **Purpose**: Secure payment processing
+- **Setup**:
+  1. Create a Stripe account
+  2. Go to Developers → API Keys
+  3. Copy the publishable key (`pk_test_...`) and secret key (`sk_test_...`)
+  4. Set up webhooks for payment confirmation
+  5. Add keys to your `.env` file
 
-### Admin Account
+### Optional Services
 
-| Email | Password |
-|-------|----------|
-| admin@example.com | AdminPass123! |
+#### 4. **Paystack** (Alternative Payment - Africa)
+- **Website**: [paystack.com](https://paystack.com)
+- **Purpose**: Payment processing for African markets
+- **Setup**: Get API keys from your dashboard
+
+#### 5. **Flutterwave** (Alternative Payment - Global)
+- **Website**: [flutterwave.com](https://flutterwave.com)
+- **Purpose**: Global payment processing
+- **Setup**: Get API keys from your dashboard
+
+#### 6. **PayPal** (Alternative Payment)
+- **Website**: [developer.paypal.com](https://developer.paypal.com)
+- **Purpose**: PayPal payment processing
+- **Setup**: Create a developer app and get client ID/secret
+
+### Environment Variables Setup
+
+Copy `.env.example` to `.env` and fill in your API keys:
+
+```bash
+cp .env.example .env
+```
+
+**Required Variables**:
+```bash
+# Database (Neon)
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
+
+# Authentication
+JWT_SECRET="your-super-secret-jwt-key-here"
+JWT_REFRESH_SECRET="your-super-secret-refresh-key-here"
+
+# Daily.co Video Calls
+DAILY_API_KEY="your-daily-api-key"
+VITE_DAILY_DOMAIN="your-daily-domain"
+
+# Stripe Payments
+STRIPE_SECRET_KEY="sk_test_..."
+VITE_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+```
+
+**Optional Variables**:
+```bash
+# Additional Payment Providers
+PAYSTACK_SECRET_KEY="sk_test_..."
+FLUTTERWAVE_SECRET_KEY="FLWSECK_TEST-..."
+PAYPAL_CLIENT_ID="your-paypal-client-id"
+PAYPAL_CLIENT_SECRET="your-paypal-secret"
+
+# Email & SMS (if needed)
+SMTP_HOST="smtp.gmail.com"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+TWILIO_ACCOUNT_SID="your-twilio-sid"
+TWILIO_AUTH_TOKEN="your-twilio-token"
+```
+
+## 🎭 Demo Accounts & Database Seeding
+
+### Database Seeding
+
+To populate your database with demo data, run:
+
+```bash
+# Seed the database with demo accounts and sample data
+npm run seed
+
+# Or run from the backend directory
+cd backend && npm run seed
+```
+
+This will create the following demo accounts:
+
+### 👤 Patient Accounts
+
+| Email | Password | Role | Description |
+|-------|----------|------|-------------|
+| patient@demo.com | DemoPass123! | PATIENT | Regular patient with medical history |
+| patient2@demo.com | DemoPass123! | PATIENT | Patient with existing appointments |
+| john.doe@demo.com | DemoPass123! | PATIENT | Patient with completed consultations |
+
+### 👨‍⚕️ Provider Accounts
+
+| Email | Password | Role | Specialization |
+|-------|----------|------|----------------|
+| doctor@demo.com | DemoPass123! | PROVIDER | General Practitioner |
+| specialist@demo.com | DemoPass123! | PROVIDER | Cardiologist |
+| surgeon@demo.com | DemoPass123! | PROVIDER | Orthopedic Surgeon |
+
+### 👑 Admin Account
+
+| Email | Password | Role |
+|-------|----------|------|
+| admin@demo.com | AdminPass123! | ADMIN |
+
+### 🔄 Resetting Demo Data
+
+To reset and reseed the database:
+
+```bash
+# Reset database and reseed
+npm run db:reset
+npm run seed
+```
 
 ## Project Structure
 
@@ -192,9 +312,29 @@ npm test
 yarn test
 ```
 
-## Deployment
+## 🚀 Deployment
 
-The application is configured for deployment on Vercel. Simply connect your GitHub repository to Vercel and deploy.
+The application supports multiple deployment platforms:
+
+### Recommended: Render.com
+- **Easy setup** with `render.yaml` configuration
+- **Automatic deployments** from GitHub
+- **Built-in PostgreSQL** database options
+- **Free tier available** for testing
+
+### Alternative Platforms
+- **Vercel** (Frontend) + **Railway** (Backend)
+- **Netlify** (Frontend) + **Heroku** (Backend)
+- **Self-hosted** with Docker
+
+### Quick Deploy to Render
+
+1. Fork this repository
+2. Connect to Render using the `render.yaml` blueprint
+3. Set environment variables in Render dashboard
+4. Deploy automatically
+
+**For detailed instructions, see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)**
 
 ## Contributing
 

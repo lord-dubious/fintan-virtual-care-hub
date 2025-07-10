@@ -4,7 +4,8 @@
   "description": "Backend API server for Dr. Fintan Virtual Care Hub",
   "main": "dist/server.js",
   "scripts": {
-    "build": "echo 'Build completed - using ts-node for runtime'",
+    "build": "tsc --project tsconfig.json",
+    "postbuild": "tsc-alias -p tsconfig.json",
     "start": "ts-node --transpile-only -r tsconfig-paths/register src/server.ts",
     "dev": "nodemon --config nodemon.json",
     "test": "jest",
@@ -81,6 +82,7 @@
     "prettier": "^3.5.3",
     "supertest": "^7.1.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "tsc-alias": "^1.8.10"
   }
 }

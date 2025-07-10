@@ -200,7 +200,8 @@ const CalcomBooking: React.FC<CalcomBookingProps> = ({
     if (!selectedEventType) return;
 
     // Open Cal.com embed in a modal or new window
-    const calcomUrl = `${process.env.REACT_APP_CALCOM_URL}/${selectedEventType.slug}`;
+    const calcomBaseUrl = process.env.REACT_APP_CALCOM_URL || 'http://localhost:3002';
+    const calcomUrl = `${calcomBaseUrl}/${selectedEventType.slug}`;
     window.open(calcomUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
   };
 

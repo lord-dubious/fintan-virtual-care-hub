@@ -54,6 +54,12 @@ export class TokenRefreshManager {
     try {
       // Verify refresh token first
       const decoded = jwt.verify(refreshToken, config.auth.jwtRefreshSecret) as any;
+
+      // Ensure the token is a refresh token
+      if (!decoded.type || decoded.type !== 'refresh') {
+        throw new Error('Invalid token type: expected refresh token');
+      }
+
       const tokenUserId = userId || decoded.userId;
       
       if (!tokenUserId) {

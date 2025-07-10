@@ -178,9 +178,9 @@ useQuery({
 **Fix**: Updated with provided Neon PostgreSQL URLs
 ```bash
 # Updated .env.full-stack.example with:
-DATABASE_URL="postgresql://fintan_owner:npg_6WeQhvkUd7Eb@ep-still-dream-a8kckvx0-pooler.eastus2.azure.neon.tech/fintan?sslmode=require&pgbouncer=true&connect_timeout=10"
-DIRECT_URL="postgresql://fintan_owner:npg_6WeQhvkUd7Eb@ep-still-dream-a8kckvx0.eastus2.azure.neon.tech/fintan?sslmode=require&connect_timeout=10"
-DAILY_API_KEY=ef46f246612c7f5604f5f083b4eb615276d075944ac40c197189f446a305f4db
+DATABASE_URL="postgresql://your_user:your_password@your_host/your_database?sslmode=require&pgbouncer=true&connect_timeout=10"
+DIRECT_URL="postgresql://your_user:your_password@your_host/your_database?sslmode=require&connect_timeout=10"
+DAILY_API_KEY=your_daily_api_key_here
 ENABLE_AUDIO_CALLS=true
 ```
 

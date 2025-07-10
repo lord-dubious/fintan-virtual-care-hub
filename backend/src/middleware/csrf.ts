@@ -241,6 +241,14 @@ export function doubleSubmitCookie(req: Request, res: Response, next: NextFuncti
       return;
     }
     
+    // Check token lengths before comparison
+    if (cookieToken.length !== headerToken.length) {
+      return res.status(403).json({
+        success: false,
+        error: 'Invalid CSRF token length'
+      });
+    }
+
     // Verify tokens match
     if (!crypto.timingSafeEqual(
       Buffer.from(cookieToken, 'hex'),

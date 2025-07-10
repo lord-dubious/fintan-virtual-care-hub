@@ -71,7 +71,18 @@ const verifyWebhookSignature = (payload: string, signature: string): boolean => 
 export const handleCalcomWebhook = async (req: Request, res: Response): Promise<void> => {
   try {
     const signature = req.headers['x-cal-signature'] as string;
-    const payload = JSON.stringify(req.body);
+
+    // Check for missing webhook signature header
+    if (!signature) {
+      res.status(400).json({
+        success: false,
+        error: 'Missing webhook signature header'
+      });
+      return;
+    }
+
+    // Use raw body for signature verification (should be captured by middleware)
+    const payload = req.rawBody || JSON.stringify(req.body);
 
     // Verify webhook signature
     if (!verifyWebhookSignature(payload, signature)) {
@@ -122,22 +133,42 @@ export const handleCalcomWebhook = async (req: Request, res: Response): Promise<
  */
 const handleBookingCreated = async (payload: CalcomWebhookPayload['payload']): Promise<void> => {
   try {
-    // Find the user in our system
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: payload.attendees[0]?.email },
-          { calcomUserId: payload.organizer.id },
-        ],
-      },
-      include: {
-        patient: true,
-        provider: true,
-      },
-    });
+    // Find the user in our system - prioritize attendee email for patient bookings
+    const attendeeEmail = payload.attendees[0]?.email;
+    const organizerId = payload.organizer.id;
+
+    let user = null;
+
+    // First try to find by attendee email (most likely the patient)
+    if (attendeeEmail) {
+      user = await prisma.user.findFirst({
+        where: { email: attendeeEmail },
+        include: {
+          patient: true,
+          provider: true,
+        },
+      });
+    }
+
+    // If not found and we have organizer ID, try that
+    if (!user && organizerId) {
+      user = await prisma.user.findFirst({
+        where: { calcomUserId: organizerId },
+        include: {
+          patient: true,
+          provider: true,
+        },
+      });
+    }
 
     if (!user) {
-      logger.error('User not found for Cal.com booking:', payload.attendees[0]?.email);
+      logger.error('User not found for Cal.com booking:', { attendeeEmail, organizerId });
+      return;
+    }
+
+    // Ensure we have a patient for appointment creation
+    if (!user.patient) {
+      logger.error('User found but no patient record exists:', user.id);
       return;
     }
 
@@ -145,11 +176,18 @@ const handleBookingCreated = async (payload: CalcomWebhookPayload['payload']): P
     const consultationType = payload.metadata?.consultationType || 
       (payload.type.toLowerCase().includes('audio') ? 'AUDIO' : 'VIDEO');
 
+    // Get provider - either from user or default
+    const providerId = user.provider?.id || await getDefaultProviderId();
+    if (!providerId) {
+      logger.error('No provider available for booking');
+      return;
+    }
+
     // Create appointment in our system
     const appointment = await prisma.appointment.create({
       data: {
-        patientId: user.patient?.id || user.id,
-        providerId: user.provider?.id || await getDefaultProviderId(),
+        patientId: user.patient.id,
+        providerId: providerId,
         appointmentDate: new Date(payload.startTime),
         reason: payload.description || 'Consultation',
         duration: Math.round((new Date(payload.endTime).getTime() - new Date(payload.startTime).getTime()) / 60000),

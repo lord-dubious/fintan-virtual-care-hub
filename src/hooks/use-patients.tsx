@@ -29,14 +29,8 @@ export const usePatients = () => {
     enabled: !!id,
   });
 
-  const usePatientByEmail = (email: string) => useQuery({
-    queryKey: ['patients', 'email', email],
-    queryFn: async () => {
-      // This would need to be implemented in the API
-      throw new Error('getByEmail not implemented');
-    },
-    enabled: false, // Disable until implemented
-  });
+  // Note: usePatientByEmail removed as it was not implemented
+  // If needed, implement the API endpoint first, then add the hook
 
   const createPatient = useMutation({
     mutationFn: async (newPatient: CreatePatientData) => {

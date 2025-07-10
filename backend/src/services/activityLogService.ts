@@ -281,7 +281,9 @@ export class ActivityLogService {
     const stats: Record<string, number> = {};
 
     activities.forEach(activity => {
-      const category = activity.metadata?.category || 'other';
+      const category = (activity.metadata && typeof activity.metadata === 'object' && 'category' in activity.metadata)
+        ? (activity.metadata as any).category || 'other'
+        : 'other';
       stats[category] = (stats[category] || 0) + 1;
     });
 

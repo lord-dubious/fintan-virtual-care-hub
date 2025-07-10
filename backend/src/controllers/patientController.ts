@@ -240,8 +240,7 @@ export const getPatientDashboard = async (req: AuthenticatedRequest, res: Respon
       medicalRecords: medicalRecords.map(record => ({
         id: record.id,
         diagnosis: record.diagnosis,
-        treatment: record.treatment,
-        prescription: record.prescription,
+        prescriptions: record.prescriptions,
         notes: record.notes,
         createdAt: record.createdAt,
         provider: record.provider ? {

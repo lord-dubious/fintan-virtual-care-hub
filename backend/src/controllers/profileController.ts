@@ -65,7 +65,16 @@ export const uploadProfilePicture = async (req: AuthenticatedRequest, res: Respo
     }
 
     // Generate the URL for the uploaded file
-    const baseUrl = process.env['API_BASE_URL'] || 'http://50.118.225.14:3000';
+    let baseUrl = process.env['API_BASE_URL'];
+    if (!baseUrl) {
+        const forwardedProto = req.headers['x-forwarded-proto'] as string;
+        const forwardedHost = req.headers['x-forwarded-host'] as string;
+        if (forwardedProto && forwardedHost) {
+            baseUrl = `${forwardedProto}://${forwardedHost}`;
+        } else {
+            baseUrl = `${req.protocol}://${req.get('host')}`;
+        }
+    }
     const profilePictureUrl = `${baseUrl}/uploads/profiles/${req.file.filename}`;
 
     // Update user's profile picture in database

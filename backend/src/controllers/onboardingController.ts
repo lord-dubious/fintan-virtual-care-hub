@@ -383,7 +383,7 @@ export const exportPatientData = async (req: AuthenticatedRequest, res: Response
         allergies: true,
         medications: true,
         conditions: true,
-        insuranceRecords: true,
+
         appointments: {
           include: {
             provider: {
@@ -440,14 +440,14 @@ export const exportPatientData = async (req: AuthenticatedRequest, res: Response
         consentGiven: patient.consentGiven,
         consentDate: patient.consentDate,
       },
-      emergencyContacts: patient.emergencyContacts,
+      emergencyContacts: patient.emergencyContact,
       medicalInformation: {
         allergies: patient.allergies,
         medications: patient.medications,
         conditions: patient.conditions,
         medicalHistory: patient.medicalHistory,
       },
-      insurance: patient.insuranceRecords,
+      insurance: patient.insurance,
       preferences: patient.preferences,
       appointments: patient.appointments.map(appointment => ({
         id: appointment.id,

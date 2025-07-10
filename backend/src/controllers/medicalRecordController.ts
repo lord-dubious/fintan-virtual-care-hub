@@ -1,19 +1,19 @@
-import { Response } from 'express';
-import { prisma } from '@/config/database';
-import logger from '@/config/logger';
-import { AuthenticatedRequest } from '@/types';
-import { z } from 'zod';
-import { startOfDay, endOfDay, parseISO } from 'date-fns';
+import { prisma } from "@/config/database";
+import logger from "@/config/logger";
+import { AuthenticatedRequest } from "@/types";
+import { endOfDay, startOfDay } from "date-fns";
+import { Response } from "express";
+import { z } from "zod";
 
 // Validation schemas
 const createMedicalRecordSchema = z.object({
-  patientId: z.string().min(1, 'Patient ID is required'),
+  patientId: z.string().min(1, "Patient ID is required"),
   appointmentId: z.string().optional(),
-  diagnosis: z.string().min(1, 'Diagnosis is required'),
+  diagnosis: z.string().min(1, "Diagnosis is required"),
   treatment: z.string().optional(),
   prescription: z.string().optional(),
   notes: z.string().optional(),
-  followUpDate: z.string().optional(),
+
   attachments: z.array(z.string()).optional(),
 });
 
@@ -22,40 +22,52 @@ const updateMedicalRecordSchema = z.object({
   treatment: z.string().optional(),
   prescription: z.string().optional(),
   notes: z.string().optional(),
-  followUpDate: z.string().optional(),
+
   attachments: z.array(z.string()).optional(),
 });
 
 const medicalRecordQuerySchema = z.object({
-  page: z.string().optional().transform(val => val ? parseInt(val) : 1),
-  limit: z.string().optional().transform(val => val ? Math.min(parseInt(val), 100) : 10),
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : 1)),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? Math.min(parseInt(val), 100) : 10)),
   patientId: z.string().optional(),
   providerId: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   diagnosis: z.string().optional(),
-  sortBy: z.enum(['createdAt', 'updatedAt', 'followUpDate']).optional().default('createdAt'),
-  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+  sortBy: z
+    .enum(["createdAt", "updatedAt"])
+    .optional()
+    .default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
 /**
  * Create medical record
  * POST /api/medical-records
  */
-export const createMedicalRecord = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const createMedicalRecord = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
-        error: 'Authentication required',
+        error: "Authentication required",
       });
       return;
     }
 
-    if (req.user.role !== 'PROVIDER' && req.user.role !== 'DOCTOR') {
+    if (req.user.role !== "PROVIDER" && req.user.role !== "DOCTOR") {
       res.status(403).json({
         success: false,
-        error: 'Only healthcare providers can create medical records',
+        error: "Only healthcare providers can create medical records",
       });
       return;
     }
@@ -71,7 +83,7 @@ export const createMedicalRecord = async (req: AuthenticatedRequest, res: Respon
     if (!provider) {
       res.status(404).json({
         success: false,
-        error: 'Provider profile not found',
+        error: "Provider profile not found",
       });
       return;
     }
@@ -85,7 +97,7 @@ export const createMedicalRecord = async (req: AuthenticatedRequest, res: Respon
     if (!patient) {
       res.status(404).json({
         success: false,
-        error: 'Patient not found',
+        error: "Patient not found",
       });
       return;
     }
@@ -97,10 +109,14 @@ export const createMedicalRecord = async (req: AuthenticatedRequest, res: Respon
         select: { providerId: true, patientId: true },
       });
 
-      if (!appointment || appointment.providerId !== provider.id || appointment.patientId !== validatedData.patientId) {
+      if (
+        !appointment ||
+        appointment.providerId !== provider.id ||
+        appointment.patientId !== validatedData.patientId
+      ) {
         res.status(400).json({
           success: false,
-          error: 'Invalid appointment reference',
+          error: "Invalid appointment reference",
         });
         return;
       }
@@ -110,7 +126,6 @@ export const createMedicalRecord = async (req: AuthenticatedRequest, res: Respon
       data: {
         ...validatedData,
         providerId: provider.id,
-        followUpDate: validatedData.followUpDate ? new Date(validatedData.followUpDate) : null,
       },
       include: {
         patient: {
@@ -127,28 +142,24 @@ export const createMedicalRecord = async (req: AuthenticatedRequest, res: Respon
             },
           },
         },
-        appointment: {
-          select: {
-            id: true,
-            appointmentDate: true,
-            consultationType: true,
-          },
-        },
+
       },
     });
 
-    logger.info(`✅ Medical record created: ${medicalRecord.id} for patient ${patient.user.name}`);
+    logger.info(
+      `✅ Medical record created: ${medicalRecord.id} for patient ${patient.user.name}`
+    );
 
     res.status(201).json({
       success: true,
       data: { medicalRecord },
-      message: 'Medical record created successfully',
+      message: "Medical record created successfully",
     });
   } catch (error) {
-    logger.error('Create medical record error:', error);
+    logger.error("Create medical record error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to create medical record',
+      error: "Failed to create medical record",
     });
   }
 };
@@ -157,24 +168,37 @@ export const createMedicalRecord = async (req: AuthenticatedRequest, res: Respon
  * Get medical records with filtering and pagination
  * GET /api/medical-records
  */
-export const getMedicalRecords = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getMedicalRecords = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
-        error: 'Authentication required',
+        error: "Authentication required",
       });
       return;
     }
 
     const queryParams = medicalRecordQuerySchema.parse(req.query);
-    const { page, limit, patientId, providerId, dateFrom, dateTo, diagnosis, sortBy, sortOrder } = queryParams;
+    const {
+      page,
+      limit,
+      patientId,
+      providerId,
+      dateFrom,
+      dateTo,
+      diagnosis,
+      sortBy,
+      sortOrder,
+    } = queryParams;
     const skip = (page - 1) * limit;
 
     const where: any = {};
 
     // Role-based access control
-    if (req.user.role === 'PATIENT') {
+    if (req.user.role === "PATIENT") {
       const patient = await prisma.patient.findUnique({
         where: { userId: req.user.id },
         select: { id: true },
@@ -183,13 +207,13 @@ export const getMedicalRecords = async (req: AuthenticatedRequest, res: Response
       if (!patient) {
         res.status(404).json({
           success: false,
-          error: 'Patient profile not found',
+          error: "Patient profile not found",
         });
         return;
       }
 
       where.patientId = patient.id;
-    } else if (req.user.role === 'PROVIDER' || req.user.role === 'DOCTOR') {
+    } else if (req.user.role === "PROVIDER" || req.user.role === "DOCTOR") {
       const provider = await prisma.provider.findUnique({
         where: { userId: req.user.id },
         select: { id: true },
@@ -198,7 +222,7 @@ export const getMedicalRecords = async (req: AuthenticatedRequest, res: Response
       if (!provider) {
         res.status(404).json({
           success: false,
-          error: 'Provider profile not found',
+          error: "Provider profile not found",
         });
         return;
       }
@@ -209,7 +233,7 @@ export const getMedicalRecords = async (req: AuthenticatedRequest, res: Response
       if (patientId) {
         where.patientId = patientId;
       }
-    } else if (req.user.role === 'ADMIN') {
+    } else if (req.user.role === "ADMIN") {
       // Admins can filter by both
       if (patientId) where.patientId = patientId;
       if (providerId) where.providerId = providerId;
@@ -217,13 +241,13 @@ export const getMedicalRecords = async (req: AuthenticatedRequest, res: Response
 
     // Additional filters
     if (diagnosis) {
-      where.diagnosis = { contains: diagnosis, mode: 'insensitive' };
+      where.diagnosis = { contains: diagnosis, mode: "insensitive" };
     }
 
     if (dateFrom || dateTo) {
       where.createdAt = {};
-      if (dateFrom) where.createdAt.gte = startOfDay(parseISO(dateFrom));
-      if (dateTo) where.createdAt.lte = endOfDay(parseISO(dateTo));
+      if (dateFrom) where.createdAt.gte = startOfDay(new Date(dateFrom));
+      if (dateTo) where.createdAt.lte = endOfDay(new Date(dateTo));
     }
 
     const [medicalRecords, total] = await Promise.all([
@@ -245,13 +269,7 @@ export const getMedicalRecords = async (req: AuthenticatedRequest, res: Response
               specialization: true,
             },
           },
-          appointment: {
-            select: {
-              id: true,
-              appointmentDate: true,
-              consultationType: true,
-            },
-          },
+
         },
         skip,
         take: limit,
@@ -272,15 +290,23 @@ export const getMedicalRecords = async (req: AuthenticatedRequest, res: Response
           hasNextPage: page < Math.ceil(total / limit),
           hasPrevPage: page > 1,
         },
-        filters: { patientId, providerId, dateFrom, dateTo, diagnosis, sortBy, sortOrder },
+        filters: {
+          patientId,
+          providerId,
+          dateFrom,
+          dateTo,
+          diagnosis,
+          sortBy,
+          sortOrder,
+        },
       },
       message: `Retrieved ${medicalRecords.length} medical records`,
     });
   } catch (error) {
-    logger.error('Get medical records error:', error);
+    logger.error("Get medical records error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve medical records',
+      error: "Failed to retrieve medical records",
     });
   }
 };
@@ -289,12 +315,15 @@ export const getMedicalRecords = async (req: AuthenticatedRequest, res: Response
  * Get specific medical record
  * GET /api/medical-records/:id
  */
-export const getMedicalRecord = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getMedicalRecord = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
-        error: 'Authentication required',
+        error: "Authentication required",
       });
       return;
     }
@@ -319,27 +348,19 @@ export const getMedicalRecord = async (req: AuthenticatedRequest, res: Response)
             specialization: true,
           },
         },
-        appointment: {
-          select: {
-            id: true,
-            appointmentDate: true,
-            consultationType: true,
-            duration: true,
-          },
-        },
       },
     });
 
     if (!medicalRecord) {
       res.status(404).json({
         success: false,
-        error: 'Medical record not found',
+        error: "Medical record not found",
       });
       return;
     }
 
     // Access control
-    if (req.user.role === 'PATIENT') {
+    if (req.user.role === "PATIENT") {
       const patient = await prisma.patient.findUnique({
         where: { userId: req.user.id },
         select: { id: true },
@@ -348,11 +369,11 @@ export const getMedicalRecord = async (req: AuthenticatedRequest, res: Response)
       if (!patient || medicalRecord.patientId !== patient.id) {
         res.status(403).json({
           success: false,
-          error: 'Access denied',
+          error: "Access denied",
         });
         return;
       }
-    } else if (req.user.role === 'PROVIDER' || req.user.role === 'DOCTOR') {
+    } else if (req.user.role === "PROVIDER" || req.user.role === "DOCTOR") {
       const provider = await prisma.provider.findUnique({
         where: { userId: req.user.id },
         select: { id: true },
@@ -361,7 +382,7 @@ export const getMedicalRecord = async (req: AuthenticatedRequest, res: Response)
       if (!provider || medicalRecord.providerId !== provider.id) {
         res.status(403).json({
           success: false,
-          error: 'Access denied',
+          error: "Access denied",
         });
         return;
       }
@@ -371,13 +392,13 @@ export const getMedicalRecord = async (req: AuthenticatedRequest, res: Response)
     res.json({
       success: true,
       data: { medicalRecord },
-      message: 'Medical record retrieved successfully',
+      message: "Medical record retrieved successfully",
     });
   } catch (error) {
-    logger.error('Get medical record error:', error);
+    logger.error("Get medical record error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve medical record',
+      error: "Failed to retrieve medical record",
     });
   }
 };
@@ -386,20 +407,23 @@ export const getMedicalRecord = async (req: AuthenticatedRequest, res: Response)
  * Update medical record
  * PUT /api/medical-records/:id
  */
-export const updateMedicalRecord = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const updateMedicalRecord = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
-        error: 'Authentication required',
+        error: "Authentication required",
       });
       return;
     }
 
-    if (req.user.role !== 'PROVIDER' && req.user.role !== 'DOCTOR') {
+    if (req.user.role !== "PROVIDER" && req.user.role !== "DOCTOR") {
       res.status(403).json({
         success: false,
-        error: 'Only healthcare providers can update medical records',
+        error: "Only healthcare providers can update medical records",
       });
       return;
     }
@@ -416,7 +440,7 @@ export const updateMedicalRecord = async (req: AuthenticatedRequest, res: Respon
     if (!provider) {
       res.status(404).json({
         success: false,
-        error: 'Provider profile not found',
+        error: "Provider profile not found",
       });
       return;
     }
@@ -430,7 +454,7 @@ export const updateMedicalRecord = async (req: AuthenticatedRequest, res: Respon
     if (!existingRecord) {
       res.status(404).json({
         success: false,
-        error: 'Medical record not found',
+        error: "Medical record not found",
       });
       return;
     }
@@ -438,7 +462,7 @@ export const updateMedicalRecord = async (req: AuthenticatedRequest, res: Respon
     if (existingRecord.providerId !== provider.id) {
       res.status(403).json({
         success: false,
-        error: 'Access denied',
+        error: "Access denied",
       });
       return;
     }
@@ -447,7 +471,7 @@ export const updateMedicalRecord = async (req: AuthenticatedRequest, res: Respon
       where: { id },
       data: {
         ...validatedData,
-        followUpDate: validatedData.followUpDate ? new Date(validatedData.followUpDate) : undefined,
+
         updatedAt: new Date(),
       },
       include: {
@@ -473,13 +497,13 @@ export const updateMedicalRecord = async (req: AuthenticatedRequest, res: Respon
     res.json({
       success: true,
       data: { medicalRecord: updatedRecord },
-      message: 'Medical record updated successfully',
+      message: "Medical record updated successfully",
     });
   } catch (error) {
-    logger.error('Update medical record error:', error);
+    logger.error("Update medical record error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to update medical record',
+      error: "Failed to update medical record",
     });
   }
 };
@@ -488,20 +512,27 @@ export const updateMedicalRecord = async (req: AuthenticatedRequest, res: Respon
  * Delete medical record
  * DELETE /api/medical-records/:id
  */
-export const deleteMedicalRecord = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const deleteMedicalRecord = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
-        error: 'Authentication required',
+        error: "Authentication required",
       });
       return;
     }
 
-    if (req.user.role !== 'PROVIDER' && req.user.role !== 'DOCTOR' && req.user.role !== 'ADMIN') {
+    if (
+      req.user.role !== "PROVIDER" &&
+      req.user.role !== "DOCTOR" &&
+      req.user.role !== "ADMIN"
+    ) {
       res.status(403).json({
         success: false,
-        error: 'Insufficient permissions',
+        error: "Insufficient permissions",
       });
       return;
     }
@@ -515,22 +546,22 @@ export const deleteMedicalRecord = async (req: AuthenticatedRequest, res: Respon
         providerId: true,
         patient: {
           select: {
-            user: { select: { name: true } }
-          }
-        }
+            user: { select: { name: true } },
+          },
+        },
       },
     });
 
     if (!existingRecord) {
       res.status(404).json({
         success: false,
-        error: 'Medical record not found',
+        error: "Medical record not found",
       });
       return;
     }
 
     // Access control for providers
-    if (req.user.role === 'PROVIDER' || req.user.role === 'DOCTOR') {
+    if (req.user.role === "PROVIDER" || req.user.role === "DOCTOR") {
       const provider = await prisma.provider.findUnique({
         where: { userId: req.user.id },
         select: { id: true },
@@ -539,7 +570,7 @@ export const deleteMedicalRecord = async (req: AuthenticatedRequest, res: Respon
       if (!provider || existingRecord.providerId !== provider.id) {
         res.status(403).json({
           success: false,
-          error: 'Access denied',
+          error: "Access denied",
         });
         return;
       }
@@ -549,17 +580,19 @@ export const deleteMedicalRecord = async (req: AuthenticatedRequest, res: Respon
       where: { id },
     });
 
-    logger.info(`✅ Medical record deleted: ${id} for patient ${existingRecord.patient.user.name}`);
+    logger.info(
+      `✅ Medical record deleted: ${id} for patient ${existingRecord.patient.user.name}`
+    );
 
     res.json({
       success: true,
-      message: 'Medical record deleted successfully',
+      message: "Medical record deleted successfully",
     });
   } catch (error) {
-    logger.error('Delete medical record error:', error);
+    logger.error("Delete medical record error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to delete medical record',
+      error: "Failed to delete medical record",
     });
   }
 };

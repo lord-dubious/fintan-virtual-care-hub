@@ -42,18 +42,51 @@ export const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'"],
-      frameSrc: ["'none'"],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'", // Required for Tailwind CSS and inline styles
+        "https://fonts.googleapis.com",
+        "https://cdn.jsdelivr.net"
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "https://cdn.jsdelivr.net"
+      ],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "https:", // Allow HTTPS images
+        "blob:" // Allow blob URLs for file uploads
+      ],
+      scriptSrc: [
+        "'self'",
+        // Only allow specific trusted domains for scripts
+        "https://js.stripe.com",
+        "https://checkout.stripe.com",
+        ...(process.env.NODE_ENV === 'development' ? ["'unsafe-eval'"] : [])
+      ],
+      connectSrc: [
+        "'self'",
+        "https:", // Allow HTTPS connections
+        "wss:", // Allow secure WebSocket connections
+        "https://api.stripe.com",
+        "https://api.daily.co",
+        ...(process.env.NODE_ENV === 'development' ? ["ws:", "http:"] : [])
+      ],
+      frameSrc: [
+        "'self'",
+        "https://js.stripe.com",
+        "https://hooks.stripe.com",
+        "https://call.daily.co"
+      ],
       objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
+      mediaSrc: ["'self'", "blob:", "https:"],
       manifestSrc: ["'self'"],
+      workerSrc: ["'self'", "blob:"],
     },
   },
-  crossOriginEmbedderPolicy: false, // Disable for development
+  crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production',
   hsts: {
     maxAge: 31536000,
     includeSubDomains: true,
@@ -70,7 +103,7 @@ export const validateEmail = body('email')
 export const validatePassword = body('password')
   .isLength({ min: 8 })
   .withMessage('Password must be at least 8 characters long')
-  .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+  .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/)
   .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character');
 
 export const validateName = body('name')
@@ -86,20 +119,21 @@ export const validatePhone = body('phone')
   .withMessage('Please provide a valid phone number');
 
 // Validation result handler
-export const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
+export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       error: 'Validation failed',
       details: errors.array(),
     });
+    return;
   }
   next();
 };
 
 // Sanitize input middleware
-export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
+export const sanitizeInput = (req: Request, _res: Response, next: NextFunction) => {
   const sanitizeString = (str: string): string => {
     return str
       .replace(/[<>]/g, '') // Remove potential HTML tags
@@ -137,30 +171,43 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
   next();
 };
 
-// CORS configuration - Defaults to allow all origins unless CORS_ORIGIN is set
+// CORS configuration - Secure origin handling
 export const corsOptions = {
-  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // If CORS_ORIGIN is set, only allow that specific origin
-    if (process.env.CORS_ORIGIN) {
-      const allowedOrigins = process.env.CORS_ORIGIN.split(',').map(origin => origin.trim());
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
 
-      // Allow requests with no origin (mobile apps, etc.)
-      if (!origin) return callback(null, true);
+    // Get allowed origins from environment or use defaults
+    const allowedOrigins = process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+      : [
+          'http://localhost:5173', // Vite dev server
+          'http://localhost:10000', // Vite preview
+          'http://localhost:3000', // Backend dev
+          'https://localhost:5173',
+          'https://localhost:10000',
+          ...(process.env.NODE_ENV === 'development' ? ['http://127.0.0.1:5173', 'http://127.0.0.1:10000'] : [])
+        ];
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'), false);
-      }
-    } else {
-      // Default: Allow all origins (good for development and flexible deployment)
+    // Add production URLs if available
+    if (process.env.FRONTEND_URL) {
+      allowedOrigins.push(process.env.FRONTEND_URL);
+    }
+    if (process.env.VITE_BACKEND_URL) {
+      allowedOrigins.push(process.env.VITE_BACKEND_URL);
+    }
+
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
+    } else {
+      console.warn(`🚫 CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'), false);
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['X-Total-Count'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
+  exposedHeaders: ['X-Total-Count', 'X-CSRF-Token'],
 };
 
 // File upload security
@@ -169,7 +216,7 @@ export const fileUploadSecurity = {
     fileSize: 5 * 1024 * 1024, // 5MB limit
     files: 5, // Maximum 5 files
   },
-  fileFilter: (req: Request, file: Express.Multer.File, cb: any) => {
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: any) => {
     const allowedMimeTypes = [
       'image/jpeg',
       'image/png',
@@ -198,7 +245,7 @@ export const auditLogger = (action: string) => {
         timestamp: new Date().toISOString(),
         action,
         userId: (req as any).user?.id || 'anonymous',
-        ip: req.ip || req.connection.remoteAddress,
+        ip: req.ip || req.socket?.remoteAddress,
         userAgent: req.get('User-Agent'),
         method: req.method,
         url: req.originalUrl,
@@ -220,17 +267,18 @@ export const auditLogger = (action: string) => {
 
 // Request size limiting
 export const requestSizeLimit = (maxSize: string = '10mb') => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const contentLength = req.get('content-length');
     if (contentLength) {
       const sizeInBytes = parseInt(contentLength);
       const maxSizeInBytes = parseSize(maxSize);
       
       if (sizeInBytes > maxSizeInBytes) {
-        return res.status(413).json({
+        res.status(413).json({
           success: false,
           error: 'Request entity too large',
         });
+        return;
       }
     }
     next();
@@ -258,9 +306,9 @@ function parseSize(size: string): number {
 // IP whitelist middleware (for admin endpoints)
 export const ipWhitelist = (allowedIPs: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const clientIP = req.ip || req.connection.remoteAddress || '';
+    const clientIP = req.ip || req.socket?.remoteAddress || '';
     
-    if (allowedIPs.includes(clientIP) || allowedIPs.includes('*')) {
+    if (allowedIPs.includes(clientIP)) {
       next();
     } else {
       res.status(403).json({
@@ -273,7 +321,9 @@ export const ipWhitelist = (allowedIPs: string[]) => {
 
 // Session security
 export const sessionSecurity = {
-  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET || (() => {
+    throw new Error('SESSION_SECRET environment variable is required');
+  })(),
   resave: false,
   saveUninitialized: false,
   cookie: {

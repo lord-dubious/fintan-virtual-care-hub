@@ -22,6 +22,15 @@ model User {
   emailVerified        DateTime?
   image                String?
   role                 Role           @default(PATIENT)
+  timezone             String?        @default("UTC")
+
+  // Cal.com integration fields
+  calcomUserId         Int?           @unique
+  calcomUsername       String?        @unique
+  calcomAccessToken    String?
+  calcomRefreshToken   String?
+  calcomTokenExpiry    DateTime?
+
   accounts             Account[]
   notifications        Notification[]
   patient              Patient?
@@ -238,10 +247,20 @@ model Appointment {
   updatedAt        DateTime          @updatedAt
   consultationType ConsultationType  @default(VIDEO)
   status           AppointmentStatus @default(SCHEDULED)
+
+  // Cal.com integration fields
+  calcomBookingId  Int?              @unique
+  calcomBookingUid String?           @unique
+  calcomEventTypeId Int?
+  calcomMetadata   Json?
+
   patient          Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
   provider         Provider          @relation(fields: [providerId], references: [id], onDelete: Cascade)
   consultation     Consultation?
   payment          Payment?
+
+  @@index([calcomBookingId])
+  @@index([calcomBookingUid])
 }
 
 model Consultation {
@@ -392,6 +411,52 @@ model Condition {
   name      String
   diagnosed DateTime?
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// Cal.com integration models
+model CalcomWebhook {
+  id            String   @id @default(cuid())
+  webhookId     String   @unique
+  subscriberUrl String
+  eventTriggers String[]
+  secret        String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  events        CalcomWebhookEvent[]
+}
+
+model CalcomWebhookEvent {
+  id            String   @id @default(cuid())
+  webhookId     String
+  eventType     String
+  bookingId     Int?
+  bookingUid    String?
+  payload       Json
+  processed     Boolean  @default(false)
+  processingError String?
+  createdAt     DateTime @default(now())
+
+  webhook       CalcomWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([eventType])
+  @@index([bookingId])
+  @@index([processed])
+}
+
+model CalcomEventType {
+  id          String   @id @default(cuid())
+  calcomId    Int      @unique
+  title       String
+  slug        String
+  description String?
+  length      Int
+  locations   Json?
+  metadata    Json?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 

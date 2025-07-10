@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +10,8 @@ interface ProfilePictureProps {
     avatar?: string;
     role?: string;
   };
+  src?: string; // Direct image source URL
+  name?: string; // Direct name for initials
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   showOnlineStatus?: boolean;
@@ -18,13 +20,15 @@ interface ProfilePictureProps {
 
 const ProfilePicture: React.FC<ProfilePictureProps> = ({
   user,
+  src,
+  name,
   size = 'md',
   className,
   showOnlineStatus = false,
   isOnline = false
 }) => {
-  // Get profile picture URL (priority: profilePicture > image > avatar)
-  const profileImageUrl = user?.profilePicture || user?.image || user?.avatar;
+  // Get profile picture URL (priority: src > user.profilePicture > user.image > user.avatar)
+  const profileImageUrl = src || user?.profilePicture || user?.image || user?.avatar;
   
   // Get user initials for fallback
   const getInitials = (name?: string) => {
@@ -61,7 +65,7 @@ const ProfilePicture: React.FC<ProfilePictureProps> = ({
     }
   };
 
-  const initials = getInitials(user?.name);
+  const initials = getInitials(name || user?.name);
   const roleColor = getRoleColor(user?.role);
 
   return (
@@ -75,7 +79,7 @@ const ProfilePicture: React.FC<ProfilePictureProps> = ({
         {profileImageUrl ? (
           <img
             src={profileImageUrl}
-            alt={user?.name || 'Profile'}
+            alt={name || user?.name || 'Profile'}
             className="w-full h-full object-cover"
             onError={(e) => {
               // Fallback to initials if image fails to load

@@ -70,9 +70,9 @@ interface ProviderDashboardData {
 export const useProviderDashboard = () => {
   const { toast } = useToast();
 
-  return useQuery({
+  return useQuery<ProviderDashboardData>({
     queryKey: ['provider', 'dashboard'],
-    queryFn: async () => {
+    queryFn: async (): Promise<ProviderDashboardData> => {
       try {
         const response = await apiClient.get<ProviderDashboardData>('/api/providers/dashboard');
 
@@ -92,7 +92,7 @@ export const useProviderDashboard = () => {
       }
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     refetchOnWindowFocus: true,
     refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
     retry: 2,
@@ -101,13 +101,6 @@ export const useProviderDashboard = () => {
     refetchOnMount: 'always',
     // Optimistic updates for better UX
     placeholderData: (previousData) => previousData,
-    // Prefetch related data
-    onSuccess: (data) => {
-      // Pre-populate appointment cache if we have today's appointments
-      if (data.todaysAppointments?.length > 0) {
-        // This would help with faster navigation to appointments tab
-      }
-    },
   });
 };
 

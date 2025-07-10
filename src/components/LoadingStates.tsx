@@ -1,8 +1,13 @@
-import React from 'react';
-import { Loader2, Wifi, WifiOff, RefreshCw, AlertCircle } from 'lucide-react';
+import React from "react";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  WifiOff
+} from 'lucide-react';
 
 // Full page loading spinner
 export const PageLoader: React.FC<{ message?: string }> = ({ 

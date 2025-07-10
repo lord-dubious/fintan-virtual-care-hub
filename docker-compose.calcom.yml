@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  calcom-database:
+    image: postgres:14
+    container_name: calcom-database
+    restart: always
+    environment:
+      POSTGRES_DB: calcom
+      POSTGRES_USER: calcom
+      POSTGRES_PASSWORD: ${CALCOM_DATABASE_PASSWORD:-calcom_password_change_me}
+    volumes:
+      - calcom_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - calcom-network
+
+  calcom-app:
+    image: calcom/cal.com:latest
+    container_name: calcom-app
+    restart: always
+    depends_on:
+      - calcom-database
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgresql://calcom:${CALCOM_DATABASE_PASSWORD:-calcom_password_change_me}@calcom-database:5432/calcom
+      
+      # Application Configuration
+      NEXTAUTH_SECRET: ${CALCOM_NEXTAUTH_SECRET}
+      CALENDSO_ENCRYPTION_KEY: ${CALCOM_ENCRYPTION_KEY}
+      
+      # Public URLs
+      NEXT_PUBLIC_WEBAPP_URL: ${CALCOM_WEBAPP_URL:-http://localhost:3001}
+      NEXTAUTH_URL: ${CALCOM_WEBAPP_URL:-http://localhost:3001}
+      
+      # API Configuration
+      API_V2_URL: ${CALCOM_WEBAPP_URL:-http://localhost:3001}/api/v2
+      
+      # Daily.co Integration (reuse existing credentials)
+      DAILY_API_KEY: ${DAILY_API_KEY}
+      DAILY_SCALE_PLAN: ${DAILY_SCALE_PLAN:-false}
+      
+      # Email Configuration (optional)
+      EMAIL_FROM: ${CALCOM_EMAIL_FROM:-noreply@yourdomain.com}
+      EMAIL_SERVER_HOST: ${CALCOM_EMAIL_HOST}
+      EMAIL_SERVER_PORT: ${CALCOM_EMAIL_PORT:-587}
+      EMAIL_SERVER_USER: ${CALCOM_EMAIL_USER}
+      EMAIL_SERVER_PASSWORD: ${CALCOM_EMAIL_PASSWORD}
+      
+      # Disable telemetry for self-hosted
+      NEXT_PUBLIC_TELEMETRY_KEY: ""
+      CALCOM_TELEMETRY_DISABLED: "1"
+      
+      # License (for self-hosted)
+      NEXT_PUBLIC_LICENSE_CONSENT: "agree"
+      
+      # Timezone
+      TZ: ${TIMEZONE:-UTC}
+      
+    ports:
+      - "3001:3000"
+    volumes:
+      - calcom_app_data:/app/.next
+    networks:
+      - calcom-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Redis for caching (recommended for production)
+  calcom-redis:
+    image: redis:7-alpine
+    container_name: calcom-redis
+    restart: always
+    ports:
+      - "6380:6379"
+    volumes:
+      - calcom_redis_data:/data
+    networks:
+      - calcom-network
+    command: redis-server --appendonly yes
+
+volumes:
+  calcom_postgres_data:
+    driver: local
+  calcom_app_data:
+    driver: local
+  calcom_redis_data:
+    driver: local
+
+networks:
+  calcom-network:
+    driver: bridge

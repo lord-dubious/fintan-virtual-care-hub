@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from "react";
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +9,7 @@ import {
   FileText,
   Download,
   Share,
-  Print,
+  Printer as Print,
   Calendar,
   User,
   Pill,
@@ -169,7 +170,7 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
                     <label className="text-sm font-medium text-muted-foreground">Patient</label>
                     <div className="flex items-center gap-2 mt-1">
                       <User className="h-4 w-4" />
-                      {record.patient.user.name}
+                      {record.patient?.user?.name}
                     </div>
                   </div>
                 )}
@@ -180,7 +181,7 @@ const RecordViewer: React.FC<RecordViewerProps> = ({
                     <div className="mt-1">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4" />
-                        {record.provider.user.name}
+                        {record.provider?.user?.name}
                       </div>
                       {record.provider.specialization && (
                         <div className="text-sm text-muted-foreground ml-6">

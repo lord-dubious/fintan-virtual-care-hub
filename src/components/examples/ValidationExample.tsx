@@ -1,5 +1,6 @@
+import React from "react";
 // Example component demonstrating the new validation system
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { useValidation, validationUtils } from '@/hooks/useValidation';
 import { LoginSchema, RegisterSchema } from '@/lib/validation/schemas';
 import { Role, AppointmentStatus, PaymentStatus } from '@/lib/types/enums';
-import { CheckCircle, XCircle } from 'lucide-react';
 
 const ValidationExample: React.FC = () => {
   const [loginData, setLoginData] = useState({

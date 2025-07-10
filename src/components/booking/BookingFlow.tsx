@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from "react";
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth/authProvider';
 import { appointmentService } from '@/lib/services/appointmentService';
@@ -13,7 +14,6 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { usePatientProfileForBooking } from '@/hooks/usePatientProfile';
-import { CheckCircle, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { Mic, Video, Check, Info } from 'lucide-react';
 

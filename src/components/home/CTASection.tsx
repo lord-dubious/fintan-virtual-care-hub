@@ -1,5 +1,5 @@
+import React from "react";
 
-import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ShieldCheck, Clock, GraduationCap, Users, MessageSquare, Video } from 'lucide-react';
 import { Link } from 'react-router-dom';

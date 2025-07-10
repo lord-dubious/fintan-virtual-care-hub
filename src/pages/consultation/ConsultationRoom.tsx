@@ -1,9 +1,9 @@
-import React from 'react';
+import React from "react";
 import { useParams, useNavigate } from 'react-router-dom';
 import { useJoinConsultation } from '@/hooks/useConsultations';
 import { Button } from '@/components/ui/button';
 import VideoCallInterface from '@/components/video/VideoCallInterface';
-import { Loader2 } from 'lucide-react';
+import { Loader as Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Terminal } from "lucide-react"
 

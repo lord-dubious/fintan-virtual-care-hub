@@ -20,7 +20,7 @@ const createWrapper = () => {
     defaultOptions: {
       queries: {
         retry: false,
-        cacheTime: 0,
+        gcTime: 0,
       },
     },
   });
@@ -292,9 +292,9 @@ describe('Dashboard Data Synchronization Tests', () => {
       });
 
       // Optimistic update
-      queryClient.setQueryData(['patient', 'dashboard'], (oldData: any) => ({
+      queryClient.setQueryData(['patient', 'dashboard'], (oldData: unknown) => ({
         ...oldData,
-        upcomingAppointments: oldData.upcomingAppointments.map((apt: any) =>
+        upcomingAppointments: oldData.upcomingAppointments.map((apt: unknown) =>
           apt.id === 'apt-1' ? { ...apt, status: 'COMPLETED' } : apt
         ),
       }));

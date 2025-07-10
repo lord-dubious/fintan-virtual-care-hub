@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from "react";
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -148,7 +149,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, isProvi
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
               <CardTitle className="text-lg">
-                {isProvider ? appointment.patient?.user.name || 'Unknown Patient' : appointment.provider?.user.name || 'Unknown Provider'}
+                {isProvider ? appointment.patient??.user?.name || 'Unknown Patient' : appointment.provider??.user?.name || 'Unknown Provider'}
               </CardTitle>
               {getStatusBadge(appointment.status)}
             </div>

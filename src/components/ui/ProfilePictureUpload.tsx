@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, Upload, X, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';

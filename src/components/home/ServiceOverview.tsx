@@ -1,7 +1,6 @@
+import React from "react";
 
-import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Video, Headphones, ArrowRight, CheckCircle, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 

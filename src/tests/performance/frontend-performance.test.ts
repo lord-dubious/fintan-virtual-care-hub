@@ -134,7 +134,7 @@ describe('Frontend Performance Tests', () => {
 
   describe('List Rendering Performance', () => {
     it('should handle large lists efficiently', async () => {
-      const LargeList = ({ items }: { items: any[] }) => (
+      const LargeList = ({ items }: { items: unknown[] }) => (
         <ul>
           {items.map((item, index) => (
             <li key={index}>
@@ -166,7 +166,7 @@ describe('Frontend Performance Tests', () => {
     });
 
     it('should handle list updates efficiently', async () => {
-      const UpdatingList = ({ items }: { items: any[] }) => (
+      const UpdatingList = ({ items }: { items: unknown[] }) => (
         <ul>
           {items.map((item, index) => (
             <li key={item.id}>
@@ -289,7 +289,7 @@ describe('Frontend Performance Tests', () => {
 
   describe('Memory Usage', () => {
     it('should not leak memory during component mounting/unmounting', async () => {
-      const TestComponent = ({ data }: { data: any[] }) => (
+      const TestComponent = ({ data }: { data: unknown[] }) => (
         <div>
           {data.map((item, index) => (
             <div key={index} className="item">

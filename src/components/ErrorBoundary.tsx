@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
+import { AlertTriangle, Home, Bug, RotateCcw as RefreshCw } from "lucide-react";
 import { errorTracker } from '@/lib/utils/monitoring';
 import { config } from '@/lib/config/env';
 
@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to monitoring service
     errorTracker.recordError({
       message: error.message,

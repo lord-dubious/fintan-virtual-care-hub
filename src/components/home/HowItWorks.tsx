@@ -1,5 +1,5 @@
+import React from "react";
 
-import React from 'react';
 import { Calendar, Video, Clipboard, MessageSquare } from 'lucide-react';
 const HowItWorks: React.FC = () => {
   const steps = [{

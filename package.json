@@ -31,7 +31,10 @@
     "status:frontend": "node scripts/check-status.cjs frontend",
     "status:backend": "node scripts/check-status.cjs backend",
     "kill:dev": "pkill -f 'vite|nodemon' || echo 'No dev processes found'",
-    "restart": "npm run kill:dev && npm run dev"
+    "restart": "npm run kill:dev && npm run dev",
+    "type-check": "tsc --noEmit --project tsconfig.build.json",
+    "build:emergency": "node build-emergency.js",
+    "build:vite-only": "vite build"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.80.0",

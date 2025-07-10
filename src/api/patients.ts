@@ -32,14 +32,14 @@ interface AddMedicalRecordData {
   prescription?: string;
 }
 
-interface PatientDashboardData {
+export interface PatientDashboardData {
   patient: {
     id: string;
     name: string;
     email: string;
     phone?: string;
     profilePicture?: string;
-    emergencyContact?: any;
+    emergencyContact?: unknown;
     allergies?: string[];
     medications?: string[];
     medicalHistory?: string;
@@ -74,7 +74,7 @@ interface PatientDashboardData {
     id: string;
     action: string;
     description: string;
-    metadata?: any;
+    metadata?: unknown;
     createdAt: string;
   }>;
   medicalRecords: Array<{

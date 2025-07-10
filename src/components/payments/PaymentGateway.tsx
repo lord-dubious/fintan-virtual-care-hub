@@ -1,11 +1,11 @@
-import React from 'react';
+import React from "react";
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import StripePaymentForm from './StripePaymentForm';
 import { useCreateCheckoutSession } from '@/hooks/usePayments';
 import { CreatePaymentData, PaymentIntent } from '@/api/payments';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader as Loader2 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 
 interface PaymentGatewayProps {

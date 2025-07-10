@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from "react";
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
+import { Appointment, AppointmentStatus } from '@/types/api';
+import type { ApiAppointment } from '@/api/appointments';
 import { format } from 'date-fns';
 import {
   Calendar,
@@ -32,6 +35,12 @@ import { InlineLoader, ErrorState, EmptyState } from '@/components/LoadingStates
 
 const PatientAppointments: React.FC = () => {
   const isMobile = useIsMobile();
+
+  // Convert ApiAppointment to Appointment for component compatibility
+  const convertAppointment = (apiAppointment: ApiAppointment): Appointment => ({
+    ...apiAppointment,
+    appointmentDate: apiAppointment.appointmentDate.toISOString(),
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('upcoming');
 
@@ -39,7 +48,7 @@ const PatientAppointments: React.FC = () => {
     data: upcomingData, 
     isLoading: isLoadingUpcoming 
   } = useAppointments({ 
-    status: 'SCHEDULED,CONFIRMED',
+    status: 'SCHEDULED' as AppointmentStatus,
     limit: 20 
   });
 
@@ -47,7 +56,7 @@ const PatientAppointments: React.FC = () => {
     data: pastData, 
     isLoading: isLoadingPast 
   } = useAppointments({ 
-    status: 'COMPLETED,CANCELLED',
+    status: 'COMPLETED' as AppointmentStatus,
     limit: 20 
   });
 
@@ -69,7 +78,7 @@ const PatientAppointments: React.FC = () => {
     }
   };
 
-  const AppointmentCard: React.FC<{ appointment: any }> = ({ appointment }) => (
+  const AppointmentCard: React.FC<{ appointment: Appointment }> = ({ appointment }) => (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
@@ -218,7 +227,7 @@ const PatientAppointments: React.FC = () => {
                   apt.reason?.toLowerCase().includes(searchTerm.toLowerCase())
                 )
                 .map((appointment) => (
-                  <AppointmentCard key={appointment.id} appointment={appointment} />
+                  <AppointmentCard key={appointment.id} appointment={convertAppointment(appointment)} />
                 ))}
             </div>
           ) : (
@@ -246,7 +255,7 @@ const PatientAppointments: React.FC = () => {
                   apt.reason?.toLowerCase().includes(searchTerm.toLowerCase())
                 )
                 .map((appointment) => (
-                  <AppointmentCard key={appointment.id} appointment={appointment} />
+                  <AppointmentCard key={appointment.id} appointment={convertAppointment(appointment)} />
                 ))}
             </div>
           ) : (

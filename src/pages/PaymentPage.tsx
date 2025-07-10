@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from "react";
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppointment } from '@/hooks/useAppointments';
 import { usePaymentMethodConfig } from '@/hooks/usePayments';
@@ -6,7 +7,7 @@ import PaymentGateway from '@/components/payments/PaymentGateway';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 // import { Button } from '@/components/ui/button'; // Unused import
-import { Loader2 } from 'lucide-react';
+import { Loader as Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 
@@ -56,7 +57,7 @@ const PaymentPage: React.FC = () => {
         <CardHeader>
           <CardTitle>Complete Your Payment</CardTitle>
           <CardDescription>
-            You are paying for a consultation for "{appointment.patient.user.name}" with "{appointment.provider.user.name}".
+            You are paying for a consultation for "{appointment.patient?.user?.name}" with "{appointment.provider?.user?.name}".
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,6 +1,5 @@
+import React from "react";
 
-import React from 'react';
-import { CheckCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface BookingProgressProps {

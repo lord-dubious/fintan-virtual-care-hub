@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Users, Activity, Clock, DollarSign } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -88,7 +88,7 @@ const AdminDashboard = () => {
     if (!appointmentsData?.appointments) return [];
 
     return appointmentsData.appointments.map((appointment: ApiAppointment) => ({ // Use ApiAppointment
-      patient: appointment.patient?.user.name || 'Unknown Patient', // Access patient name via user object
+      patient: appointment.patient?.user?.name || 'Unknown Patient', // Access patient name via user object
       time: format(appointment.appointmentDate, 'p'), // Use appointmentDate which is a Date object
       type: `${appointment.consultationType.charAt(0).toUpperCase() + appointment.consultationType.slice(1).toLowerCase()} Consultation`
     }));

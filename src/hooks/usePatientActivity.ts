@@ -162,7 +162,7 @@ export const usePatientNotifications = () => {
       
       if (response.data.success) {
         // Transform notifications into activity items
-        const activities = response.data.data.map((notification: NotificationData) => ({
+        const activities = response.data?.data.map((notification: NotificationData) => ({
           id: notification.id,
           type: notification.type.toLowerCase(),
           title: notification.title,

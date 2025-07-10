@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { useToast } from '@/hooks/use-toast';
+import {
+  TimeSlot,
+  BookingData,
+  Appointment,
+  ApiResponse
+} from '@/types/api';
 
 export interface AvailabilitySlot {
   date: string;
@@ -30,18 +36,18 @@ export const useAvailabilitySlots = (
   return useQuery({
     queryKey: ['availability-slots', startDate?.toISOString(), endDate?.toISOString(), slotDuration],
     queryFn: async (): Promise<AvailabilitySlot[]> => {
-      const params: any = { slotDuration };
+      const params: Record<string, unknown> = { slotDuration };
       
       if (startDate) params.startDate = startDate.toISOString();
       if (endDate) params.endDate = endDate.toISOString();
 
-      const response = await apiClient.get('/availability/slots', { params });
+      const response = await apiClient.get<ApiResponse<{ slots: AvailabilitySlot[] }>>('/availability/slots', { params });
 
       if (!response.data.success) {
         throw new Error(response.data.error || 'Failed to fetch availability');
       }
 
-      return response.data.data.slots || [];
+      return response.data?.data?.slots || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes
@@ -55,13 +61,13 @@ export const useCreateBooking = () => {
 
   return useMutation({
     mutationFn: async (bookingData: BookingRequest) => {
-      const response = await apiClient.post('/appointments', bookingData);
-      
+      const response = await apiClient.post<ApiResponse<Appointment>>('/appointments', bookingData);
+
       if (!response.data.success) {
         throw new Error(response.data.error || 'Failed to create booking');
       }
 
-      return response.data.data;
+      return response.data?.data!;
     },
     onSuccess: () => {
       // Invalidate availability queries to refresh slots
@@ -87,7 +93,7 @@ export const useDoctorInfo = () => {
   return useQuery({
     queryKey: ['doctor-info'],
     queryFn: async () => {
-      const response = await apiClient.get('/availability/doctor-info');
+      const response = await apiClient.get<ApiResponse<any>>('/availability/doctor-info');
 
       if (!response.data.success) {
         // Return default doctor info if API fails
@@ -102,7 +108,7 @@ export const useDoctorInfo = () => {
         };
       }
 
-      return response.data.data;
+      return response.data?.data!;
     },
     staleTime: 30 * 60 * 1000, // 30 minutes
   });
@@ -113,13 +119,13 @@ export const useMyAppointments = () => {
   return useQuery({
     queryKey: ['my-appointments'],
     queryFn: async () => {
-      const response = await apiClient.get('/appointments/my');
-      
+      const response = await apiClient.get<ApiResponse<Appointment[]>>('/appointments/my');
+
       if (!response.data.success) {
         throw new Error(response.data.error || 'Failed to fetch appointments');
       }
 
-      return response.data.data || [];
+      return response.data?.data || [];
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
   });

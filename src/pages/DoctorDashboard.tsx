@@ -122,7 +122,7 @@ const DoctorDashboard: React.FC = () => {
   }
 
   if (user?.role !== 'DOCTOR' && user?.role !== 'PROVIDER') {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/patient/dashboard" replace />;
   }
 
   // Loading state

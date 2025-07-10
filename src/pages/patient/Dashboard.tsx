@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
 import { usePatientDashboard } from '@/hooks/usePatients';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -20,13 +21,16 @@ import {
   TrendingUp,
   Heart,
   Plus,
+  AlertCircle,
 } from 'lucide-react';
 import { DashboardSkeleton, ErrorState } from '@/components/LoadingStates';
+import { PatientOnboarding } from '@/components/onboarding/PatientOnboarding';
 
 const PatientDashboard: React.FC = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const { data: dashboardData, isLoading, error } = usePatientDashboard();
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -52,6 +56,25 @@ const PatientDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Onboarding Alert */}
+      {dashboardData?.patient?.needsOnboarding && (
+        <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+          <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <AlertDescription className="text-blue-800 dark:text-blue-200">
+            <div className="flex items-center justify-between">
+              <span>Complete your profile to get the most out of your virtual care experience.</span>
+              <Button
+                size="sm"
+                onClick={() => setIsOnboardingOpen(true)}
+                className="ml-4 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Complete Profile
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
@@ -274,6 +297,14 @@ const PatientDashboard: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Onboarding Modal */}
+      <PatientOnboarding
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        userEmail={user?.email || ''}
+        userName={user?.name || ''}
+      />
     </div>
   );
 };

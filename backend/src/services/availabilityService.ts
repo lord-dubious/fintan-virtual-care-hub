@@ -14,6 +14,8 @@ export interface AvailabilitySlot {
   endTime: string;
   isAvailable: boolean;
   reason?: string;
+  providerId?: string; // Which doctor this slot belongs to
+  providerName?: string; // Doctor's name for display
 }
 
 export interface ConflictResult {
@@ -28,53 +30,76 @@ export interface ConflictResult {
 
 export class AvailabilityService {
   /**
-   * Get provider availability for a date range
+   * Get availability for all active doctors (unified system)
    */
-  static async getProviderAvailability(
-    providerId: string,
+  static async getAvailability(
     startDate: Date,
     endDate: Date,
     slotDuration: number = 30 // minutes
   ): Promise<AvailabilitySlot[]> {
     try {
-      // Get active schedule
-      const schedule = await prisma.providerSchedule.findFirst({
+      // Find ALL active doctors and their schedules
+      const providers = await prisma.provider.findMany({
         where: {
-          providerId,
           isActive: true,
-          isDefault: true
+          isVerified: true
         },
         include: {
-          weeklyAvailability: true,
-          breakPeriods: true,
-          scheduleExceptions: {
+          user: {
+            select: {
+              name: true
+            }
+          },
+          schedules: {
             where: {
-              date: {
-                gte: startOfDay(startDate),
-                lte: endOfDay(endDate)
+              isActive: true,
+              isDefault: true
+            },
+            include: {
+              weeklyAvailability: true,
+              breakPeriods: true,
+              scheduleExceptions: {
+                where: {
+                  date: {
+                    gte: startOfDay(startDate),
+                    lte: endOfDay(endDate)
+                  }
+                }
               }
             }
           }
         }
       });
 
-      if (!schedule) {
+      if (!providers.length) {
+        console.log('No active doctors found in the system');
         return [];
       }
 
-      // Get existing appointments
-      const appointments = await prisma.appointment.findMany({
-        where: {
-          providerId,
-          appointmentDate: {
-            gte: startOfDay(startDate),
-            lte: endOfDay(endDate)
-          },
-          status: {
-            in: ['SCHEDULED', 'CONFIRMED']
-          }
+      // Collect all availability slots from all doctors
+      const allSlots: AvailabilitySlot[] = [];
+
+      for (const provider of providers) {
+        const schedule = provider.schedules[0]; // Get first active schedule
+
+        if (!schedule) {
+          console.log(`No schedule found for doctor ${provider.user.name}. Skipping.`);
+          continue;
         }
-      });
+
+        // Get existing appointments for this provider
+        const appointments = await prisma.appointment.findMany({
+          where: {
+            providerId: provider.id,
+            appointmentDate: {
+              gte: startOfDay(startDate),
+              lte: endOfDay(endDate)
+            },
+            status: {
+              in: ['SCHEDULED', 'CONFIRMED']
+            }
+          }
+        });
 
       const slots: AvailabilitySlot[] = [];
       let currentDate = startOfDay(startDate);
@@ -146,7 +171,9 @@ export class AvailabilityService {
               startTime: slot.start,
               endTime: slot.end,
               isAvailable: !conflict.hasConflict,
-              reason: conflict.hasConflict ? conflict.conflicts[0]?.description : undefined
+              reason: conflict.hasConflict ? conflict.conflicts[0]?.description : undefined,
+              providerId: provider.id,
+              providerName: provider.user.name
             });
           }
         }
@@ -154,10 +181,23 @@ export class AvailabilityService {
         currentDate = addDays(currentDate, 1);
       }
 
-      return slots;
+      // Add this provider's slots to the collection
+      allSlots.push(...slots);
+    }
+
+    // Sort all slots by date and time
+    allSlots.sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date);
+      if (dateCompare !== 0) return dateCompare;
+      return a.startTime.localeCompare(b.startTime);
+    });
+
+    return allSlots;
     } catch (error) {
       console.error('Error getting provider availability:', error);
-      throw new Error('Failed to get provider availability');
+      // Return empty array instead of throwing error to prevent frontend crashes
+      console.log(`Returning empty availability due to error`);
+      return [];
     }
   }
 

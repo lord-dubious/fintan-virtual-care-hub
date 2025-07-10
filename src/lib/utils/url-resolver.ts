@@ -39,8 +39,14 @@ export const resolveBackendURL = (options: URLResolverOptions = {}): string => {
   } = options;
 
   // PRIORITY 1: Full URL override
-  if (import.meta.env.VITE_BACKEND_URL) {
+  if (import.meta.env.VITE_BACKEND_URL !== undefined) {
     let url = import.meta.env.VITE_BACKEND_URL;
+
+    // If empty string, use relative URLs (for proxy setup)
+    if (url === "") {
+      return includeApiPath ? "/api" : "";
+    }
+
     // Remove trailing slash to prevent double slashes
     url = url.replace(/\/$/, '');
     return includeApiPath ? `${url}/api` : url;

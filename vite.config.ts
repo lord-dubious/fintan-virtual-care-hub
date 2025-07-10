@@ -19,6 +19,13 @@ export default defineConfig(({ mode }) => ({
     host: "0.0.0.0",
     port: parseInt(process.env.VITE_PORT || process.env.PORT || "10000", 10),
     allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
   preview: {
     host: "0.0.0.0",

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Video, Phone } from 'lucide-react';
-import BookingCalendar from '@/components/booking/BookingCalendar';
+import UnifiedBooking from '@/components/booking/UnifiedBooking';
 import { useToast } from '@/hooks/use-toast';
 
 const NewBookingPage: React.FC = () => {
@@ -13,7 +13,7 @@ const NewBookingPage: React.FC = () => {
   const { toast } = useToast();
   
   // Get provider ID from URL params or use default
-  const providerId = searchParams.get('providerId') || process.env.VITE_DEFAULT_PROVIDER_ID || 'cmcskh5uw0003jhvff9r7utpw';
+  const providerId = searchParams.get('providerId') || import.meta.env.VITE_DEFAULT_PROVIDER_ID || 'cmcxlrue50002psiap8tir6nn';
   const [consultationType, setConsultationType] = useState<'VIDEO' | 'AUDIO'>('VIDEO');
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
 
@@ -100,12 +100,15 @@ const NewBookingPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Booking Calendar */}
-        <BookingCalendar
-          providerId={providerId}
-          consultationType={consultationType}
-          onSlotSelected={handleSlotSelected}
-          onBookingComplete={handleBookingComplete}
+        {/* Unified Booking */}
+        <UnifiedBooking
+          onBookingComplete={() => {
+            toast({
+              title: "Booking Successful!",
+              description: "Your appointment has been confirmed.",
+            });
+            navigate('/patient/appointments');
+          }}
         />
 
         {/* Debug Information */}

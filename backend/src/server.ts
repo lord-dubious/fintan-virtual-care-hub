@@ -4,6 +4,7 @@ import logger from "@/config/logger";
 import { initializeSocket } from "@/config/socket";
 import { errorHandler, notFoundHandler } from "@/middleware/errorHandler";
 import { rateLimiters } from "@/middleware/rateLimiter";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -67,6 +68,9 @@ app.use(
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Cookie parsing middleware
+app.use(cookieParser());
 
 // Static file serving for uploads
 app.use("/uploads", express.static("uploads"));

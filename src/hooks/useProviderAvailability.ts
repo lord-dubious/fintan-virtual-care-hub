@@ -111,24 +111,21 @@ export interface ProviderSchedule {
   }[];
 }
 
-// Hook to get provider availability slots
-export const useProviderAvailability = (
-  providerId: string,
-  startDate: Date,
-  endDate: Date,
+// Hook to get availability slots (auto-detects single doctor)
+export const useAvailabilitySlots = (
+  startDate?: Date,
+  endDate?: Date,
   slotDuration: number = 30
 ) => {
   return useQuery({
-    queryKey: ['provider-availability', providerId, startDate.toISOString(), endDate.toISOString(), slotDuration],
+    queryKey: ['availability-slots', startDate?.toISOString(), endDate?.toISOString(), slotDuration],
     queryFn: async (): Promise<AvailabilitySlot[]> => {
-      const response = await apiClient.get('/api/availability/slots', {
-        params: {
-          providerId,
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          slotDuration
-        }
-      });
+      const params: any = { slotDuration };
+
+      if (startDate) params.startDate = startDate.toISOString();
+      if (endDate) params.endDate = endDate.toISOString();
+
+      const response = await apiClient.get('/availability/slots', { params });
 
       const apiResponse = response.data as ApiResponse;
       if (!apiResponse.success) {
@@ -137,10 +134,19 @@ export const useProviderAvailability = (
 
       return (apiResponse.data as { slots: AvailabilitySlot[] }).slots;
     },
-    enabled: !!providerId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes
   });
+};
+
+// Legacy hook for backward compatibility
+export const useProviderAvailability = (
+  providerId: string,
+  startDate: Date,
+  endDate: Date,
+  slotDuration: number = 30
+) => {
+  return useAvailabilitySlots(startDate, endDate, slotDuration);
 };
 
 // Hook to check appointment conflicts

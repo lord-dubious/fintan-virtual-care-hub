@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import BookingCalendar from './BookingCalendar';
+import UnifiedBooking from './UnifiedBooking';
 
 interface DateTimeStepProps {
   bookingData: {
@@ -37,13 +37,10 @@ const DateTimeStep: React.FC<DateTimeStepProps> = ({ bookingData, updateBookingD
         </p>
       </div>
       
-      <BookingCalendar
-        providerId={providerId || 'default-provider-id'}
-        consultationType={bookingData.consultationType === 'video' ? 'VIDEO' : 'AUDIO'}
-        onSlotSelected={(date: string, time: string) => {
-          const selectedDate = new Date(date);
-          handleDateSelect(selectedDate);
-          handleTimeSelect(time);
+      <UnifiedBooking
+        onBookingComplete={() => {
+          // Handle booking completion in the parent component
+          console.log('Booking completed from DateTimeStep');
         }}
       />
     </div>

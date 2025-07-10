@@ -23,6 +23,17 @@ export const API_CONFIG = {
     "Content-Type": "application/json",
   },
   withCredentials: true, // Enable cookies for secure token storage
+  paramsSerializer: {
+    serialize: (params: Record<string, any>) => {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value));
+        }
+      });
+      return searchParams.toString();
+    }
+  }
 } as const;
 
 // Mock API Configuration

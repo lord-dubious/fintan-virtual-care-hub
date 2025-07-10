@@ -60,11 +60,33 @@ export const getPatientDashboard = async (req: AuthenticatedRequest, res: Respon
     });
 
     if (!patient) {
-      res.status(404).json({
-        success: false,
-        error: 'Patient profile not found',
+      // Create a basic patient profile for new users
+      const newPatient = await prisma.patient.create({
+        data: {
+          userId: req.user.id,
+          onboardingStatus: 'NOT_STARTED',
+          onboardingStep: 0,
+        },
+        select: {
+          id: true,
+          emergencyContact: true,
+          allergies: true,
+          medications: true,
+          medicalHistory: true,
+          onboardingStatus: true,
+          onboardingStep: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              profilePicture: true,
+            },
+          },
+        },
       });
-      return;
+      patient = newPatient;
     }
 
     // Calculate date range
@@ -203,6 +225,9 @@ export const getPatientDashboard = async (req: AuthenticatedRequest, res: Respon
         allergies: patient.allergies,
         medications: patient.medications,
         medicalHistory: patient.medicalHistory,
+        onboardingStatus: patient.onboardingStatus,
+        onboardingStep: patient.onboardingStep,
+        needsOnboarding: patient.onboardingStatus === 'NOT_STARTED' || patient.onboardingStatus === 'IN_PROGRESS',
       },
       upcomingAppointments: upcomingAppointments.map(appointment => ({
         id: appointment.id,

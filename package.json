@@ -94,7 +94,7 @@
     "react-hook-form": "^7.53.0",
     "react-resizable-panels": "^2.1.3",
     "react-router-dom": "^6.26.2",
-    "recharts": "^2.12.7",
+    "recharts": "^3.1.0",
     "scroll-behavior-polyfill": "^2.0.13",
     "simple-peer": "^9.11.1",
     "slot-calculator": "^2.2.1",

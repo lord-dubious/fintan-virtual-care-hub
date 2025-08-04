@@ -186,8 +186,8 @@ importers:
         specifier: ^7.53.0
         version: 7.60.0(react@18.3.1)
       react-resizable-panels:
-        specifier: ^2.1.3
-        version: 2.1.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^3.0.4
+        version: 3.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-router-dom:
         specifier: ^6.26.2
         version: 6.30.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -813,8 +813,8 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
 
-  '@babel/plugin-transform-regenerator@7.28.0':
-    resolution: {integrity: sha512-LOAozRVbqxEVjSKfhGnuLoE4Kz4Oc5UJzuvFUhSsQzdCdaAQu06mG8zDv2GFSerM62nImUZ7K92vxnQcLSDlCQ==}
+  '@babel/plugin-transform-regenerator@7.28.1':
+    resolution: {integrity: sha512-P0QiV/taaa3kXpLY+sXla5zec4E+4t4Aqc9ggHlfZ7a2cp8/x/Gv08jfwEtn9gnnYIMvHx6aoOZ8XJL8eU71Dg==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -900,6 +900,10 @@ packages:
     resolution: {integrity: sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/runtime@7.28.2':
+    resolution: {integrity: sha512-KHp2IflsnGywDjBWDkR9iEqiWSpc8GIi0lgTT3mOElT0PP1tG26P4tmFI2YvAdzgq9RGyoHZQEIEdZy6Ec5xCA==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/template@7.27.2':
     resolution: {integrity: sha512-LPDZ85aEJyYSd18/DkjNh4/y1ntkE5KwUHWTiqgRxruuZL2F1yuHligVHLvcHY2vMHXttKFpJn6LwfI7cw7ODw==}
     engines: {node: '>=6.9.0'}
@@ -910,6 +914,10 @@ packages:
 
   '@babel/types@7.28.0':
     resolution: {integrity: sha512-jYnje+JyZG5YThjHiF28oT4SIZLnYOcSBb6+SDaFIyzDVSkXQmQQYclJ2R+YxcdmK0AX6x1E5OQNtuh3jHDrUg==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/types@7.28.2':
+    resolution: {integrity: sha512-ruv7Ae4J5dUYULmeXw1gmb7rYRz57OWCPM57pHojnLq/3Z1CK2lNSLTCVjxVk1F/TZHwOZZrOWi0ur95BbLxNQ==}
     engines: {node: '>=6.9.0'}
 
   '@bcoe/v8-coverage@0.2.3':
@@ -4719,6 +4727,10 @@ packages:
     resolution: {integrity: sha512-M7BAV6Rlcy5u+m6oPhAPFgJTzAioX/6B0DxyvDlo9l8+T3nLKbrczg2WLUyzd45L8RqfUMyGPzekbMvX2Ldkwg==}
     engines: {node: '>=12'}
 
+  picomatch@4.0.3:
+    resolution: {integrity: sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==}
+    engines: {node: '>=12'}
+
   pidtree@0.3.1:
     resolution: {integrity: sha512-qQbW94hLHEqCg7nhby4yRC7G2+jYHY4Rguc2bjw7Uug4GIJuu1tvf2uHaZv5Q8zdt+WKJ6qK1FOI6amaWUo5FA==}
     engines: {node: '>=0.10'}
@@ -4921,8 +4933,8 @@ packages:
       '@types/react':
         optional: true
 
-  react-resizable-panels@2.1.9:
-    resolution: {integrity: sha512-z77+X08YDIrgAes4jl8xhnUu1LNIRp4+E7cv4xHmLOxxUPO/ML7PSrE813b90vj7xvQ1lcf7g2uA9GeMZonjhQ==}
+  react-resizable-panels@3.0.4:
+    resolution: {integrity: sha512-8Y4KNgV94XhUvI2LeByyPIjoUJb71M/0hyhtzkHaqpVHs+ZQs8b627HmzyhmVYi3C9YP6R+XD1KmG7hHjEZXFQ==}
     peerDependencies:
       react: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
@@ -5244,6 +5256,7 @@ packages:
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
     engines: {node: '>= 8'}
+    deprecated: The work that was done in this beta branch won't be included in future versions
 
   sourcemap-codec@1.4.8:
     resolution: {integrity: sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==}
@@ -6029,7 +6042,7 @@ snapshots:
 
   '@babel/helper-annotate-as-pure@7.27.3':
     dependencies:
-      '@babel/types': 7.28.0
+      '@babel/types': 7.28.2
 
   '@babel/helper-compilation-targets@7.27.2':
     dependencies:
@@ -6075,7 +6088,7 @@ snapshots:
   '@babel/helper-member-expression-to-functions@7.27.1':
     dependencies:
       '@babel/traverse': 7.28.0
-      '@babel/types': 7.28.0
+      '@babel/types': 7.28.2
     transitivePeerDependencies:
       - supports-color
 
@@ -6097,7 +6110,7 @@ snapshots:
 
   '@babel/helper-optimise-call-expression@7.27.1':
     dependencies:
-      '@babel/types': 7.28.0
+      '@babel/types': 7.28.2
 
   '@babel/helper-plugin-utils@7.27.1': {}
 
@@ -6122,7 +6135,7 @@ snapshots:
   '@babel/helper-skip-transparent-expression-wrappers@7.27.1':
     dependencies:
       '@babel/traverse': 7.28.0
-      '@babel/types': 7.28.0
+      '@babel/types': 7.28.2
     transitivePeerDependencies:
       - supports-color
 
@@ -6136,7 +6149,7 @@ snapshots:
     dependencies:
       '@babel/template': 7.27.2
       '@babel/traverse': 7.28.0
-      '@babel/types': 7.28.0
+      '@babel/types': 7.28.2
     transitivePeerDependencies:
       - supports-color
 
@@ -6550,7 +6563,7 @@ snapshots:
       '@babel/core': 7.28.0
       '@babel/helper-plugin-utils': 7.27.1
 
-  '@babel/plugin-transform-regenerator@7.28.0(@babel/core@7.28.0)':
+  '@babel/plugin-transform-regenerator@7.28.1(@babel/core@7.28.0)':
     dependencies:
       '@babel/core': 7.28.0
       '@babel/helper-plugin-utils': 7.27.1
@@ -6672,7 +6685,7 @@ snapshots:
       '@babel/plugin-transform-private-methods': 7.27.1(@babel/core@7.28.0)
       '@babel/plugin-transform-private-property-in-object': 7.27.1(@babel/core@7.28.0)
       '@babel/plugin-transform-property-literals': 7.27.1(@babel/core@7.28.0)
-      '@babel/plugin-transform-regenerator': 7.28.0(@babel/core@7.28.0)
+      '@babel/plugin-transform-regenerator': 7.28.1(@babel/core@7.28.0)
       '@babel/plugin-transform-regexp-modifiers': 7.27.1(@babel/core@7.28.0)
       '@babel/plugin-transform-reserved-words': 7.27.1(@babel/core@7.28.0)
       '@babel/plugin-transform-shorthand-properties': 7.27.1(@babel/core@7.28.0)
@@ -6697,10 +6710,12 @@ snapshots:
     dependencies:
       '@babel/core': 7.28.0
       '@babel/helper-plugin-utils': 7.27.1
-      '@babel/types': 7.28.0
+      '@babel/types': 7.28.2
       esutils: 2.0.3
 
   '@babel/runtime@7.27.6': {}
+
+  '@babel/runtime@7.28.2': {}
 
   '@babel/template@7.27.2':
     dependencies:
@@ -6721,6 +6736,11 @@ snapshots:
       - supports-color
 
   '@babel/types@7.28.0':
+    dependencies:
+      '@babel/helper-string-parser': 7.27.1
+      '@babel/helper-validator-identifier': 7.27.1
+
+  '@babel/types@7.28.2':
     dependencies:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
@@ -8022,7 +8042,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.8
       estree-walker: 2.0.2
-      picomatch: 4.0.2
+      picomatch: 4.0.3
     optionalDependencies:
       rollup: 2.79.2
 
@@ -8218,7 +8238,7 @@ snapshots:
   '@testing-library/dom@10.4.0':
     dependencies:
       '@babel/code-frame': 7.27.1
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.2
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       chalk: 4.1.2
@@ -10862,6 +10882,8 @@ snapshots:
 
   picomatch@4.0.2: {}
 
+  picomatch@4.0.3: {}
+
   pidtree@0.3.1: {}
 
   pify@2.3.0: {}
@@ -11041,7 +11063,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.23
 
-  react-resizable-panels@2.1.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  react-resizable-panels@3.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -12147,7 +12169,7 @@ snapshots:
       '@apideck/better-ajv-errors': 0.3.6(ajv@8.17.1)
       '@babel/core': 7.28.0
       '@babel/preset-env': 7.28.0(@babel/core@7.28.0)
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.2
       '@rollup/plugin-babel': 5.3.1(@babel/core@7.28.0)(@types/babel__core@7.20.5)(rollup@2.79.2)
       '@rollup/plugin-node-resolve': 15.3.1(rollup@2.79.2)
       '@rollup/plugin-replace': 2.4.2(rollup@2.79.2)

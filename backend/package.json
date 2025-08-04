@@ -53,7 +53,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.1",
-    "prisma": "^6.9.0",
+    "prisma": "^6.13.0",
     "slot-calculator": "^2.2.1",
     "socket.io": "^4.8.1",
     "stripe": "^18.2.1",
